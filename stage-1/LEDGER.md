@@ -38,11 +38,11 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 ### §1 Scope
 - **R1.01** §1 — P2/P4 — built
   > A caller asks for a company by its web domain. The service researches the company on the web and keeps a **dossier**: a profile of six fields, each with the value the web supports and the excerpts it came from. A dossier is built in the background, read any number of times, and refreshed on request. Only the HTTP API is required.
-- **R1.01a** §1.1 — P3/P4 — open
+- **R1.01a** §1.1 — P3/P4 — built
   > Every value the service asserts cites at least one excerpt that a provider endpoint served to this service, and that excerpt supports the value. No citation is invented, reworded, or attached to a value it does not support.
-- **R1.02** §1.2 — P4 — open (measure M1.1)
+- **R1.02** §1.2 — P4 — built (measure M1.1)
   > No build of a dossier spends more than 80 units (§9).
-- **R1.02a** §1 — P4 — open
+- **R1.02a** §1 — P4 — built
   > Contact data, people search, and fields other than the six in §4 are out of scope.
 
 ### §2 Delivery and deployment
@@ -52,15 +52,15 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > The submitted `Dockerfile` is built and started, and only its HTTP behavior is exercised; it does not import or execute the submission's source files on the host that runs it.
 - **R1.05** §2 — P1 — built
   > The image must run on its own with `-e PORT=<port>` and a port mapping. All runtime dependencies, initialization and seed data must work within that single container. Compose configuration is not used to start the service.
-- **R1.06** §2 Web access — P4 — open
+- **R1.06** §2 Web access — P4 — built
   > Nimble is the default provider: every service must be able to research companies using Nimble alone. Tavily is optional: a service may use it beside Nimble, and its absence must not prevent research while Nimble answers.
-- **R1.07** §2 Web access — P4 — open
+- **R1.07** §2 Web access — P4 — built
   > The service reaches the providers only through WebRouter, the Python package `webrouter` (module `web_router`). ... every request to a provider goes through `web_router` ... Calling a provider's API by any other route is not permitted.
 - **R1.08** §2 Web access — P1 — built
   > The stage folder's dependency manifest lists `webrouter>=0.12.0`. ... Install it and the provider SDK dependencies from PyPI, including in the service's Docker build: `pip install "webrouter[search,extract,research]>=0.12.0"`
-- **R1.09** §2 env — P4 — open
+- **R1.09** §2 env — P4 — built
   > `NIMBLE_API_KEY` Credential for the `nimble` provider; `NIMBLE_BASE_URL` Base URL of the `nimble` provider endpoint; `TAVILY_API_KEY` Credential for the `tavily` provider; `TAVILY_BASE_URL` Base URL of the `tavily` provider endpoint
-- **R1.10** §2 env — P4 — open
+- **R1.10** §2 env — P4 — built
   > Keys are opaque non-empty strings. WebRouter's `nimble` provider reads `NIMBLE_API_KEY` and `NIMBLE_BASE_URL` from the environment, and its `tavily` provider reads `TAVILY_API_KEY`. A service that uses Tavily passes its base URL to WebRouter in `provider_config`: `provider_config={"tavily": {"api_base_url": <TAVILY_BASE_URL>}}`
 - **R1.11** §2 limits — P1 — built (measure M1.3)
   > CPU 2 vCPU; Memory 3 GiB
@@ -118,7 +118,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > The normalised domain must then be a valid host name: two or more labels separated by `.`, each label 1 to 63 characters of `a-z`, `0-9` and `-`, not starting or ending with `-`, and 253 characters or fewer in total. Anything else, including a URL with a scheme or a path, is 422 `validation_failed`.
 - **R1.37** §4 Domains — P2 — built
   > `Acme-Robotics.TEST.`, `www.acme-robotics.test` and `acme-robotics.test` name the same company and the same dossier. Responses always carry the normalised domain.
-- **R1.38** §4 Fields — P2/P4 — open
+- **R1.38** §4 Fields — P2/P4 — built
   > A dossier has exactly these six fields: `legal_name` String; `hq_city` String (city, without region or country); `ceo` String (full name); `founded_year` Integer; `headcount_range` String: one of `1-10`, `11-50`, `51-200`, `201-500`, `501-1000`, `1001-5000`, `5001-10000`, `10001+`; `funding_total` Integer: total equity funding raised, in whole US dollars
 - **R1.39** §4 Fields — P3 — built
   > A string value is written as the supporting excerpt writes it, without surrounding whitespace. A headcount the web states as a number, or as a range that fits inside one of the ranges above, has the range that contains it as its value.
@@ -126,19 +126,19 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Each field in a response has this shape: `{ "value": "Dana Ruiz", "status": "known", "citations": [ { "url": ..., "excerpt": ..., "provider": "nimble" } ] }`
 - **R1.41** §4 Fields — P2/P4 — built
   > `status` is `known` when `value` is not null, and `unknown` when it is. A `known` field has one or more citations. An `unknown` field has `"value": null` and `"citations": []`.
-- **R1.42** §4 Fields — P4 — open
+- **R1.42** §4 Fields — P4 — built
   > `url` is the URL of the page the excerpt was served for, `provider` is `nimble` or `tavily`, the provider that served it.
-- **R1.43** §4 Evidence — P4 — open
+- **R1.43** §4 Evidence — P4 — built
   > The **evidence** for a company is every page that some search, through any provider and for any query naming the company (as in Appendix A.2), returns, with its full text, and every claim that a `nimble` research run for the company asking for all six fields answers with.
-- **R1.44** §4 Evidence — P4 — open
+- **R1.44** §4 Evidence — P4 — built
   > Of the searches that a provider answers without an error, every build makes exactly one whose query is exactly the company's normalised domain, through a provider of its choice; its other such searches use other queries. A search that a provider answers with an error does not count. The pages whose text a build obtains from providers are the pages it **gathers**.
 - **R1.45** §4 Citation — P3/P4 — built
   > The excerpt is copied character for character from that served text, except that any run of whitespace may be written as a single space. It is 1 to 500 characters long. It is taken from the page's prose (below), not from its header.
 - **R1.46** §4 Support — P3 — built
   > An excerpt **supports** a value when, read on its own, it states that value for that field of this company, as Appendix A defines. The excerpt may write the value differently from the API: `Acme Robotics has raised $12M.` and `Acme Robotics has raised 12 million dollars.` both support a `funding_total` of `12000000`, and `Acme Robotics employs about 120 people.` supports a `headcount_range` of `51-200`.
-- **R1.47** §4 Support — P4 — open
+- **R1.47** §4 Support — P4 — built
   > A research answer carries a claimed value for a field and a citation for the claim. The claim is asserted only when its citation supports it. A field is `unknown` when no evidence supports a value for it, even when a research answer claims one.
-- **R1.48** §4 Support — P4 — open
+- **R1.48** §4 Support — P4 — built
   > When the evidence supports more than one value for a field, the field holds one of them and cites only excerpts that support that value.
 - **R1.49** §4 Pages — P3 — built
   > Every page has a URL, a title and a text. A text may begin with **header lines**, each of the form `Name: value`, where the name is a capitalised word or several joined by `-`. The header ends at the first empty line; everything after it is the page's **prose**. A text whose first line is not a header line has no header and is all prose.
@@ -208,11 +208,11 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > A dossier has at most one build running at a time.
 - **R1.81** §8 Builds — P2/P4 — built
   > A build ends in `ready` when it completed, or `failed` when none of its provider calls succeeded. A failed build leaves the fields as they were.
-- **R1.82** §8 Builds — P4 — open (measure M1.5)
+- **R1.82** §8 Builds — P4 — built (measure M1.5)
   > When a build completes `ready`, each field is `known` exactly when the evidence (§4) supports a value for it.
-- **R1.83** §8 Builds — P4 — open (measure M1.2)
+- **R1.83** §8 Builds — P4 — built (measure M1.2)
   > A build whose provider calls each answer within one second ends within 10 seconds of the request that started it.
-- **R1.84** §8 Builds — P4 — open
+- **R1.84** §8 Builds — P4 — built
   > That bound is not a deadline for slower providers. Against the live providers (`NIMBLE_BASE_URL` unset, or its host `sdk.nimbleway.com`), where a Nimble search can take over ten seconds and a research run about a minute, a build does not give up on a call that has been waiting less than 30 seconds, nor stop gathering because of the time it has run in its first 120 seconds. It still ends `ready` or `failed` within 300 seconds.
 - **R1.85** §8 Builds — P1/P2 — built
   > Reading a dossier, listing dossiers and every other request except `POST /dossiers` and `POST /dossiers/{domain}/refresh` make no provider call.
@@ -262,17 +262,17 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > `limit` defaults to 50, range 1 to 200. `offset` defaults to 0. `has_more` is true when items exist beyond the last one returned.
 
 ### §9 Providers and cost
-- **R1.141** §9 — P4 — open (measure M1.1)
+- **R1.141** §9 — P4 — built (measure M1.1)
   > Costs: nimble search lite 1, fast 5, deep 15; tavily search lite 8, fast 16, deep 16; extract nimble 1 per URL requested, tavily 2 per URL requested (including a URL for which no page is returned); research run through nimble 25 when started; checking on or collecting a run costs nothing.
-- **R1.142** §9 — P4 — open
+- **R1.142** §9 — P4 — built
   > A search's depth is WebRouter's `search_depth`. A search returns at most 10 results, whatever number it asks for.
-- **R1.143** §9 — P4 — open
+- **R1.143** §9 — P4 — built
   > A call that a provider refuses with an error status costs nothing. A call whose answer does not arrive, because it times out or its connection fails, costs its units as in the table, whether or not the provider received it. An extract that the provider answers with no page for the URL is not refused: it costs its units, as in the table, whatever status says so.
-- **R1.144** §9 — P4 — open
+- **R1.144** §9 — P4 — built
   > An extract through `nimble` does not set `render`.
-- **R1.148** §9 — P4 — open (measure M1.1)
+- **R1.148** §9 — P4 — built (measure M1.1)
   > A build stops making provider calls before its spending would exceed 80 units, and completes with the pages and research claims it has obtained.
-- **R1.149** §9 — P4 — open
+- **R1.149** §9 — P4 — built
   > A research request names the company by its domain in its query, and names the fields it asks for by the field names in §4, as the property names of its output schema.
 
 ### §10 Export and import
@@ -361,6 +361,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 - **L1.19 Tests location.** Builders' unit tests live under `stage-1/tests/`; the Prover's black-box suite lives under `acceptance/stage-1/` at the repo root. The Dockerfile must not need either.
 - **L1.20 Sequencing of standalone modules.** A package that cannot run on its own (P3) is reviewed statically and by its unit tests as soon as it lands, then merged on top of the accepted P1 and accepted or rejected on that integrated candidate's build, Prover suite and event check. End-to-end citation/support evidence is judged on P4. Reason: the Gatekeeper's mandate requires building and starting the exact revision.
 - **L1.21 Check invocation.** The event check runs as the dispatch gives it, with only `--repo` pointed at the Gatekeeper's throwaway candidate checkout before ACCEPT, and again at `main` after the merge (fresh `--out` each time, `checks/s1-<n>`); the harness's own `df-*` resources and dynamic ports are authorised by the dispatch and serialised by the flock. RUN.md smoke runs may swap only the image/container name (gatekeeper prefix) and host port (18300–18399). A merge whose post-merge check fails is reverted with a new commit and rejected.
+- **L1.22 Mock-mode timeouts.** With a non-live base URL, per-call timeout ≥ 11 s (the mock's delay fault is at most 10 s) and build deadline ≈ 25 s (the event check settles for 30 s); phases stay parallel so ≤1 s calls end well within 10 s. Reason: §8 "That bound is not a deadline for slower providers"; abandoning an answering provider loses fields for no gain.
 
 ## Verdict log (stage 1)
 
@@ -368,3 +369,5 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 - 20:1xZ P2 (builder-a 3581e5f, includes P1) handed off. P2 statuses → built (R1.82–R1.84 stay open until P4).
 - P5 added for builder-a: limits and robustness (R1.12, R1.15, R1.23, R1.58, R1.76, R1.88, R1.120a; measures M1.3, M1.4).
 - 20:4xZ P5 (builder-a 467ab72) handed off: 50-worker load, 0 5xx, max latency 1.48 s, reset under load 1.42 s (M1.4 met on stub/stand-in). Gatekeeper preliminary findings on P2 3581e5f: reset racing an in-flight POST leaks a dossier (R1.22/R1.120a); offset of 5000 digits → 500 (R1.57/R1.58). P3 0af9832 finding: funding Decimal precision (R1.140), no test names ledger ids, .pyc committed. Fixes assigned to the owners.
+
+- 21:0xZ builder-a fix 0eca7a7 (reset race → 401, huge query ints) supersedes 467ab72. P4 (builder-b 8c066a5, includes P3) handed off: 50–57 units/build on sample corpus (M1.1), 50 concurrent builds 6.5 s. Follow-ups to builder-b: P3 findings, L1.22, spend spare budget on extracts.
