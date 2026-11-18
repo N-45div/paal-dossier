@@ -366,3 +366,4 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 - 19:5xZ P1 (builder-a b27b298) handed off; P3 (builder-b 0af9832) handed off. Statuses → built.
 - 20:1xZ P2 (builder-a 3581e5f, includes P1) handed off. P2 statuses → built (R1.82–R1.84 stay open until P4).
 - P5 added for builder-a: limits and robustness (R1.12, R1.15, R1.23, R1.58, R1.76, R1.88, R1.120a; measures M1.3, M1.4).
+- **L1.21 Check invocation.** The event check runs exactly as the dispatch gives it; the harness's own `df-*` resources and dynamic ports are authorised by the dispatch and serialised by the flock. RUN.md smoke runs may swap only the image/container name (gatekeeper prefix) and host port (18300–18399). The event check scores the merged main; a merge whose event check fails is reverted with a new commit and rejected.
