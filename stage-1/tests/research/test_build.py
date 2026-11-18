@@ -200,3 +200,35 @@ async def test_R1_83_slow_but_answering_provider_gives_the_same_values(run):
     fast, _ = await run(FakeRouter(PAGES))
     slow, _ = await run(Delayed(PAGES))
     assert slow == fast
+
+
+async def test_R1_47_R1_123_two_sentence_research_excerpt_leaves_field_unknown(run):
+    claims = [("founded_year", 2014, "https://x.test/2",
+               "Acme Robotics was founded in 2014. Another sentence.")]
+    result, _ = await run(FakeRouter({}, claims))
+    assert result["fields"]["founded_year"]["status"] == "unknown"
+
+
+async def test_R1_47_supporting_single_sentence_research_claim_is_known_with_that_citation(run):
+    excerpt = "Dana Ruiz has led Acme Robotics as chief executive since 2021."
+    result, _ = await run(FakeRouter({}, [("ceo", "Dana Ruiz", "https://x.test/9", excerpt)]))
+    assert result["fields"]["ceo"] == {
+        "value": "Dana Ruiz", "status": "known",
+        "citations": [{"url": "https://x.test/9", "excerpt": excerpt, "provider": "nimble"}]}
+
+
+async def test_R1_47_research_only_url_is_never_extracted_so_it_is_not_evidence(run):
+    """A page that only a research citation points at is no evidence, even if it states the value."""
+    pages = {"https://x.test/secret": "Acme Robotics was founded in 2014."}
+
+    class OnlyResearchKnowsIt(FakeRouter):
+        """Searches return nothing; only the research citation names the page."""
+
+        async def search(self, *a, **k):
+            return type("Empty", (), {"results": []})()
+
+    claims = [("founded_year", 2014, "https://x.test/secret", "Acme Robotics opened in the north.")]
+    router = OnlyResearchKnowsIt(pages, claims)
+    result, _ = await run(router)
+    assert result["fields"]["founded_year"]["status"] == "unknown"
+    assert not any(c[0] == "extract" for c in router.calls)
