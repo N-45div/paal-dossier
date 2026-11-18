@@ -275,3 +275,28 @@ async def test_R1_143_no_page_answer_is_only_a_success_for_extract(run):
     with pytest.raises(CallFailed):
         await gateway.search("nimble", DOMAIN)
     assert gateway.successes == 0
+
+
+async def test_R1_58_no_exception_escapes_run_build(run):
+    class Broken(FakeRouter):
+        async def search(self, *a, **k):
+            raise RuntimeError("boom")
+
+        async def extract(self, *a, **k):
+            raise ValueError("boom")
+
+        async def research(self, *a, **k):
+            raise KeyError("boom")
+
+    result, _ = await run(Broken(PAGES))
+    assert result["ok"] is False
+    assert all(f["status"] == "unknown" for f in result["fields"].values())
+
+
+async def test_R1_58_unexpected_error_after_gathering_still_returns_a_result(monkeypatch, run):
+    def explode(_candidates):
+        raise RuntimeError("decide failed")
+
+    monkeypatch.setattr(build_module, "decide_fields", explode)
+    result, _ = await run(FakeRouter(PAGES))
+    assert result["ok"] is False
