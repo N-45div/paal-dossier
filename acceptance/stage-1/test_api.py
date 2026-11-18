@@ -28,6 +28,14 @@ class API(Acceptance):
         self.assertEqual(self.api('POST', '/_test/clock', {'now': NOW})[0], 204)
         self.assertEqual(self.log(), before)
 
+    def test_R1_26_R1_27_R1_29_clock_validation_and_equal(self):
+        for value, code in [(None, 400), (3, 400), ('2026-03-01T09:00:00', 422), ('2026-03-01T08:59:59+00:00', 422)]:
+            self.err(self.api('POST', '/_test/clock', {'now': value}), code, 'malformed_request' if code == 400 else 'validation_failed')
+        self.err(self.api('POST', '/_test/clock', {}), 422, 'validation_failed')
+        self.assertEqual(self.api('POST', '/_test/clock', {'now': NOW})[0], 204)
+        self.assertEqual(self.api('POST', '/_test/clock', {'now': '2026-03-01T11:30:00+02:00'})[0], 204)
+        self.err(self.api('POST', '/_test/clock', {'now': '2026-03-01T09:29:59+00:00'}), 422, 'validation_failed')
+
     def test_R1_21_R1_22_R1_51_R1_52_R1_62_reset_atomic_and_repeated(self):
         self.assertEqual(self.login('ADA@example.test')['user_id'], 'u_ada')
         bad = {'now': NOW, 'users': [FIXTURE['users'][0], dict(FIXTURE['users'][0], id='other', email='ADA@example.test')]}
@@ -147,12 +155,15 @@ class API(Acceptance):
         self.assertEqual(sum(r[0] == 200 for r in conflicts), 24)
         self.assertEqual(sum(r[0] == 409 and r[1]['error']['code'] == 'idempotency_key_reuse' for r in conflicts), 25)
         self.assertTrue(all(r[3] < 5 for r in conflicts))
+        winning_domain = next(r[1]['domain'] for r in conflicts if r[0] == 202)
+        self.ready(winning_domain)
         self.ready('burst.test')
         responses = self.burst(lambda i: self.create('race.test', 'key' + str(i)))
         self.assertEqual(sum(r[0] == 202 for r in responses), 1)
         self.assertEqual(sum(r[0] == 200 for r in responses), 49)
         self.assertEqual(len({r[1]['dossier_id'] for r in responses}), 1)
         self.assertTrue(all(r[3] < 5 for r in responses))
+        self.ready('race.test')
 
     def test_R1_38_R1_40_R1_41_R1_86_R1_87_R1_90_R1_91_R1_92_R1_93_shape(self):
         created = self.create()
