@@ -360,10 +360,10 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 - **L1.18 Live timeouts.** "Live" means `NIMBLE_BASE_URL` unset or its host is `sdk.nimbleway.com`. Live: per-call timeout ≥ 30 s (research ≤ ~120 s), whole build ≤ 280 s. Mock (any other base URL): per-call timeout short enough that a build whose calls answer within 1 s ends within 10 s.
 - **L1.19 Tests location.** Builders' unit tests live under `stage-1/tests/`; the Prover's black-box suite lives under `acceptance/stage-1/` at the repo root. The Dockerfile must not need either.
 - **L1.20 Sequencing of standalone modules.** A package that cannot run on its own (P3) is reviewed statically and by its unit tests as soon as it lands, then merged on top of the accepted P1 and accepted or rejected on that integrated candidate's build, Prover suite and event check. End-to-end citation/support evidence is judged on P4. Reason: the Gatekeeper's mandate requires building and starting the exact revision.
+- **L1.21 Check invocation.** The event check runs exactly as the dispatch gives it; the harness's own `df-*` resources and dynamic ports are authorised by the dispatch and serialised by the flock. RUN.md smoke runs may swap only the image/container name (gatekeeper prefix) and host port (18300–18399). The event check scores the merged main; a merge whose event check fails is reverted with a new commit and rejected.
 
 ## Verdict log (stage 1)
 
 - 19:5xZ P1 (builder-a b27b298) handed off; P3 (builder-b 0af9832) handed off. Statuses → built.
 - 20:1xZ P2 (builder-a 3581e5f, includes P1) handed off. P2 statuses → built (R1.82–R1.84 stay open until P4).
 - P5 added for builder-a: limits and robustness (R1.12, R1.15, R1.23, R1.58, R1.76, R1.88, R1.120a; measures M1.3, M1.4).
-- **L1.21 Check invocation.** The event check runs exactly as the dispatch gives it; the harness's own `df-*` resources and dynamic ports are authorised by the dispatch and serialised by the flock. RUN.md smoke runs may swap only the image/container name (gatekeeper prefix) and host port (18300–18399). The event check scores the merged main; a merge whose event check fails is reverted with a new commit and rejected.
