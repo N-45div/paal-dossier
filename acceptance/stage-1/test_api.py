@@ -5,6 +5,15 @@ from common import Acceptance, FIXTURE, FIELDS, NOW
 
 
 class API(Acceptance):
+    def test_R1_68_password_not_stored_in_plaintext(self):
+        secret = 'distinct-stage-one-password-78!'
+        signup = self.api('POST', '/auth/signup', {'email': 'newpass@example.test', 'password': secret, 'display_name': 'Example'})
+        self.assertEqual(signup[0], 201)
+        exported = self.api('GET', '/_test/export')
+        self.assertEqual(exported[0], 200)
+        self.assertFalse(secret in json.dumps(exported[1]), 'Plaintext password found in export')
+        self.assertEqual(self.login('newpass@example.test', secret)['user_id'], signup[1]['user_id'])
+
     def test_R1_31_R1_53_http_errors_and_content_type(self):
         success = self.api('GET', '/health')
         self.assertIn('application/json', success[2].get('Content-Type', '').lower())

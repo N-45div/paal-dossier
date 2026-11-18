@@ -59,10 +59,62 @@ EXCERPTS = {
     'twosentences': 'Trialtwosentences was founded in 2014!',
 }
 
+NEGATIONS = ['in talks to', 'plans to', 'planning to', 'wants to', 'expects to',
+             'hopes to', 'aims to', 'seeking', 'could', 'would', 'might',
+             'reportedly', 'rumoured', 'former', 'formerly', 'will become', 'not']
+STATEMENTS = {
+    'legal_name': ['legal name', 'registered name', 'registered as', 'registered company', 'legal entity', 'name of record'],
+    'hq_city': ['headquartered in', 'headquarters in', 'head office in', 'based in', 'registered office in', 'registered seat in'],
+    'ceo': ['chief executive officer', 'chief executive', 'CEO'],
+    'founded_year': ['founded', 'founding', 'established', 'incorporated'],
+    'headcount_range': ['employs', 'employees', 'staff', 'people', 'headcount', 'workforce'],
+    'funding_total': ['raised', 'funding', 'invested', 'investment'],
+}
+SUFFIXES = ['Inc.', 'Corp.', 'LLC', 'LLP', 'L.P.', 'Ltd', 'Limited', 'Pty Ltd', 'plc', 'PLC',
+            'GmbH', 'AG', 'KG', 'SE', 'AS', 'A/S', 'ASA', 'AB', 'Oy', 'Oyj', 'B.V.', 'N.V.',
+            'S.A.', 'S.A.S.', 'S.L.', 'S.r.l.', 'S.p.A.', 's.r.o.', 'a.s.', 'K.K.']
+
+
+def code(i):
+    return chr(ord('a') + i // 26) + chr(ord('a') + i % 26)
+
+
+def table_cases():
+    negations, statements, suffixes = [], [], []
+    for i, phrase in enumerate(NEGATIONS):
+        suffix = 'negation' + code(i)
+        name = 'Trial' + suffix
+        negations.append((suffix, 'founded_year', f'{name} {phrase} founded in 2014.', None, phrase))
+    i = 0
+    for field, phrases in STATEMENTS.items():
+        for phrase in phrases:
+            suffix = 'statement' + code(i)
+            name = 'Trial' + suffix
+            if field == 'legal_name':
+                prose, value = f'{name} has {phrase} {name}, Inc.', f'{name}, Inc.'
+            elif field == 'hq_city':
+                prose, value = f'{name} is {phrase} Zürich.', 'Zürich'
+            elif field == 'ceo':
+                prose, value = f'{name} {phrase}: Anna Müller.', 'Anna Müller'
+            elif field == 'founded_year':
+                prose, value = f'{name} {phrase} in 2014.', 2014
+            elif field == 'headcount_range':
+                prose, value = f'{name} {phrase}: 120.', '51-200'
+            else:
+                prose, value = f'{name} {phrase}: $12M.', 12000000
+            statements.append((suffix, field, prose, value, phrase))
+            i += 1
+    for i, form in enumerate(SUFFIXES):
+        suffix = 'form' + code(i)
+        name = 'Trial' + suffix
+        suffixes.append((suffix, 'legal_name', f'{name} has legal name {name}, {form} in the register.', f'{name}, {form}', form))
+    return negations, statements, suffixes
+
 
 def make_corpus(destination):
     destination.mkdir(parents=True, exist_ok=True)
-    for suffix, field, prose, expected in CASES:
+    table = [case[:4] for group in table_cases() for case in group]
+    for suffix, field, prose, expected in CASES + table:
         domain = 'trial' + suffix + '.test'
         company = {'domain': domain, 'names': ['Trial' + suffix], 'pages': [{
             'url': 'https://' + domain + '/about', 'kind': 'own', 'epochs': [0, 1],

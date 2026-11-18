@@ -3,7 +3,7 @@ import os
 import time
 from pathlib import Path
 from common import Acceptance, FIELDS, FIXTURE
-from edge_corpus import CASES, EXCERPTS
+from edge_corpus import CASES, EXCERPTS, table_cases
 
 
 def collapse(text):
@@ -11,6 +11,34 @@ def collapse(text):
 
 
 class Research(Acceptance):
+    def check_table(self, cases):
+        for suffix, field, prose, expected, phrase in cases:
+            domain = 'trial' + suffix + '.test'
+            with self.subTest(domain=domain, phrase=phrase):
+                self.assertEqual(self.mock('POST', '/_mock/reset', {'epoch': 0})[0], 204)
+                self.assertEqual(self.create(domain, 'table-' + domain)[0], 202)
+                dossier = self.ready(domain)
+                self.assertEqual(dossier['state'], 'ready')
+                result = dossier['fields'][field]
+                self.assertEqual(result['value'], expected, (phrase, prose, result))
+                if expected is None:
+                    self.assertEqual(result, {'value': None, 'status': 'unknown', 'citations': []})
+                else:
+                    self.assertTrue(result['citations'])
+                    self.assertTrue(all(c['url'] == 'https://' + domain + '/about' and c['excerpt'] == prose for c in result['citations']), (phrase, result))
+                    for cite in result['citations']:
+                        served = [s['text'] for call in self.log() if call['provider'] == cite['provider'] for s in call.get('served', []) if s['url'] == cite['url']]
+                        self.assertTrue(any(collapse(prose) in collapse(text) for text in served), (phrase, cite))
+
+    def test_R1_131_each_negating_phrase(self):
+        self.check_table(table_cases()[0])
+
+    def test_R1_130_each_statement_phrase(self):
+        self.check_table(table_cases()[1])
+
+    def test_R1_139_each_legal_form_suffix(self):
+        self.check_table(table_cases()[2])
+
     def test_R1_43_name_query_discovers_evidence_beyond_domain_search(self):
         domain = 'trialnamequery.test'
         evidence_url = 'https://' + domain + '/hq'

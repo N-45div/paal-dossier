@@ -15,7 +15,8 @@ bash acceptance/stage-1/test_R1_03_R1_04_R1_05_R1_08_R1_11_R1_13_R1_16_R1_17_R1_
 
 The test client runs inside the mock container, so the isolated service network has
 only the service and provider containers. Set `ACCEPTANCE_PATTERN=test_api.py` to
-run the API subset while the research package is still a stub.
+run the API subset while the research package is still a stub. Use
+`ACCEPTANCE_TEST_FILTER=each_negating_phrase` to select a unittest name.
 
 ```sh
 DOSSIER_URL=http://127.0.0.1:18200 MOCK_URL=http://127.0.0.1:18201 \
@@ -39,7 +40,8 @@ times are bounded by the client as well as asserted for burst requests. No live 
 or outbound network are used. A running build is polled for at most ten seconds.
 
 Inspection-only: R1.00 (source provenance), R1.07 (provider calls use WebRouter),
-R1.68 (password hashing implementation), R1.69 (out-of-scope features), and
+R1.69 (out-of-scope features), and
 R1.84 (live-provider timing; no live key is used). The provider log still checks
-observable calls and costs. Appendix A cases cover many boundaries but do not
-exhaust every phrase, suffix, alphabet or numerical spelling.
+observable calls and costs. R1.68 additionally checks that an exported snapshot
+does not contain the signup password. Appendix A cases cover every listed phrase
+and legal suffix, but not every alphabet or numerical spelling.

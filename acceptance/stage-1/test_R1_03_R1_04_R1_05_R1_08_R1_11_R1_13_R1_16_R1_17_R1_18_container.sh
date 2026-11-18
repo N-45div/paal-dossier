@@ -51,9 +51,11 @@ until timeout 2s docker exec "$name-web" python3 -c 'import urllib.request,sys; 
   sleep 0.2
 done
 timeout 10s docker exec "$name-web" python3 -c 'import json,urllib.request,sys; r=urllib.request.urlopen(sys.argv[1],timeout=5); assert r.status==200 and json.load(r)=={"status":"ok"}' "http://$name-service:18200/health"
+test_args=(-v -p "${ACCEPTANCE_PATTERN:-test_*.py}")
+if [[ -n ${ACCEPTANCE_TEST_FILTER:-} ]]; then test_args+=(-k "$ACCEPTANCE_TEST_FILTER"); fi
 timeout 900s docker exec -e DOSSIER_URL="http://$name-service:18200" \
   -e MOCK_URL=http://127.0.0.1:8080 -e MOCK_TOKEN=local-admin -e CORPUS_DIR=/data/corpus \
-  "$name-web" python3 -m unittest discover -s /tests -v -p "${ACCEPTANCE_PATTERN:-test_*.py}"
+  "$name-web" python3 -m unittest discover -s /tests "${test_args[@]}"
 
 # Verify the specified default when PORT is absent in a fresh instance.
 timeout 20s docker rm -f "$name-service" >/dev/null
