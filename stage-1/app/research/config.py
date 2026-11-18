@@ -22,7 +22,8 @@ class Config:
     @classmethod
     def from_env(cls) -> "Config":
         base_url = os.environ.get("NIMBLE_BASE_URL")
-        live = not base_url or urlparse(base_url).hostname == LIVE_NIMBLE_HOST
+        # unset means the SDK default (live); an empty value counts as set, so it is not live
+        live = base_url is None or urlparse(base_url).hostname == LIVE_NIMBLE_HOST
         tavily_url = os.environ.get("TAVILY_BASE_URL") or None
         return cls(
             live=live,

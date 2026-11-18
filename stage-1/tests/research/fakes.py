@@ -6,6 +6,8 @@ from types import SimpleNamespace
 
 from web_router.exceptions import ProviderError
 
+from app.research.runtime import SharedLimiter
+
 
 class HttpStatus(Exception):
     def __init__(self, status_code: int) -> None:
@@ -63,3 +65,12 @@ class FakeRouter:
         structured = {c[0]: c[1] for c in self.claims}
         citations = [SimpleNamespace(url=c[2], snippet=c[3], field=f"$.{c[0]}") for c in self.claims]
         return SimpleNamespace(structured=structured, citations=citations)
+
+
+class FakeRuntime:
+    def __init__(self, router) -> None:
+        self.router = router
+        self.limiter = SharedLimiter(8)
+
+    async def aclose(self) -> None:
+        pass

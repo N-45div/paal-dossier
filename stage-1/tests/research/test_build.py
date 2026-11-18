@@ -6,9 +6,8 @@ import pytest
 
 from app.research import build as build_module
 from app.research.config import Config
-from app.research.runtime import SharedLimiter
 
-from fakes import FakeRouter, lost, refused
+from fakes import FakeRouter, FakeRuntime, lost, refused
 
 DOMAIN = "acme-robotics.test"
 PAGES = {
@@ -20,15 +19,6 @@ PAGES = {
 }
 CONFIG = Config(live=False, tavily_enabled=False, tavily_base_url=None, call_timeout=1.0,
                 research_timeout=1.0, build_deadline=5.0, second_wave_window=3.0)
-
-
-class FakeRuntime:
-    def __init__(self, router):
-        self.router = router
-        self.limiter = SharedLimiter(8)
-
-    async def aclose(self):
-        pass
 
 
 class BuildCancelled(BaseException):
