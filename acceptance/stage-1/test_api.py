@@ -1,10 +1,50 @@
 import json
+import http.client
 import time
 import urllib.parse
-from common import Acceptance, FIXTURE, FIELDS, NOW
+from common import Acceptance, BASE, FIXTURE, FIELDS, NOW
 
 
 class API(Acceptance):
+    def test_R1_22_R1_120a_reset_during_partially_sent_write_regression(self):
+        target = urllib.parse.urlsplit(BASE)
+        connection_type = http.client.HTTPSConnection if target.scheme == 'https' else http.client.HTTPConnection
+        conn = connection_type(target.hostname, target.port, timeout=5)
+        body = b'{"domain":"race.test"}'
+        try:
+            conn.putrequest('POST', target.path.rstrip('/') + '/dossiers')
+            conn.putheader('Content-Type', 'application/json')
+            conn.putheader('Content-Length', str(len(body)))
+            conn.putheader('Authorization', 'Bearer ' + self.ada)
+            conn.putheader('Idempotency-Key', 'partial-reset')
+            conn.endheaders()
+            conn.send(body[:10])
+            # Let the service receive the authenticated request while its JSON
+            # body is still incomplete; the ordering assertion below is valid
+            # regardless of whether the server has started processing it yet.
+            time.sleep(.2)
+            replacement = {'now': NOW, 'users': [{'id': 'u_new', 'email': 'new@example.test', 'password': 'correct horse', 'display_name': 'New'}]}
+            self.assertEqual(self.api('POST', '/_test/reset', replacement, timeout=10)[0], 204)
+            conn.send(body[10:])
+            response = conn.getresponse()
+            status = response.status
+            result = json.loads(response.read())
+            self.assertIn(status, (202, 401), result)
+            if status == 401:
+                self.assertEqual(result['error']['code'], 'unauthenticated')
+        finally:
+            conn.close()
+        token = self.login('new@example.test')['token']
+        listed = self.api('GET', '/dossiers', token=token)
+        self.assertEqual(listed[0], 200)
+        self.assertEqual(listed[1]['dossiers'], [])
+
+    def test_R1_57_R1_58_very_large_offset_is_empty_page_regression(self):
+        result = self.api('GET', '/dossiers?offset=' + '9' * 5000, token=self.ada)
+        self.assertEqual(result[0], 200, result[1])
+        self.assertEqual(result[1]['dossiers'], [])
+        self.assertFalse(result[1]['has_more'])
+
     def test_R1_68_password_not_stored_in_plaintext(self):
         secret = 'distinct-stage-one-password-78!'
         signup = self.api('POST', '/auth/signup', {'email': 'newpass@example.test', 'password': secret, 'display_name': 'Example'})
