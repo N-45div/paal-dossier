@@ -44,7 +44,7 @@ class Research(Acceptance):
                 else:
                     self.assertEqual(actual, {'value': None, 'status': 'unknown', 'citations': []})
 
-    def test_R1_01_R1_01a_R1_02_R1_06_R1_38_R1_39_R1_42_R1_44_R1_45_R1_47_R1_48_R1_82_R1_94_R1_141_R1_142_R1_144_R1_148_R1_149_sample_corpus(self):
+    def test_R1_01_R1_01a_R1_02_R1_06_R1_09_R1_10_R1_38_R1_39_R1_42_R1_44_R1_45_R1_47_R1_48_R1_82_R1_94_R1_141_R1_142_R1_144_R1_148_R1_149_sample_corpus(self):
         directory = os.environ.get('CORPUS_DIR')
         self.assertTrue(directory, 'Set CORPUS_DIR to the mock sample corpus')
         key = json.loads((Path(directory) / 'key.json').read_text())

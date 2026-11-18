@@ -6,7 +6,7 @@ must be configured to use only the mock provider endpoints. Use a fresh instance
 CPU and memory limits from the specification.
 
 To build the Dockerfile and run the complete suite on an internal Docker network,
-use the container-level checks (ports 18200 and 18201 must be available):
+use the container-level checks (ports 18200–18202 must be available):
 
 ```sh
 bash acceptance/stage-1/test_R1_03_R1_04_R1_05_R1_08_R1_11_R1_13_R1_16_R1_17_R1_18_container.sh \

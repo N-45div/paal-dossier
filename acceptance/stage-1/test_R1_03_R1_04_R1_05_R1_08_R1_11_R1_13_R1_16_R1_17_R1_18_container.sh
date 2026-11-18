@@ -54,3 +54,17 @@ timeout 10s docker exec "$name-web" python3 -c 'import json,urllib.request,sys; 
 timeout 900s docker exec -e DOSSIER_URL="http://$name-service:18200" \
   -e MOCK_URL=http://127.0.0.1:8080 -e MOCK_TOKEN=local-admin -e CORPUS_DIR=/data/corpus \
   "$name-web" python3 -m unittest discover -s /tests -v -p "${ACCEPTANCE_PATTERN:-test_*.py}"
+
+# Verify the specified default when PORT is absent in a fresh instance.
+timeout 20s docker rm -f "$name-service" >/dev/null
+made_service=0
+deadline=$((SECONDS + 60))
+timeout 20s docker run -d --name "$name-service" --network "$name-net" \
+  --cpus 2 --memory 3g -e NIMBLE_API_KEY=local \
+  -e NIMBLE_BASE_URL="http://$name-web:8080/nimble" \
+  -p 127.0.0.1:18202:8080 "$name-service" >/dev/null
+made_service=1
+until timeout 2s docker exec "$name-web" python3 -c 'import urllib.request,sys; urllib.request.urlopen(sys.argv[1],timeout=1)' "http://$name-service:8080/health" >/dev/null 2>&1; do
+  if (( SECONDS >= deadline )); then echo 'R1.18: default port did not become healthy' >&2; exit 1; fi
+  sleep 0.2
+done
