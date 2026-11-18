@@ -31,7 +31,7 @@ class FakeResearch:
 @pytest.fixture
 def research(monkeypatch):
     fake = FakeResearch()
-    monkeypatch.setattr(builds, "_research_entry", lambda: fake)
+    monkeypatch.setattr(builds, "run_build", fake)
     return fake
 
 

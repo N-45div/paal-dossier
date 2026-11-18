@@ -8,12 +8,11 @@ service state (spend, the final write) hops back to the main loop and is applied
 only if no reset or import happened since the build started.
 """
 import asyncio
-import importlib.util
-import inspect
 import threading
 from datetime import datetime
 
 from app.dossiers import Dossier, clean_fields
+from app.research import run_build
 from app.store import Store
 
 BUILD_DEADLINE_SECONDS = 290  # spec: a build ends ready or failed within 300 s
@@ -48,23 +47,9 @@ class _EngineLoop:
 _engine = _EngineLoop()
 
 
-async def _stub_build(domain, spend) -> dict:
-    return {"ok": True, "fields": {}}
-
-
-def _research_entry():
-    if importlib.util.find_spec("app.research") is None:
-        return _stub_build
-    from app.research import run_build
-    return run_build
-
-
 async def _execute(domain: str, spend) -> dict:
-    """Engine-loop body: run_build may be async or a plain blocking function."""
-    entry = _research_entry()
-    if inspect.iscoroutinefunction(entry) or inspect.iscoroutinefunction(entry.__call__):
-        return await asyncio.wait_for(entry(domain, spend), BUILD_DEADLINE_SECONDS)
-    return await asyncio.wait_for(asyncio.to_thread(entry, domain, spend), BUILD_DEADLINE_SECONDS)
+    """Engine-loop body: one research build under the overall deadline."""
+    return await asyncio.wait_for(run_build(domain, spend), BUILD_DEADLINE_SECONDS)
 
 
 def start(store: Store, dossier: Dossier, started_at: datetime) -> None:
