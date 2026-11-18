@@ -13,6 +13,7 @@ Stage 1 opened: 2026-11-18T19:32Z. Frozen revision: _not yet frozen_.
 | P2 Dossier API, idempotency, builds orchestration, export/import, concurrency | `@builder-a` | same area as P1 | 2 | R1.01, R1.42–R1.46, R1.51–R1.62, R1.66–R1.69, R1.70–R1.92, R1.106–R1.120 |
 | P3 Support engine (Appendix A, pages, citations) | `@builder-b` | `stage-1/app/research/support.py`, `stage-1/app/research/pages.py`, `stage-1/tests/research/` | 1 | R1.63–R1.65, R1.95–R1.97, R1.121–R1.140 |
 | P4 Research engine (WebRouter, gathering, budget, evidence, timing) | `@builder-b` | `stage-1/app/research/` (rest), `stage-1/tests/research/` | 2 | R1.02, R1.09–R1.12, R1.93–R1.94, R1.98–R1.105, R1.141–R1.153 |
+| P5 Limits and robustness under load (latency, concurrency, event-loop isolation of builds, reset under load) | `@builder-a` | `stage-1/app/` except `stage-1/app/research/`, `stage-1/tests/api/`, `stage-1/tests/load/` | 3 | R1.12, R1.15, R1.23, R1.58, R1.76, R1.88, R1.120a |
 | PT Acceptance suite | `@prover` | `acceptance/stage-1/` at repo root | parallel | all |
 | Review, checks, merge | `@gatekeeper` | integration branch `main` | continuous | all |
 
@@ -35,7 +36,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Build from the supplied requirements. Source code, API documentation and schemas from existing products in this domain must not be used. WebRouter's own documentation may be used.
 
 ### §1 Scope
-- **R1.01** §1 — P2/P4 — open
+- **R1.01** §1 — P2/P4 — built
   > A caller asks for a company by its web domain. The service researches the company on the web and keeps a **dossier**: a profile of six fields, each with the value the web supports and the excerpts it came from. A dossier is built in the background, read any number of times, and refreshed on request. Only the HTTP API is required.
 - **R1.01a** §1.1 — P3/P4 — open
   > Every value the service asserts cites at least one excerpt that a provider endpoint served to this service, and that excerpt supports the value. No citation is invented, reworded, or attached to a value it does not support.
@@ -115,15 +116,15 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Every domain the API takes, in a body or a path, is first **normalised**: surrounding whitespace removed, lowercased, one trailing `.` removed, and one leading `www.` removed.
 - **R1.36** §4 Domains — P1 — built
   > The normalised domain must then be a valid host name: two or more labels separated by `.`, each label 1 to 63 characters of `a-z`, `0-9` and `-`, not starting or ending with `-`, and 253 characters or fewer in total. Anything else, including a URL with a scheme or a path, is 422 `validation_failed`.
-- **R1.37** §4 Domains — P2 — open
+- **R1.37** §4 Domains — P2 — built
   > `Acme-Robotics.TEST.`, `www.acme-robotics.test` and `acme-robotics.test` name the same company and the same dossier. Responses always carry the normalised domain.
 - **R1.38** §4 Fields — P2/P4 — open
   > A dossier has exactly these six fields: `legal_name` String; `hq_city` String (city, without region or country); `ceo` String (full name); `founded_year` Integer; `headcount_range` String: one of `1-10`, `11-50`, `51-200`, `201-500`, `501-1000`, `1001-5000`, `5001-10000`, `10001+`; `funding_total` Integer: total equity funding raised, in whole US dollars
 - **R1.39** §4 Fields — P3 — built
   > A string value is written as the supporting excerpt writes it, without surrounding whitespace. A headcount the web states as a number, or as a range that fits inside one of the ranges above, has the range that contains it as its value.
-- **R1.40** §4 Fields — P2 — open
+- **R1.40** §4 Fields — P2 — built
   > Each field in a response has this shape: `{ "value": "Dana Ruiz", "status": "known", "citations": [ { "url": ..., "excerpt": ..., "provider": "nimble" } ] }`
-- **R1.41** §4 Fields — P2/P4 — open
+- **R1.41** §4 Fields — P2/P4 — built
   > `status` is `known` when `value` is not null, and `unknown` when it is. A `known` field has one or more citations. An `unknown` field has `"value": null` and `"citations": []`.
 - **R1.42** §4 Fields — P4 — open
   > `url` is the URL of the page the excerpt was served for, `provider` is `nimble` or `tavily`, the provider that served it.
@@ -181,31 +182,31 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Email verification, password reset, refresh tokens and role-management endpoints are out of scope.
 
 ### §7 Idempotency
-- **R1.70** §7 — P2 — open
+- **R1.70** §7 — P2 — built
   > Two write paths require an idempotency key (§8): **`POST /dossiers`** and **`POST /dossiers/{domain}/refresh`**. Everything below applies to each of them independently.
-- **R1.71** §7 — P2 — open
+- **R1.71** §7 — P2 — built
   > The key is scoped to **the authenticated user**. Two different users may use the same key string with no interaction between them.
-- **R1.72** §7 — P2 — open
+- **R1.72** §7 — P2 — built
   > A replay means the same user sending the **same method, the same path and the same body**. The same key with the same body on a different path is a different request, not a replay, and must succeed normally. `Acme-Robotics.test` and `acme-robotics.test` in a path or body are different requests for this rule, though they name the same dossier.
-- **R1.73** §7 table — P2 — open
+- **R1.73** §7 table — P2 — built
   > Header absent or empty: 400 `missing_idempotency_key`; First use of the key: the normal response (§8); Replay: same key, same body: **200**, body identical to the original response as a JSON value; Same key, different body: 409 `idempotency_key_reuse`; Key reused after the original request failed with 4xx: treated as a first use
-- **R1.74** §7 — P2 — open
+- **R1.74** §7 — P2 — built
   > "Same body" means the same JSON value after parsing — key order and whitespace do not matter. Unknown fields are ignored (§3.5) and play no part in this comparison: a body that differs from the first only in unknown fields is the same body, so the request is a replay.
-- **R1.75** §7 — P2 — open
+- **R1.75** §7 — P2 — built
   > `POST /dossiers/{domain}/refresh` takes no body; any body sent to it is ignored and plays no part in deciding a replay.
-- **R1.76** §7 — P2 — open
+- **R1.76** §7 — P2 — built
   > For concurrent identical requests with an unused key, exactly one returns the normal response. The others return 200 with the same body. The operation takes effect only once.
-- **R1.77** §7 — P2 — open
+- **R1.77** §7 — P2 — built
   > A successful replay returns the original response, even after the dossier has changed. It starts no build and makes no provider call.
-- **R1.78** §7 — P2 — open
+- **R1.78** §7 — P2 — built
   > After the body has parsed as a JSON object and the caller is authenticated, an already claimed key is resolved before field validation. Thus changing a successful request to an invalid body with the same key still returns `409 idempotency_key_reuse`.
 
 ### §8 API — builds
-- **R1.79** §8 Builds — P2 — open
+- **R1.79** §8 Builds — P2 — built
   > A **build** researches one dossier: it calls the providers, decides each field, and replaces the dossier's fields with the result when it completes. A dossier's first build starts with `POST /dossiers`, and every later one with `POST /dossiers/{domain}/refresh`. A build's **time** is the clock's time when the request that started it was received.
-- **R1.80** §8 Builds — P2 — open
+- **R1.80** §8 Builds — P2 — built
   > A dossier has at most one build running at a time.
-- **R1.81** §8 Builds — P2/P4 — open
+- **R1.81** §8 Builds — P2/P4 — built
   > A build ends in `ready` when it completed, or `failed` when none of its provider calls succeeded. A failed build leaves the fields as they were.
 - **R1.82** §8 Builds — P4 — open (measure M1.5)
   > When a build completes `ready`, each field is `known` exactly when the evidence (§4) supports a value for it.
@@ -213,51 +214,51 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > A build whose provider calls each answer within one second ends within 10 seconds of the request that started it.
 - **R1.84** §8 Builds — P4 — open
   > That bound is not a deadline for slower providers. Against the live providers (`NIMBLE_BASE_URL` unset, or its host `sdk.nimbleway.com`), where a Nimble search can take over ten seconds and a research run about a minute, a build does not give up on a call that has been waiting less than 30 seconds, nor stop gathering because of the time it has run in its first 120 seconds. It still ends `ready` or `failed` within 300 seconds.
-- **R1.85** §8 Builds — P1/P2 — open
+- **R1.85** §8 Builds — P1/P2 — built
   > Reading a dossier, listing dossiers and every other request except `POST /dossiers` and `POST /dossiers/{domain}/refresh` make no provider call.
 
 ### §8 `POST /dossiers`
-- **R1.86** §8 — P2 — open
+- **R1.86** §8 — P2 — built
   > `POST /dossiers` with `{ "domain": "acme-robotics.test" }` -> `202 { "dossier_id": "d_7", "domain": "acme-robotics.test", "state": "building" }`. `Idempotency-Key` is required; see §7.
-- **R1.87** §8 — P2 — open
+- **R1.87** §8 — P2 — built
   > When no dossier exists for the domain, the service creates one, starts its first build and returns 202. When a dossier already exists for the domain, the service starts no build and returns **200** with that dossier's `dossier_id`, `domain` and current `state`.
-- **R1.88** §8 — P2 — open
+- **R1.88** §8 — P2 — built
   > Concurrent requests for the same domain create one dossier and start one build, whatever their keys.
-- **R1.89** §8 — P2 — open
+- **R1.89** §8 — P2 — built
   > `domain` missing: 422 `validation_failed`; `domain` invalid after normalisation (§4): 422 `validation_failed`
 
 ### §8 `GET /dossiers/{domain}`
-- **R1.90** §8 — P2 — open
+- **R1.90** §8 — P2 — built
   > Response: `dossier_id`, `domain`, `state`, `researched_at`, `spent_units`, `fields` (all six).
-- **R1.91** §8 — P2 — open
+- **R1.91** §8 — P2 — built
   > `state` is `building` while a build runs, otherwise the outcome of the latest build, `ready` or `failed`.
-- **R1.92** §8 — P2 — open
+- **R1.92** §8 — P2 — built
   > `fields` always holds all six fields. Before the first build completes `ready`, every field is `unknown`. While a later build runs, `fields` are those of the last build that completed `ready`.
-- **R1.93** §8 — P2 — open
+- **R1.93** §8 — P2 — built
   > `researched_at` is the time of the last build that completed `ready`, or null.
-- **R1.94** §8 — P2/P4 — open
+- **R1.94** §8 — P2/P4 — built
   > `spent_units` is the total cost (§9) of every provider call made for this dossier, by every build, since it was created.
-- **R1.95a** §8 — P2 — open
+- **R1.95a** §8 — P2 — built
   > The domain in the path is normalised (§4). No dossier for it is 404 `not_found`.
 
 ### §8 `POST /dossiers/{domain}/refresh`
-- **R1.106** §8 — P2 — open
+- **R1.106** §8 — P2 — built
   > `Idempotency-Key` is required; see §7. No body. Starts a new build of the dossier and returns 202 with `{ "dossier_id", "domain", "state": "building" }`. A refresh received while a build of the dossier is running starts no second build and returns 202 with the same body.
-- **R1.107** §8 — P2/P4 — open
+- **R1.107** §8 — P2/P4 — built
   > A refresh researches again: its build makes provider calls whether or not anything has changed since the last build, and its spending counts in `spent_units`.
-- **R1.108** §8 — P2 — open
+- **R1.108** §8 — P2 — built
   > No dossier for the domain: 404 `not_found`
 
 ### §8 `GET /dossiers`
-- **R1.109** §8 — P2 — open
+- **R1.109** §8 — P2 — built
   > `GET /dossiers?q=acme&limit=50&offset=0` -> `{ "dossiers": [ { "dossier_id", "domain", "state", "legal_name", "researched_at", "spent_units" } ], "has_more": false }`
-- **R1.110** §8 — P2 — open
+- **R1.110** §8 — P2 — built
   > `legal_name` is the value of the dossier's `legal_name` field, or null.
-- **R1.111** §8 — P2 — open
+- **R1.111** §8 — P2 — built
   > `q` is optional. When present, only dossiers whose domain or `legal_name` contains `q`, compared case-insensitively, are listed. An empty `q` lists every dossier.
-- **R1.112** §8 — P2 — open
+- **R1.112** §8 — P2 — built
   > Dossiers are ordered by domain ascending.
-- **R1.113** §8 — P2 — open
+- **R1.113** §8 — P2 — built
   > `limit` defaults to 50, range 1 to 200. `offset` defaults to 0. `has_more` is true when items exist beyond the last one returned.
 
 ### §9 Providers and cost
@@ -275,23 +276,23 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > A research request names the company by its domain in its query, and names the fields it asks for by the field names in §4, as the property names of its output schema.
 
 ### §10 Export and import
-- **R1.114** §10 — P2 — open
+- **R1.114** §10 — P2 — built
   > The service must support `GET /_test/export` and `POST /_test/import`. Like reset, these are unauthenticated control endpoints. Return 200 from export with a JSON object containing `track: "dossier"`, `format_version: 1` and `state` (an implementation-defined JSON object). The state format is opaque to the caller and must be accepted unchanged by import.
-- **R1.115** §10 — P2 — open
+- **R1.115** §10 — P2 — built
   > Import takes that entire object and atomically replaces the service's state, returning 204. It must accept an unchanged export produced by this service. No dependency on the source process, files, volume, port or network address is allowed. Import is replacement, not merge; repeating it restores the exported state without duplicating anything.
-- **R1.116** §10 — P2 — open
+- **R1.116** §10 — P2 — built
   > Invalid JSON follows §5; missing fields, wrong track/version or an invalid state give 422 `validation_failed` without changing the destination. These control calls have a 10-second timeout. Export is an atomic, read-only snapshot; subsequent source writes do not change it.
-- **R1.117** §10 — P2 — open
+- **R1.117** §10 — P2 — built
   > Preserve accounts and hashed-password login, existing bearer tokens, dossiers with their ids, states, fields, citations, `researched_at` and `spent_units`, all completed idempotent request bodies and original responses. Identities and timestamps must not be regenerated.
-- **R1.118** §10 — P2 — open
+- **R1.118** §10 — P2 — built
   > Import makes no provider call: imported dossiers are not researched again, and their citations remain citations served to this service. Failed request keys remain reusable. Existing tokens and retries must remain valid after import; replacing the state with a fresh fixture does not satisfy this requirement.
-- **R1.119** §10 — P2 — open
+- **R1.119** §10 — P2 — built
   > Import removes all previous destination data and credentials. Reset clears all state, including imported state. Export and import do not change the clock. State need not survive an abrupt container restart.
-- **R1.120** §10 — P2 — open
+- **R1.120** §10 — P2 — built
   > An export taken while a build is running holds the dossier as it was before that build; after import, that dossier is in the state of its last completed build, or `failed` with every field `unknown` when no build had completed.
 
 ### §11 Concurrency
-- **R1.120a** §11 — P2 — open
+- **R1.120a** §11 — P2 — built
   > Concurrent requests must produce the same results as executing them one at a time in some order. The requirements above hold at every read.
 
 ### Appendix A — support
@@ -363,3 +364,5 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 ## Verdict log (stage 1)
 
 - 19:5xZ P1 (builder-a b27b298) handed off; P3 (builder-b 0af9832) handed off. Statuses → built.
+- 20:1xZ P2 (builder-a 3581e5f, includes P1) handed off. P2 statuses → built (R1.82–R1.84 stay open until P4).
+- P5 added for builder-a: limits and robustness (R1.12, R1.15, R1.23, R1.58, R1.76, R1.88, R1.120a; measures M1.3, M1.4).
