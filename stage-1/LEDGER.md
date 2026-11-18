@@ -364,6 +364,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 - **L1.22 Mock-mode timeouts.** With a non-live base URL, per-call timeout ≥ 11 s (the mock's delay fault is at most 10 s) and build deadline ≈ 25 s (the event check settles for 30 s); phases stay parallel so ≤1 s calls end well within 10 s. Reason: §8 "That bound is not a deadline for slower providers"; abandoning an answering provider loses fields for no gain.
 - **L1.23 Budget is a cap.** Spending up to 80 units for more recall (second search wave, extra extracts) is a correctness gain under R1.82/R1.43, not a cost regression; the hard 80-unit cap and log-sum = spend-sum stay mandatory.
 - **L1.24 Evidence boundary.** A value may be asserted only from (a) a prose sentence of a page some search of the build returned (text from that search or from extracting that URL), or (b) a research claim whose cited excerpt, whole, is a single sentence supporting the claimed value (cited verbatim). Research excerpts are never split; a page reached only through a research citation is not evidence. Reason: §4 evidence definition and R1.47.
+- **L1.25 Coverage of deployment/inspection ids.** Container ids (R1.03–R1.05, R1.08, R1.11, R1.13, R1.16–R1.18) are covered by named tests in the Prover's isolated Docker runner; R1.68 by a black-box test that the plaintext password is absent from the export; R1.00, R1.07, R1.69 and R1.84 are inspection-only, verified by the Gatekeeper with evidence in its verdict (R1.84 also by builder-b's virtual-time unit tests).
 
 ## Verdict log (stage 1)
 
