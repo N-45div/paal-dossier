@@ -21,3 +21,4 @@ docker build -t dossier . && docker run --rm -e PORT=8080 -p 8080:8080 \
 - `app/domains.py` — domain normalisation and validation.
 - `app/passwords.py` — scrypt password hashing (versioned format).
 - `tests/api/` — unit tests (`pip install pytest httpx` then `pytest tests/api` from `stage-1/`).
+- `tests/load/` — `CORPUS_DIR=<sample corpus> tests/load/run_load.sh [seconds] [fake]` (PYTHON=a python with httpx): 50-way mixed load against the container (2 CPUs, 3 GiB) with the mock web; asserts max latency < 5 s, no 5xx, reset < 10 s.

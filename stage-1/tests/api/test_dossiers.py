@@ -14,9 +14,9 @@ FIXTURE = {"now": "2026-03-01T09:00:00+00:00",
 
 @pytest.fixture
 def client():
-    c = TestClient(create_app(), raise_server_exceptions=False)
-    assert c.post("/_test/reset", json=FIXTURE).status_code == 204
-    return c
+    with TestClient(create_app(), raise_server_exceptions=False) as c:
+        assert c.post("/_test/reset", json=FIXTURE).status_code == 204
+        yield c
 
 
 def login(c, who="ada"):

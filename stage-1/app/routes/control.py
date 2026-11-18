@@ -1,6 +1,4 @@
 """Health, reset and clock endpoints (§3.2–§3.4)."""
-import asyncio
-
 from starlette.requests import Request
 
 from app.clock import Clock, parse_timestamp
@@ -8,7 +6,7 @@ from app.errors import ApiError, invalid, malformed
 from app.fields import check_types
 from app import snapshot
 from app.http import json_object, json_response, no_content, parse_json
-from app.passwords import hash_password
+from app.passwords import hash_password_async
 from app.store import State, Store, User
 
 USER_FIELDS = ("id", "email", "password", "display_name")
@@ -53,7 +51,7 @@ def _validated_fixture(body: dict):
 async def reset(request: Request):
     store: Store = request.app.state.store
     now, users = _validated_fixture(await json_object(request))
-    hashes = [await asyncio.to_thread(hash_password, u["password"]) for u in users]
+    hashes = [await hash_password_async(u["password"]) for u in users]
     state = State(clock=Clock(now))
     for user, password_hash in zip(users, hashes):
         state.add_user(User(user["id"], user["email"], user["display_name"], password_hash))
