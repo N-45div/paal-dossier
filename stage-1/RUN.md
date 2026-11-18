@@ -1,12 +1,12 @@
 # Dossier service — run instructions
 
-From the `stage-1/` folder, build the image and start the service (two commands):
+From the `stage-1/` folder, build the image and start the service (two commands). Set the
+provider variables in your shell first (`export NIMBLE_API_KEY=...`); `-e NAME` passes a variable
+by name, and a variable that is not set is simply not passed:
 
 ```sh
 docker build -t dossier .
-docker run --rm -e PORT=8080 -p 8080:8080 \
-  -e NIMBLE_API_KEY=<key> -e NIMBLE_BASE_URL=<nimble base url> \
-  -e TAVILY_API_KEY=<key> -e TAVILY_BASE_URL=<tavily base url> dossier
+docker run --rm -e PORT=8080 -p 8080:8080 -e NIMBLE_API_KEY -e NIMBLE_BASE_URL -e TAVILY_API_KEY -e TAVILY_BASE_URL dossier
 ```
 
 `GET http://localhost:8080/health` answers `200 {"status":"ok"}` within a few seconds.
