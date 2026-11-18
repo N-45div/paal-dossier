@@ -31,7 +31,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 ## Requirements
 
 ### §0 Preamble
-- **R1.00** §0 — P1 — open
+- **R1.00** §0 — P1 — built
   > Build from the supplied requirements. Source code, API documentation and schemas from existing products in this domain must not be used. WebRouter's own documentation may be used.
 
 ### §1 Scope
@@ -45,81 +45,81 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Contact data, people search, and fields other than the six in §4 are out of scope.
 
 ### §2 Delivery and deployment
-- **R1.03** §2 — P1 — open
+- **R1.03** §2 — P1 — built
   > Deliver an HTTP service, a `Dockerfile` and a `RUN.md` with a command that builds and starts the service without manual setup.
-- **R1.04** §2 — P1 — open
+- **R1.04** §2 — P1 — built
   > The submitted `Dockerfile` is built and started, and only its HTTP behavior is exercised; it does not import or execute the submission's source files on the host that runs it.
-- **R1.05** §2 — P1 — open
+- **R1.05** §2 — P1 — built
   > The image must run on its own with `-e PORT=<port>` and a port mapping. All runtime dependencies, initialization and seed data must work within that single container. Compose configuration is not used to start the service.
 - **R1.06** §2 Web access — P4 — open
   > Nimble is the default provider: every service must be able to research companies using Nimble alone. Tavily is optional: a service may use it beside Nimble, and its absence must not prevent research while Nimble answers.
 - **R1.07** §2 Web access — P4 — open
   > The service reaches the providers only through WebRouter, the Python package `webrouter` (module `web_router`). ... every request to a provider goes through `web_router` ... Calling a provider's API by any other route is not permitted.
-- **R1.08** §2 Web access — P1 — open
+- **R1.08** §2 Web access — P1 — built
   > The stage folder's dependency manifest lists `webrouter>=0.12.0`. ... Install it and the provider SDK dependencies from PyPI, including in the service's Docker build: `pip install "webrouter[search,extract,research]>=0.12.0"`
 - **R1.09** §2 env — P4 — open
   > `NIMBLE_API_KEY` Credential for the `nimble` provider; `NIMBLE_BASE_URL` Base URL of the `nimble` provider endpoint; `TAVILY_API_KEY` Credential for the `tavily` provider; `TAVILY_BASE_URL` Base URL of the `tavily` provider endpoint
 - **R1.10** §2 env — P4 — open
   > Keys are opaque non-empty strings. WebRouter's `nimble` provider reads `NIMBLE_API_KEY` and `NIMBLE_BASE_URL` from the environment, and its `tavily` provider reads `TAVILY_API_KEY`. A service that uses Tavily passes its base URL to WebRouter in `provider_config`: `provider_config={"tavily": {"api_base_url": <TAVILY_BASE_URL>}}`
-- **R1.11** §2 limits — P1 — open (measure M1.3)
+- **R1.11** §2 limits — P1 — built (measure M1.3)
   > CPU 2 vCPU; Memory 3 GiB
-- **R1.12** §2 limits — P1/P2 — open
+- **R1.12** §2 limits — P1/P2 — built
   > Concurrent requests: up to 50 in flight
-- **R1.13** §2 limits — P1 — open (measure M1.3)
+- **R1.13** §2 limits — P1 — built (measure M1.3)
   > Start to first healthy response: 60 s
-- **R1.15** §2 limits — P1/P2 — open (measure M1.4)
+- **R1.15** §2 limits — P1/P2 — built (measure M1.4)
   > Per-request timeout: 5 s (10 s for `POST /_test/reset`)
-- **R1.16** §2 limits — P1/P4 — open
+- **R1.16** §2 limits — P1/P4 — built
   > Outbound network: available during `docker build`; at run time, **only the provider endpoints this specification lists**. Disk: ephemeral; state need not survive a container restart
-- **R1.17** §2 limits — P1 — open
+- **R1.17** §2 limits — P1 — built
   > Runtime assets and dependencies must be included in the image. This includes fonts, scripts and stylesheets; external services other than the provider endpoints this specification lists are unavailable at runtime.
 
 ### §3 Runtime contract
-- **R1.18** §3.1 — P1 — open
+- **R1.18** §3.1 — P1 — built
   > Listen on `0.0.0.0` using the `PORT` environment variable, default `8080`.
-- **R1.19** §3.2 — P1 — open
+- **R1.19** §3.2 — P1 — built
   > `GET /health  ->  200  {"status": "ok"}`
-- **R1.20** §3.2 — P1 — open
+- **R1.20** §3.2 — P1 — built
   > Return 200 once the service and its data store can serve requests, within 60 seconds of container start. Non-200 responses are permitted before the service is ready. `/health` makes no provider call.
-- **R1.21** §3.3 — P1 — open
+- **R1.21** §3.3 — P1 — built
   > `POST /_test/reset` with `{ ...fixture... }` -> `204 No Content`. Replace all service state with the fixture in the request body (§4).
-- **R1.22** §3.3 — P1/P2 — open
+- **R1.22** §3.3 — P1/P2 — built
   > When reset returns 204, subsequent requests must see only that fixture: no users other than the seeded ones, no dossiers and no stored idempotent responses. Repeated resets are supported.
-- **R1.23** §3.3 — P2 — open
+- **R1.23** §3.3 — P2 — built
   > A build still running when reset is called must not change the state that follows the reset.
-- **R1.24** §3.3 — P1 — open
+- **R1.24** §3.3 — P1 — built
   > This control endpoint must be enabled in the delivered image and requires no authentication.
-- **R1.25** §3.4 — P1 — open
+- **R1.25** §3.4 — P1 — built
   > The service keeps a clock that only reset and `POST /_test/clock` move. Every timestamp the service records or returns is read from this clock.
-- **R1.26** §3.4 — P1 — open
+- **R1.26** §3.4 — P1 — built
   > `POST /_test/clock` `{ "now": "2026-03-01T09:30:00+00:00" }` -> `204 No Content`
-- **R1.27** §3.4 — P1 — open
+- **R1.27** §3.4 — P1 — built
   > Reset sets the clock to the fixture's `now`. Before the first reset the clock follows the system time.
-- **R1.28** §3.4 — P1 — open
+- **R1.28** §3.4 — P1 — built
   > The clock stands still between calls: two requests with no clock call between them read the same time.
-- **R1.29** §3.4 — P1 — open
+- **R1.29** §3.4 — P1 — built
   > `now` is an RFC 3339 timestamp with an explicit offset. A `now` earlier than the clock's current time is 422 `validation_failed` and changes nothing.
-- **R1.30** §3.4 — P1 — open
+- **R1.30** §3.4 — P1 — built
   > `POST /_test/clock` requires no authentication.
-- **R1.31** §3.5 — P1 — open
+- **R1.31** §3.5 — P1 — built
   > Requests and responses are `application/json; charset=utf-8`.
-- **R1.32** §3.5 — P1 — open
+- **R1.32** §3.5 — P1 — built
   > Timestamps in responses are RFC 3339 with an explicit offset, e.g. `2026-09-24T19:00:00+02:00`.
-- **R1.33** §3.5 — P1 — open
+- **R1.33** §3.5 — P1 — built
   > Unknown fields in a request body are ignored, never an error. Unknown query parameters are ignored. IDs are opaque strings of at most 64 characters. Their format is yours.
 
 ### §4 Model
-- **R1.34** §4 Users — P1 — open
+- **R1.34** §4 Users — P1 — built
   > Users sign up and log in (§6). Every authenticated user sees the same dossiers.
-- **R1.35** §4 Domains — P1 (shared util) — open
+- **R1.35** §4 Domains — P1 (shared util) — built
   > Every domain the API takes, in a body or a path, is first **normalised**: surrounding whitespace removed, lowercased, one trailing `.` removed, and one leading `www.` removed.
-- **R1.36** §4 Domains — P1 — open
+- **R1.36** §4 Domains — P1 — built
   > The normalised domain must then be a valid host name: two or more labels separated by `.`, each label 1 to 63 characters of `a-z`, `0-9` and `-`, not starting or ending with `-`, and 253 characters or fewer in total. Anything else, including a URL with a scheme or a path, is 422 `validation_failed`.
 - **R1.37** §4 Domains — P2 — open
   > `Acme-Robotics.TEST.`, `www.acme-robotics.test` and `acme-robotics.test` name the same company and the same dossier. Responses always carry the normalised domain.
 - **R1.38** §4 Fields — P2/P4 — open
   > A dossier has exactly these six fields: `legal_name` String; `hq_city` String (city, without region or country); `ceo` String (full name); `founded_year` Integer; `headcount_range` String: one of `1-10`, `11-50`, `51-200`, `201-500`, `501-1000`, `1001-5000`, `5001-10000`, `10001+`; `funding_total` Integer: total equity funding raised, in whole US dollars
-- **R1.39** §4 Fields — P3 — open
+- **R1.39** §4 Fields — P3 — built
   > A string value is written as the supporting excerpt writes it, without surrounding whitespace. A headcount the web states as a number, or as a range that fits inside one of the ranges above, has the range that contains it as its value.
 - **R1.40** §4 Fields — P2 — open
   > Each field in a response has this shape: `{ "value": "Dana Ruiz", "status": "known", "citations": [ { "url": ..., "excerpt": ..., "provider": "nimble" } ] }`
@@ -131,53 +131,53 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > The **evidence** for a company is every page that some search, through any provider and for any query naming the company (as in Appendix A.2), returns, with its full text, and every claim that a `nimble` research run for the company asking for all six fields answers with.
 - **R1.44** §4 Evidence — P4 — open
   > Of the searches that a provider answers without an error, every build makes exactly one whose query is exactly the company's normalised domain, through a provider of its choice; its other such searches use other queries. A search that a provider answers with an error does not count. The pages whose text a build obtains from providers are the pages it **gathers**.
-- **R1.45** §4 Citation — P3/P4 — open
+- **R1.45** §4 Citation — P3/P4 — built
   > The excerpt is copied character for character from that served text, except that any run of whitespace may be written as a single space. It is 1 to 500 characters long. It is taken from the page's prose (below), not from its header.
-- **R1.46** §4 Support — P3 — open
+- **R1.46** §4 Support — P3 — built
   > An excerpt **supports** a value when, read on its own, it states that value for that field of this company, as Appendix A defines. The excerpt may write the value differently from the API: `Acme Robotics has raised $12M.` and `Acme Robotics has raised 12 million dollars.` both support a `funding_total` of `12000000`, and `Acme Robotics employs about 120 people.` supports a `headcount_range` of `51-200`.
 - **R1.47** §4 Support — P4 — open
   > A research answer carries a claimed value for a field and a citation for the claim. The claim is asserted only when its citation supports it. A field is `unknown` when no evidence supports a value for it, even when a research answer claims one.
 - **R1.48** §4 Support — P4 — open
   > When the evidence supports more than one value for a field, the field holds one of them and cites only excerpts that support that value.
-- **R1.49** §4 Pages — P3 — open
+- **R1.49** §4 Pages — P3 — built
   > Every page has a URL, a title and a text. A text may begin with **header lines**, each of the form `Name: value`, where the name is a capitalised word or several joined by `-`. The header ends at the first empty line; everything after it is the page's **prose**. A text whose first line is not a header line has no header and is all prose.
-- **R1.50** §4 Pages — P3 — open
+- **R1.50** §4 Pages — P3 — built
   > The header line `Facts:` carries a JSON object on the same line. ... It is informative only: citations come from the prose, and whether an excerpt supports a value is decided by Appendix A alone. The service may ignore other header lines.
-- **R1.51** §4 Fixture — P1 — open
+- **R1.51** §4 Fixture — P1 — built
   > Fixture: `{"now": ..., "users": [ {"id", "email", "password", "display_name"} ]}`. `now` is required and sets the clock (§3.4). Seeded users must be able to log in with the given password immediately.
-- **R1.52** §4 Fixture — P1 — open
+- **R1.52** §4 Fixture — P1 — built
   > A fixture with two users sharing an email is a reset error: 422 `validation_failed`, changing nothing.
 
 ### §5 Errors
-- **R1.53** §5 — P1 — open
+- **R1.53** §5 — P1 — built
   > Every 4xx and 5xx response carries this body: `{ "error": { "code": "not_found", "message": "human readable, any wording" } }`. Use the specified HTTP status and `code`.
-- **R1.54** §5 table — P1 — open
+- **R1.54** §5 table — P1 — built
   > 400 `malformed_request` Unparseable body, or a field of the wrong JSON type; 400 `missing_idempotency_key` Required `Idempotency-Key` header absent or empty; 401 `unauthenticated` Missing, malformed or unknown bearer token; 404 `not_found` No such resource, or not visible to this caller; 409 `idempotency_key_reuse` Key already used by this caller with a different request body; 422 `validation_failed` A required field or query parameter is missing, or a stated rule is violated with no more specific code
-- **R1.55** §5 — P1 — open
+- **R1.55** §5 — P1 — built
   > A field of the correct JSON type with an invalid format or out-of-range value gives 422 `validation_failed`, unless an endpoint specifies a different error.
-- **R1.56** §5 — P1/P2 — open
+- **R1.56** §5 — P1/P2 — built
   > An integer-valued **query parameter** is written as plain decimal digits: `1e9`, `4.0` and `+4` are 422 `validation_failed` whatever their numeric value. Reserve 400 `malformed_request` for a body that does not parse or a field of the wrong type.
-- **R1.57** §5 ranges — P1/P2 — open
+- **R1.57** §5 ranges — P1/P2 — built
   > `Idempotency-Key` 1 to 255 characters, else 422 `validation_failed`; `limit` integer 1 to 200, else 422; `offset` integer 0 or more, else 422
-- **R1.58** §5 — P1/P2/P4 — open
+- **R1.58** §5 — P1/P2/P4 — built
   > Requests must not produce 5xx responses, including under concurrent load and when a provider endpoint answers with an error.
 
 ### §6 Authentication
-- **R1.59** §6 — P1 — open
+- **R1.59** §6 — P1 — built
   > `POST /auth/signup {email, password, display_name}` -> `201 { "user_id", "display_name", "token" }`
-- **R1.60** §6 — P1 — open
+- **R1.60** §6 — P1 — built
   > `POST /auth/login {email, password}` -> `200 { "user_id", "display_name", "token" }`
-- **R1.61** §6 table — P1 — open
+- **R1.61** §6 table — P1 — built
   > Email already registered: 409 `email_taken`; Password shorter than 8 characters: 422; `email` not of the form `local@domain`: 422; `display_name` empty or longer than 100 characters: 422; Wrong password or unknown email on login: 401 `unauthenticated`
-- **R1.62** §6 — P1 — open
+- **R1.62** §6 — P1 — built
   > For a user seeded by the fixture (§3.3), `user_id` is that user's `id` in the fixture.
-- **R1.66** §6 — P1 — open
+- **R1.66** §6 — P1 — built
   > Every other endpoint requires a bearer token, except `/health`, the `/_test/*` endpoints and the two above. A request to such an endpoint that lacks a valid token is 401 `unauthenticated`, even when it also lacks a required `Idempotency-Key`. `Authorization: Bearer <token>`
-- **R1.67** §6 — P1 — open
+- **R1.67** §6 — P1 — built
   > Tokens do not expire. An account may have multiple valid tokens and concurrent sessions.
-- **R1.68** §6 — P1 — open
+- **R1.68** §6 — P1 — built
   > Passwords must be stored using a password-hashing function such as bcrypt, scrypt or Argon2, or an equivalent. Plaintext password storage is not permitted.
-- **R1.69** §6 — P1 — open
+- **R1.69** §6 — P1 — built
   > Email verification, password reset, refresh tokens and role-management endpoints are out of scope.
 
 ### §7 Idempotency
@@ -295,45 +295,45 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Concurrent requests must produce the same results as executing them one at a time in some order. The requirements above hold at every read.
 
 ### Appendix A — support
-- **R1.121** A.1 — P3 — open
+- **R1.121** A.1 — P3 — built
   > A page's prose is split into lines at each line break, and each line into sentences. A sentence ends after a `.`, `!` or `?`, together with any `"`, `”`, `’` or `)` directly after it, when whitespace follows. A `.` that ends one of the legal-form suffixes in A.4, written as a whole word, does not end a sentence. Each sentence is taken without its surrounding whitespace; empty sentences are dropped.
-- **R1.122** A.1 — P3 — open
+- **R1.122** A.1 — P3 — built
   > An excerpt is a **single sentence** when, with every run of whitespace written as one space, this rule splits it into exactly one sentence.
-- **R1.123** A.2.1 — P3 — open
+- **R1.123** A.2.1 — P3 — built
   > It is a single sentence (A.1).
-- **R1.124** A.2.2 — P3 — open
+- **R1.124** A.2.2 — P3 — built
   > It names the company: it contains the company's normalised domain, or the company's name. The company's name is the first label of its domain with each `-` read as a space: `acme-robotics.test` is named by `Acme Robotics`.
-- **R1.125** A.2.3 — P3 — open
+- **R1.125** A.2.3 — P3 — built
   > It contains a statement phrase for F (A.3).
-- **R1.126** A.2.4 — P3 — open
+- **R1.126** A.2.4 — P3 — built
   > It contains none of the negating phrases (A.3).
-- **R1.127** A.2.5 — P3 — open
+- **R1.127** A.2.5 — P3 — built
   > It contains at least one value in F's format (A.4), and every value in F's format that it contains normalises to V (A.5).
-- **R1.128** A.2 — P3 — open
+- **R1.128** A.2 — P3 — built
   > The company's name, its domain and every phrase are matched without regard to case and as whole words: the characters directly before and after the match are not letters or digits. Phrases with a space match one space.
-- **R1.129** A.2 examples — P3 — open
+- **R1.129** A.2 examples — P3 — built
   > `Dana Ruiz has led Acme Robotics as chief executive since 2021.` → `ceo` `Dana Ruiz`; `Acme Robotics CEO: Sam Ortiz.` → `ceo` `Sam Ortiz`; `Acme Robotics was founded in 2014.` → `founded_year` `2014`; `Acme Robotics employs about 120 people.` → `headcount_range` `51-200`; `Acme Robotics is reportedly in talks to raise $40M.` → nothing: a negating phrase; `Acme Robotics opened a sales office in Porto.` → nothing: no statement phrase for `hq_city`
-- **R1.130** A.3 — P3 — open
+- **R1.130** A.3 — P3 — built
   > Statement phrases: `legal_name`: `legal name`, `registered name`, `registered as`, `registered company`, `legal entity`, `name of record`; `hq_city`: `headquartered in`, `headquarters in`, `head office in`, `based in`, `registered office in`, `registered seat in`; `ceo`: `chief executive officer`, `chief executive`, `CEO`; `founded_year`: `founded`, `founding`, `established`, `incorporated`; `headcount_range`: `employs`, `employees`, `staff`, `people`, `headcount`, `workforce`; `funding_total`: `raised`, `funding`, `invested`, `investment`
-- **R1.131** A.3 — P3 — open
+- **R1.131** A.3 — P3 — built
   > The negating phrases are: `in talks to`, `plans to`, `planning to`, `wants to`, `expects to`, `hopes to`, `aims to`, `seeking`, `could`, `would`, `might`, `reportedly`, `rumoured`, `former`, `formerly`, `will become`, `not`.
-- **R1.132** A.4 — P3 — open
+- **R1.132** A.4 — P3 — built
   > A **capitalised word** is an uppercase letter followed by one or more lowercase letters, with no letter or digit directly before or after it. The letters may be of any alphabet: `Zürich` and `Müller` are capitalised words. An **uppercase word** is two or more uppercase letters, with no letter or digit directly before or after it: `AI`, `USA`.
-- **R1.133** A.4 — P3 — open
+- **R1.133** A.4 — P3 — built
   > A **number** is written in digits, optionally with a `,` before each group of three digits and a decimal part after a `.`: `120`, `1,200`, `12.5`, `12,000,000`. Digits directly next to a letter, or joined to other digits by `,` or `.` in any other way, are not a number.
-- **R1.134** A.4 legal_name — P3 — open
+- **R1.134** A.4 legal_name — P3 — built
   > The company's name or its domain (matched as in A.2), then zero or more capitalised or uppercase words each after one space, then an optional `,`, one space, and a legal-form suffix with no letter or digit directly after it. Where several such texts start at the same place, the shortest counts
-- **R1.135** A.4 hq_city — P3 — open
+- **R1.135** A.4 hq_city — P3 — built
   > A place name directly after a statement phrase for `hq_city` and one space: the longest run of capitalised words joined by single spaces or by `-` that starts there, not part of a longer such run
-- **R1.136** A.4 ceo — P3 — open
+- **R1.136** A.4 ceo — P3 — built
   > A person's name: a run of two or three capitalised words joined by single spaces that is not part of a longer such run. Occurrences of the company's name and of the statement phrases for `ceo` are first taken out of the sentence and separate the words around them
-- **R1.137** A.4 founded_year — P3 — open
+- **R1.137** A.4 founded_year — P3 — built
   > A number of exactly four digits, from 1800 to 2099, that is not part of an amount
-- **R1.138** A.4 headcount_range — P3 — open
+- **R1.138** A.4 headcount_range — P3 — built
   > A number with no decimal part, 1 or more, that is not part of an amount. Words before it, such as `about` or `roughly`, do not change it. A stated range such as `51-200 employees` holds two numbers
-- **R1.139** A.4 suffixes & amounts — P3 — open
+- **R1.139** A.4 suffixes & amounts — P3 — built
   > The legal-form suffixes, matched exactly as written here: `Inc.`, `Corp.`, `LLC`, `LLP`, `L.P.`, `Ltd`, `Limited`, `Pty Ltd`, `plc`, `PLC`, `GmbH`, `AG`, `KG`, `SE`, `AS`, `A/S`, `ASA`, `AB`, `Oy`, `Oyj`, `B.V.`, `N.V.`, `S.A.`, `S.A.S.`, `S.L.`, `S.r.l.`, `S.p.A.`, `s.r.o.`, `a.s.`, `K.K.`. An **amount** is written in one of these forms, matched without regard to case, with no letter or digit directly before it or after it: `$`, `US$` or `USD`, an optional space, a number, and optionally a scale: `k`, `m`, `mn` or `bn` directly after the number, or one space and `thousand`, `million` or `billion`. ... A number, optionally one space and `thousand`, `million` or `billion`, then one space and `dollars` or `US dollars`. ... Amounts in other currencies are not amounts.
-- **R1.140** A.5 — P3 — open
+- **R1.140** A.5 — P3 — built
   > `legal_name`, `hq_city`, `ceo`: The text as the excerpt writes it; `founded_year`: The number as an integer; `headcount_range`: The range of §4 that contains the number; `funding_total`: The number times the scale (`k` and `thousand` 1,000; `m`, `mn` and `million` 1,000,000; `bn` and `billion` 1,000,000,000) in US dollars. An amount that does not come to a whole number of dollars is not a value
 
 ## Rulings (stage 1)
@@ -358,3 +358,8 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 - **L1.17 Listing.** `q` is matched raw (not normalised) against the normalised domain and the `legal_name` value, case-insensitively. Empty `limit`/`offset` values are 422.
 - **L1.18 Live timeouts.** "Live" means `NIMBLE_BASE_URL` unset or its host is `sdk.nimbleway.com`. Live: per-call timeout ≥ 30 s (research ≤ ~120 s), whole build ≤ 280 s. Mock (any other base URL): per-call timeout short enough that a build whose calls answer within 1 s ends within 10 s.
 - **L1.19 Tests location.** Builders' unit tests live under `stage-1/tests/`; the Prover's black-box suite lives under `acceptance/stage-1/` at the repo root. The Dockerfile must not need either.
+- **L1.20 Sequencing of standalone modules.** A package that cannot run on its own (P3) is reviewed statically and by its unit tests as soon as it lands, then merged on top of the accepted P1 and accepted or rejected on that integrated candidate's build, Prover suite and event check. End-to-end citation/support evidence is judged on P4. Reason: the Gatekeeper's mandate requires building and starting the exact revision.
+
+## Verdict log (stage 1)
+
+- 19:5xZ P1 (builder-a b27b298) handed off; P3 (builder-b 0af9832) handed off. Statuses → built.
