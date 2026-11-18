@@ -11,7 +11,7 @@ from app.http import json_object, json_response, parse_json, raw_path
 from app.idempotency import Record
 from app.store import Store, new_id
 
-_DIGITS = re.compile(r"^[0-9]+$")
+_DIGITS = re.compile(r"[0-9]+")
 
 
 def _remember(state, scope: tuple, signature, body: dict) -> None:
@@ -81,7 +81,7 @@ def _int_param(request: Request, name: str, default: int, low: int, high: int | 
     raw = request.query_params.get(name)
     if raw is None:
         return default
-    if not _DIGITS.match(raw):
+    if not _DIGITS.fullmatch(raw):
         raise invalid(f"{name} must be a plain decimal integer")
     digits = raw.lstrip("0") or "0"
     value = int(digits) if len(digits) <= 18 else 10 ** 18  # beyond any real bound

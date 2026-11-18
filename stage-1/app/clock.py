@@ -10,7 +10,7 @@ _RFC3339 = re.compile(
 
 def parse_timestamp(text: str) -> datetime:
     """RFC 3339 timestamp with an explicit offset, else 422 validation_failed."""
-    if not _RFC3339.match(text):
+    if not _RFC3339.fullmatch(text):
         raise invalid("now must be an RFC 3339 timestamp with an offset")
     norm = text.replace("t", "T").replace(" ", "T")
     norm = norm[:-1] + "+00:00" if norm[-1] in "Zz" else norm

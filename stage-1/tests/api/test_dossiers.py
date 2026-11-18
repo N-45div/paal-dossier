@@ -100,3 +100,20 @@ def test_huge_integer_query_parameters_are_not_5xx(client):
     assert r.status_code == 200 and r.json() == {"dossiers": [], "has_more": False}
     assert client.get("/dossiers?offset=" + "0" * 5000, headers=auth).status_code == 200
     assert client.get("/dossiers?limit=" + "9" * 5000, headers=auth).status_code == 422
+
+
+def test_query_integers_reject_trailing_newline_and_other_non_digits(client):
+    auth = login(client)
+    for q in ("limit=5%0A", "offset=0%0A", "limit=%0A5", "limit=5%20", "limit=%EF%BC%95",
+              "offset=%D9%A0"):
+        assert client.get("/dossiers?" + q, headers=auth).status_code == 422, q
+    assert client.get("/dossiers?limit=5&offset=0", headers=auth).status_code == 200
+
+
+def test_domain_labels_and_timestamps_reject_embedded_newlines(client):
+    auth = login(client)
+    h = {**auth, "Idempotency-Key": "nl"}
+    for domain in ("acme\n.test", "acme.te\nst", "a\r\n.test"):
+        r = client.post("/dossiers", json={"domain": domain}, headers={**h, "Idempotency-Key": domain})
+        assert r.status_code == 422, repr(domain)
+    assert client.post("/_test/clock", json={"now": "2027-03-01T09:00:00+00:00\n"}).status_code == 422

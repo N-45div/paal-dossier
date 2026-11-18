@@ -19,7 +19,7 @@ def is_valid(domain: str) -> bool:
     if len(domain) > 253:
         return False
     labels = domain.split(".")
-    return len(labels) >= 2 and all(_LABEL.match(label) for label in labels)
+    return len(labels) >= 2 and all(_LABEL.fullmatch(label) for label in labels)
 
 
 def normalise_valid(raw: str) -> str:
