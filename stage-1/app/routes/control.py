@@ -6,7 +6,8 @@ from starlette.requests import Request
 from app.clock import Clock, parse_timestamp
 from app.errors import ApiError, invalid, malformed
 from app.fields import check_types
-from app.http import json_object, json_response, no_content
+from app import snapshot
+from app.http import json_object, json_response, no_content, parse_json
 from app.passwords import hash_password
 from app.store import State, Store, User
 
@@ -67,4 +68,19 @@ async def set_clock(request: Request):
         raise invalid("now is required")
     check_types(body, ("now",))
     store.state.clock.advance(parse_timestamp(body["now"]))
+    return no_content()
+
+
+async def export_state(request: Request):
+    store: Store = request.app.state.store
+    return json_response(snapshot.export_state(store.state))
+
+
+async def import_state(request: Request):
+    store: Store = request.app.state.store
+    payload = parse_json(await request.body())
+    if not isinstance(payload, dict):
+        raise invalid("import body must be a JSON object")
+    state = snapshot.build_state(payload, store.state.clock)
+    store.replace(state)
     return no_content()

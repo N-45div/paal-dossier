@@ -14,8 +14,9 @@ docker build -t dossier . && docker run --rm -e PORT=8080 -p 8080:8080 \
 ## Layout
 
 - `app/main.py` — ASGI app assembly, error handling.
-- `app/routes/` — HTTP handlers (`control`, `auth`).
-- `app/store.py` — in-memory state (users, tokens); one event loop, mutations are synchronous sections.
+- `app/routes/` — HTTP handlers (`control`, `auth`, `dossiers`).
+- `app/store.py`, `app/dossiers.py`, `app/idempotency.py`, `app/snapshot.py` — in-memory state, dossier model, idempotency keys, versioned export/import; one event loop, mutations are synchronous sections.
+- `app/builds.py` — background build orchestration; calls `app.research.run_build` (stub until present).
 - `app/clock.py` — the injectable clock moved only by reset and `POST /_test/clock`.
 - `app/domains.py` — domain normalisation and validation.
 - `app/passwords.py` — scrypt password hashing (versioned format).

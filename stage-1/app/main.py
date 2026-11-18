@@ -6,7 +6,7 @@ from starlette.routing import Route
 
 from app.errors import ApiError
 from app.http import error_response
-from app.routes import auth, control
+from app.routes import auth, control, dossiers
 from app.store import Store
 
 
@@ -28,6 +28,12 @@ def create_app() -> Starlette:
         Route("/health", control.health, methods=["GET"]),
         Route("/_test/reset", control.reset, methods=["POST"]),
         Route("/_test/clock", control.set_clock, methods=["POST"]),
+        Route("/_test/export", control.export_state, methods=["GET"]),
+        Route("/_test/import", control.import_state, methods=["POST"]),
+        Route("/dossiers", dossiers.create, methods=["POST"]),
+        Route("/dossiers", dossiers.listing, methods=["GET"]),
+        Route("/dossiers/{domain}", dossiers.read, methods=["GET"]),
+        Route("/dossiers/{domain}/refresh", dossiers.refresh, methods=["POST"]),
         Route("/auth/signup", auth.signup, methods=["POST"]),
         Route("/auth/login", auth.login, methods=["POST"]),
     ]
