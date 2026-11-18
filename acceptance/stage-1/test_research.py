@@ -3,7 +3,7 @@ import os
 import time
 from pathlib import Path
 from common import Acceptance, FIELDS, FIXTURE
-from edge_corpus import CASES
+from edge_corpus import CASES, EXCERPTS
 
 
 def collapse(text):
@@ -11,6 +11,19 @@ def collapse(text):
 
 
 class Research(Acceptance):
+    def test_R1_43_name_query_discovers_evidence_beyond_domain_search(self):
+        domain = 'trialnamequery.test'
+        evidence_url = 'https://' + domain + '/hq'
+        self.assertEqual(self.create(domain)[0], 202)
+        dossier = self.ready(domain)
+        calls = [c for c in self.log() if c['method'] == 'search' and c['status'] < 400]
+        domain_search = [c for c in calls if c['query'] == domain]
+        self.assertEqual(len(domain_search), 1)
+        self.assertNotIn(evidence_url, [s['url'] for s in domain_search[0]['served']])
+        self.assertTrue(any(c['query'] != domain and evidence_url in [s['url'] for s in c['served']] for c in calls), calls)
+        self.assertEqual(dossier['fields']['hq_city']['value'], 'Zürich')
+        self.assertTrue(any(c['url'] == evidence_url and c['excerpt'] == 'Trialnamequery is headquartered in Zürich.' for c in dossier['fields']['hq_city']['citations']))
+
     def test_R1_43_R1_46_R1_49_R1_50_R1_121_R1_122_R1_123_R1_124_R1_125_R1_126_R1_127_R1_128_R1_129_R1_130_R1_131_R1_132_R1_133_R1_134_R1_135_R1_136_R1_137_R1_138_R1_139_R1_140_support_boundaries(self):
         for suffix, field, prose, expected in CASES:
             domain = 'trial' + suffix + '.test'
@@ -21,9 +34,13 @@ class Research(Acceptance):
                 self.assertEqual(dossier['state'], 'ready')
                 actual = dossier['fields'][field]
                 self.assertEqual(actual['value'], expected, (prose, actual))
+                for item in dossier['fields'].values():
+                    for cite in item['citations']:
+                        self.assertEqual(cite['excerpt'], EXCERPTS.get(suffix, prose), cite)
+                        served = [s['text'] for c in self.log() if c['provider'] == cite['provider'] for s in c.get('served', []) if s['url'] == cite['url']]
+                        self.assertTrue(any(collapse(cite['excerpt']) in collapse(text) for text in served), cite)
                 if expected is not None:
                     self.assertTrue(actual['citations'])
-                    self.assertTrue(all(c['excerpt'] == prose for c in actual['citations']), actual)
                 else:
                     self.assertEqual(actual, {'value': None, 'status': 'unknown', 'citations': []})
 
@@ -44,6 +61,7 @@ class Research(Acceptance):
                 searches = [c for c in log if c['method'] == 'search' and c['status'] < 400]
                 self.assertEqual(sum(c['query'] == domain for c in searches), 1, log)
                 self.assertTrue(all(len(c.get('served', [])) <= 10 for c in searches), log)
+                self.assertTrue(all(c['depth'] in ('lite', 'fast', 'deep') for c in searches), log)
                 for entry in log:
                     if entry['provider'] == 'nimble' and entry['method'] == 'extract' and entry['status'] < 400:
                         self.assertEqual(entry['cost'], len(entry['urls']), entry)
@@ -75,6 +93,7 @@ class Research(Acceptance):
         self.assertEqual(self.create('halvorsen-robotics.test')[0], 202)
         self.ready('halvorsen-robotics.test', timeout=10)
         self.assertLess(time.monotonic() - start, 10)
+        self.assertTrue(self.log(), 'No provider calls were made under the delay fault')
 
     def test_R1_58_R1_81_R1_143_provider_errors(self):
         for provider in ('nimble', 'tavily'):

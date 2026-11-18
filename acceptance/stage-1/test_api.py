@@ -166,7 +166,7 @@ class API(Acceptance):
         self.assertTrue(all(r[3] < 5 for r in responses))
         self.ready('race.test')
 
-    def test_R1_38_R1_40_R1_41_R1_86_R1_87_R1_90_R1_91_R1_92_R1_93_shape(self):
+    def test_R1_02a_R1_38_R1_40_R1_41_R1_86_R1_87_R1_90_R1_91_R1_92_R1_93_shape(self):
         created = self.create()
         self.assertEqual(created[0], 202)
         self.assertEqual(created[1]['state'], 'building')
