@@ -84,7 +84,8 @@ def table_cases():
     for i, phrase in enumerate(NEGATIONS):
         suffix = 'negation' + code(i)
         name = 'Trial' + suffix
-        negations.append((suffix, 'founded_year', f'{name} {phrase} founded in 2014.', None, phrase))
+        verb = 'be founded' if phrase == 'hopes to' else 'founded'
+        negations.append((suffix, 'founded_year', f'{name} {phrase} {verb} in 2014.', None, phrase))
     i = 0
     for field, phrases in STATEMENTS.items():
         for phrase in phrases:
