@@ -27,7 +27,7 @@ class Research(Acceptance):
                 else:
                     self.assertEqual(actual, {'value': None, 'status': 'unknown', 'citations': []})
 
-    def test_R1_01a_R1_02_R1_06_R1_38_R1_39_R1_42_R1_44_R1_45_R1_47_R1_48_R1_82_R1_94_R1_141_R1_148_R1_149_sample_corpus(self):
+    def test_R1_01_R1_01a_R1_02_R1_06_R1_38_R1_39_R1_42_R1_44_R1_45_R1_47_R1_48_R1_82_R1_94_R1_141_R1_142_R1_144_R1_148_R1_149_sample_corpus(self):
         directory = os.environ.get('CORPUS_DIR')
         self.assertTrue(directory, 'Set CORPUS_DIR to the mock sample corpus')
         key = json.loads((Path(directory) / 'key.json').read_text())
@@ -43,6 +43,10 @@ class Research(Acceptance):
                 self.assertEqual(dossier['spent_units'], cost)
                 searches = [c for c in log if c['method'] == 'search' and c['status'] < 400]
                 self.assertEqual(sum(c['query'] == domain for c in searches), 1, log)
+                self.assertTrue(all(len(c.get('served', [])) <= 10 for c in searches), log)
+                for entry in log:
+                    if entry['provider'] == 'nimble' and entry['method'] == 'extract' and entry['status'] < 400:
+                        self.assertEqual(entry['cost'], len(entry['urls']), entry)
                 research = [c for c in log if c['provider'] == 'nimble' and c['method'] == 'research' and c['status'] < 400]
                 self.assertTrue(research, log)
                 self.assertTrue(any(domain in c['query'] and set(c['fields'] or []) == FIELDS for c in research), log)
@@ -84,12 +88,15 @@ class Research(Acceptance):
         self.assertEqual(sum(c['cost'] for c in self.log()), 0)
         self.assertEqual(item['spent_units'], 0)
 
-    def test_R1_79_R1_81_R1_92_R1_93_R1_94_R1_107_refresh_epoch_and_failed_preserves_fields(self):
+    def test_R1_79_R1_81_R1_92_R1_93_R1_94_R1_107_R1_110_refresh_epoch_and_failed_preserves_fields(self):
         domain = 'halvorsen-robotics.test'
         self.assertEqual(self.create(domain)[0], 202)
         first = self.ready(domain)
         self.assertEqual(first['state'], 'ready')
         self.assertEqual(first['fields']['ceo']['value'], 'Priya Dalton')
+        listing = self.api('GET', '/dossiers?q=halvorsen', token=self.ada)
+        self.assertEqual(listing[0], 200)
+        self.assertEqual(listing[1]['dossiers'][0]['legal_name'], first['fields']['legal_name']['value'])
         self.assertEqual(self.mock('POST', '/_mock/epoch', {'epoch': 1})[0], 204)
         self.assertEqual(self.api('POST', '/_test/clock', {'now': '2026-03-02T09:00:00+00:00'})[0], 204)
         call_count = len(self.log())

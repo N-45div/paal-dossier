@@ -126,6 +126,7 @@ class API(Acceptance):
             self.err(self.api('POST', '/dossiers', body, self.ada, 'recover'), 409, 'idempotency_key_reuse')
         self.assertEqual(self.api('POST', '/dossiers', {'domain': 'different.test'}, self.bob, 'recover')[0], 202)
         self.assertEqual(self.api('POST', '/dossiers/Acme-Robotics.test/refresh', token=self.ada, key='recover')[0], 202)
+        self.assertEqual(self.api('POST', '/dossiers/acme-robotics.test/refresh', token=self.ada, key='recover')[0], 202)
 
     def test_R1_75_R1_77_R1_85_R1_106_R1_107_R1_108_replay_and_refresh(self):
         first = self.create()
