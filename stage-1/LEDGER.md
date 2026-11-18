@@ -367,3 +367,4 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 - 19:5xZ P1 (builder-a b27b298) handed off; P3 (builder-b 0af9832) handed off. Statuses → built.
 - 20:1xZ P2 (builder-a 3581e5f, includes P1) handed off. P2 statuses → built (R1.82–R1.84 stay open until P4).
 - P5 added for builder-a: limits and robustness (R1.12, R1.15, R1.23, R1.58, R1.76, R1.88, R1.120a; measures M1.3, M1.4).
+- 20:4xZ P5 (builder-a 467ab72) handed off: 50-worker load, 0 5xx, max latency 1.48 s, reset under load 1.42 s (M1.4 met on stub/stand-in). Gatekeeper preliminary findings on P2 3581e5f: reset racing an in-flight POST leaks a dossier (R1.22/R1.120a); offset of 5000 digits → 500 (R1.57/R1.58). P3 0af9832 finding: funding Decimal precision (R1.140), no test names ledger ids, .pyc committed. Fixes assigned to the owners.
