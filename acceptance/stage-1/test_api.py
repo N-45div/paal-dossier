@@ -127,7 +127,7 @@ class API(Acceptance):
         self.assertEqual(self.api('POST', '/dossiers', {'domain': 'different.test'}, self.bob, 'recover')[0], 202)
         self.assertEqual(self.api('POST', '/dossiers/Acme-Robotics.test/refresh', token=self.ada, key='recover')[0], 202)
 
-    def test_R1_75_R1_77_R1_85_R1_106_R1_108_replay_and_refresh(self):
+    def test_R1_75_R1_77_R1_85_R1_106_R1_107_R1_108_replay_and_refresh(self):
         first = self.create()
         self.assertEqual(first[0], 202)
         self.ready()

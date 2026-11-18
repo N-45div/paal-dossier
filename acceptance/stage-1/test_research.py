@@ -84,6 +84,38 @@ class Research(Acceptance):
         self.assertEqual(sum(c['cost'] for c in self.log()), 0)
         self.assertEqual(item['spent_units'], 0)
 
+    def test_R1_79_R1_81_R1_92_R1_93_R1_94_R1_107_refresh_epoch_and_failed_preserves_fields(self):
+        domain = 'halvorsen-robotics.test'
+        self.assertEqual(self.create(domain)[0], 202)
+        first = self.ready(domain)
+        self.assertEqual(first['state'], 'ready')
+        self.assertEqual(first['fields']['ceo']['value'], 'Priya Dalton')
+        self.assertEqual(self.mock('POST', '/_mock/epoch', {'epoch': 1})[0], 204)
+        self.assertEqual(self.api('POST', '/_test/clock', {'now': '2026-03-02T09:00:00+00:00'})[0], 204)
+        call_count = len(self.log())
+        self.assertEqual(self.api('POST', '/dossiers/' + domain + '/refresh', token=self.ada, key='epoch-one')[0], 202)
+        second = self.ready(domain)
+        self.assertEqual(second['state'], 'ready')
+        self.assertEqual(second['fields']['ceo']['value'], 'Marcus Abbott')
+        self.assertEqual(second['researched_at'], '2026-03-02T09:00:00+00:00')
+        self.assertGreater(len(self.log()), call_count)
+        self.assertGreater(second['spent_units'], first['spent_units'])
+        for provider in ('nimble', 'tavily'):
+            self.assertEqual(self.mock('POST', '/_mock/faults', {'provider': provider, 'methods': ['search', 'extract', 'research'], 'mode': 'error'})[0], 204)
+        self.assertEqual(self.api('POST', '/dossiers/' + domain + '/refresh', token=self.ada, key='faulted')[0], 202)
+        failed = self.ready(domain)
+        self.assertEqual(failed['state'], 'failed')
+        self.assertEqual(failed['fields'], second['fields'])
+        self.assertEqual(failed['researched_at'], second['researched_at'])
+        self.assertEqual(failed['spent_units'], second['spent_units'])
+
+    def test_R1_58_R1_143_rate_limited_provider_requests_do_not_5xx(self):
+        for provider in ('nimble', 'tavily'):
+            self.assertEqual(self.mock('POST', '/_mock/faults', {'provider': provider, 'methods': ['search', 'extract', 'research'], 'mode': 'rate_limit'})[0], 204)
+        self.assertEqual(self.create('halvorsen-robotics.test')[0], 202)
+        self.assertIn(self.ready('halvorsen-robotics.test')['state'], ('ready', 'failed'))
+        self.assertTrue(all(c['cost'] == 0 for c in self.log() if c['status'] == 429))
+
     def test_R1_23_R1_79_R1_80_R1_92_R1_106_R1_120_reset_cancels_inflight(self):
         self.assertEqual(self.mock('POST', '/_mock/faults', {'provider': 'nimble', 'methods': ['search', 'extract', 'research'], 'mode': 'delay', 'seconds': 1})[0], 204)
         self.assertEqual(self.create('halvorsen-robotics.test')[0], 202)
