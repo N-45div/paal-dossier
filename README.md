@@ -48,3 +48,17 @@ python -m pytest tests/api                                     # HTTP API
 ```
 
 The acceptance suite is described in `acceptance/stage-1/README.md`.
+
+## Live evidence
+
+`tools/live-runway.sh <stage-folder>` builds the stage's image, runs it in live mode
+(`NIMBLE_BASE_URL` unset), researches `runway.com`, and writes the ready
+`GET /dossiers/runway.com` response to `dossier-runway.com.json` at the repo root:
+
+```sh
+export NIMBLE_API_KEY=<your key>      # passed to the container by name only
+tools/live-runway.sh stage-1
+```
+
+It refuses to start without `NIMBLE_API_KEY`, polls for up to 300 s, writes the file only
+when the build ends `ready`, and removes its container and image. It spends real units.
