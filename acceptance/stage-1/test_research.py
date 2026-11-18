@@ -11,6 +11,11 @@ def collapse(text):
 
 
 class Research(Acceptance):
+    def test_R1_140_large_funding_is_exact_including_scale(self):
+        cases = [(*case, case[0]) for case in CASES if case[0] in ('fundingprecision', 'fundingscale')]
+        self.assertEqual(len(cases), 2)
+        self.check_table(cases)
+
     def check_table(self, cases):
         for suffix, field, prose, expected, phrase in cases:
             domain = 'trial' + suffix + '.test'

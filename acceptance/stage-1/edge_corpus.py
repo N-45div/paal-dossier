@@ -52,6 +52,8 @@ CASES = [
     ('legalunicode', 'legal_name', 'Triallegalunicode has registered name Triallegalunicode Müller GmbH.', 'Triallegalunicode Müller GmbH'),
     ('suffixsentence', 'legal_name', 'Trialsuffixsentence has legal name Trialsuffixsentence Inc. in the register. More text follows.', 'Trialsuffixsentence Inc.'),
     ('twosentences', 'founded_year', 'Trialtwosentences sells products. Trialtwosentences was founded in 2014!', 2014),
+    ('fundingprecision', 'funding_total', 'Trialfundingprecision raised $123456789012345678901234567891.', 123456789012345678901234567891),
+    ('fundingscale', 'funding_total', 'Trialfundingscale raised $123456789012345678901234.567891 million.', 123456789012345678901234567891),
 ]
 
 EXCERPTS = {
