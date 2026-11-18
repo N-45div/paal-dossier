@@ -137,3 +137,25 @@ def test_reset_during_running_builds_leaves_clean_state(research):
         d = (await client.get("/dossiers/co0.test", headers=auth)).json()
         assert d["spent_units"] == 5 and d["state"] == "building"
     run(scenario)
+
+
+def test_request_straddling_reset_is_rejected_not_applied(research):
+    """R1.22/R1.120a: a create whose body arrives after a reset cannot use the old token."""
+    async def scenario(client, auth):
+        async def slow_body():
+            yield b'{"domain":'
+            await asyncio.sleep(0.3)
+            yield b' "race.test"}'
+        pending = asyncio.create_task(client.post(
+            "/dossiers", content=slow_body(),
+            headers={**auth, "Idempotency-Key": "k", "Content-Type": "application/json"}))
+        await asyncio.sleep(0.1)
+        other = {"now": FIXTURE["now"], "users": [{"id": "u_new", "email": "n@example.com",
+                                                   "password": "12345678", "display_name": "N"}]}
+        assert (await client.post("/_test/reset", json=other)).status_code == 204
+        assert (await pending).status_code == 401
+        r = await client.post("/auth/login", json={"email": "n@example.com", "password": "12345678"})
+        new_auth = {"Authorization": "Bearer " + r.json()["token"]}
+        assert (await client.get("/dossiers", headers=new_auth)).json()["dossiers"] == []
+    run(scenario)
+    assert research.calls == []

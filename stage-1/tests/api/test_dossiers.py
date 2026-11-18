@@ -92,3 +92,11 @@ def test_export_import_roundtrip(client):
     assert client.post("/_test/import", json={"track": "dossier", "format_version": 1,
                                               "state": {}}).status_code == 422
     assert client.get("/dossiers/acme.test", headers=auth).status_code == 200
+
+
+def test_huge_integer_query_parameters_are_not_5xx(client):
+    auth = login(client)
+    r = client.get("/dossiers?offset=" + "9" * 5000, headers=auth)
+    assert r.status_code == 200 and r.json() == {"dossiers": [], "has_more": False}
+    assert client.get("/dossiers?offset=" + "0" * 5000, headers=auth).status_code == 200
+    assert client.get("/dossiers?limit=" + "9" * 5000, headers=auth).status_code == 422

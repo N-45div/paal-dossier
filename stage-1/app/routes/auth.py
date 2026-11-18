@@ -41,7 +41,10 @@ async def signup(request: Request):
 async def login(request: Request):
     store: Store = request.app.state.store
     email, password = require(await json_object(request), ("email", "password"))
-    user = store.state.user_by_email(email)
+    state = store.state
+    user = state.user_by_email(email)
     if user is None or not await verify_password_async(password, user.password_hash):
         raise unauthenticated()
-    return _session(user, store.state.issue_token(user.user_id), 200)
+    if store.state is not state:  # reset or import ran while the hash was checked
+        raise unauthenticated()
+    return _session(user, state.issue_token(user.user_id), 200)

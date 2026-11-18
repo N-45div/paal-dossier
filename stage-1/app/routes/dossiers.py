@@ -20,8 +20,9 @@ def _remember(state, scope: tuple, signature, body: dict) -> None:
 
 async def create(request: Request):
     store: Store = request.app.state.store
-    user = authenticate(request, store.state)
+    authenticate(request, store.state)
     body = await json_object(request)
+    user = authenticate(request, store.state)  # a reset may have run while the body arrived
     key = idempotency.key_of(request)
     state = store.state
     scope = (user.user_id, "POST", raw_path(request), key)
@@ -82,7 +83,8 @@ def _int_param(request: Request, name: str, default: int, low: int, high: int | 
         return default
     if not _DIGITS.match(raw):
         raise invalid(f"{name} must be a plain decimal integer")
-    value = int(raw)
+    digits = raw.lstrip("0") or "0"
+    value = int(digits) if len(digits) <= 18 else 10 ** 18  # beyond any real bound
     if value < low or (high is not None and value > high):
         raise invalid(f"{name} is out of range")
     return value
