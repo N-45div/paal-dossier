@@ -1,23 +1,22 @@
 """Background dossier builds.
 
-Each `run_build` executes in a worker thread with its own event loop, so blocking
-provider calls and CPU-heavy text analysis cannot stall request handling. Everything
-that touches service state (spend, the final write) hops back to the main loop and is
-applied only if no reset or import happened since the build started.
+Every `run_build` runs on one dedicated engine event loop in its own thread, so
+blocking provider calls and CPU-heavy text analysis cannot stall request handling,
+and the research engine's per-loop HTTP client and in-flight limiter are shared by
+all builds (no connection or socket is created per build). Everything that touches
+service state (spend, the final write) hops back to the main loop and is applied
+only if no reset or import happened since the build started.
 """
 import asyncio
 import importlib.util
 import inspect
-from concurrent.futures import ThreadPoolExecutor
+import threading
 from datetime import datetime
 
 from app.dossiers import Dossier, clean_fields
 from app.store import Store
 
 BUILD_DEADLINE_SECONDS = 290  # spec: a build ends ready or failed within 300 s
-MAX_PARALLEL_BUILDS = 32
-
-_pool = ThreadPoolExecutor(max_workers=MAX_PARALLEL_BUILDS, thread_name_prefix="build")
 
 
 class BuildCancelled(BaseException):
@@ -25,6 +24,28 @@ class BuildCancelled(BaseException):
 
     A BaseException so research code that catches Exception cannot swallow it.
     """
+
+
+class _EngineLoop:
+    """A background thread running one event loop for all builds."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def loop(self) -> asyncio.AbstractEventLoop:
+        with self._lock:
+            if self._loop is None:
+                loop = asyncio.new_event_loop()
+                threading.Thread(target=loop.run_forever, name="build-engine", daemon=True).start()
+                self._loop = loop
+            return self._loop
+
+    def submit(self, coroutine) -> "asyncio.Future":
+        return asyncio.wrap_future(asyncio.run_coroutine_threadsafe(coroutine, self.loop()))
+
+
+_engine = _EngineLoop()
 
 
 async def _stub_build(domain, spend) -> dict:
@@ -38,13 +59,12 @@ def _research_entry():
     return run_build
 
 
-def _run_in_worker(domain: str, spend) -> dict:
-    """Worker-thread body: own event loop; run_build may be async or blocking."""
-    async def main():
-        result = _research_entry()(domain, spend)
-        return await result if inspect.isawaitable(result) else result
-
-    return asyncio.run(asyncio.wait_for(main(), BUILD_DEADLINE_SECONDS))
+async def _execute(domain: str, spend) -> dict:
+    """Engine-loop body: run_build may be async or a plain blocking function."""
+    entry = _research_entry()
+    if inspect.iscoroutinefunction(entry) or inspect.iscoroutinefunction(entry.__call__):
+        return await asyncio.wait_for(entry(domain, spend), BUILD_DEADLINE_SECONDS)
+    return await asyncio.wait_for(asyncio.to_thread(entry, domain, spend), BUILD_DEADLINE_SECONDS)
 
 
 def start(store: Store, dossier: Dossier, started_at: datetime) -> None:
@@ -69,7 +89,7 @@ async def _run(store: Store, dossier: Dossier, generation: int, started_at: date
         loop.call_soon_threadsafe(add_spend, int(units))
 
     try:
-        result = await loop.run_in_executor(_pool, _run_in_worker, dossier.domain, spend)
+        result = await _engine.submit(_execute(dossier.domain, spend))
         ok = bool(result.get("ok"))
         fields = clean_fields(result.get("fields")) if ok else None
     except asyncio.CancelledError:
