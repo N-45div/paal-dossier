@@ -217,7 +217,7 @@ async def test_R1_47_supporting_single_sentence_research_claim_is_known_with_tha
         "citations": [{"url": "https://x.test/9", "excerpt": excerpt, "provider": "nimble"}]}
 
 
-async def test_R1_47_research_only_url_is_never_extracted_so_it_is_not_evidence(run):
+async def test_R1_43_R1_47_research_only_page_is_not_evidence(run):
     """A page that only a research citation points at is no evidence, even if it states the value."""
     pages = {"https://x.test/secret": "Acme Robotics was founded in 2014."}
 
