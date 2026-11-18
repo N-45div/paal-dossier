@@ -6,6 +6,7 @@ normalised values the excerpt contains in that field's format.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 from .numbers import amounts, numbers_outside_amounts
 from .sentences import LEGAL_FORM_SUFFIXES
@@ -56,7 +57,22 @@ class Company:
 
     @property
     def names_pattern(self):
-        return whole_word_pattern([self.name, self.domain])
+        return _names_pattern(self.name, self.domain)
+
+    @property
+    def removable_pattern(self):
+        """Name and CEO phrases, taken out of a sentence before looking for a person."""
+        return _removable_pattern(self.name)
+
+
+@lru_cache(maxsize=4096)
+def _names_pattern(name: str, domain: str):
+    return whole_word_pattern([name, domain])
+
+
+@lru_cache(maxsize=4096)
+def _removable_pattern(name: str):
+    return whole_word_pattern([name, *PHRASES[CEO]])
 
 
 def phrase_pattern(field: str):
@@ -110,8 +126,7 @@ def hq_cities(text: str, company: Company) -> list[str]:
 
 
 def ceos(text: str, company: Company) -> list[str]:
-    removable = whole_word_pattern([company.name, *PHRASES[CEO]])
-    cleaned = removable.sub(_SEPARATOR, text)
+    cleaned = company.removable_pattern.sub(_SEPARATOR, text)
     values = []
     for start, end in capitalised_runs(cleaned, " "):
         if 2 <= cleaned[start:end].count(" ") + 1 <= 3:

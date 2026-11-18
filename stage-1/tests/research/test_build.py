@@ -232,3 +232,29 @@ async def test_R1_43_R1_47_research_only_page_is_not_evidence(run):
     result, _ = await run(router)
     assert result["fields"]["founded_year"]["status"] == "unknown"
     assert not any(c[0] == "extract" for c in router.calls)
+
+
+class _Busy:
+    in_flight = 1000
+
+    async def __aenter__(self):
+        return None
+
+    async def __aexit__(self, *exc):
+        return None
+
+
+async def test_R1_83_second_wave_is_skipped_while_many_builds_share_the_providers(monkeypatch, run):
+    pages = {f"https://p{i}.test/x": "Acme Robotics was founded in 2014." for i in range(10)}
+
+    def count_searches(router):
+        return sum(1 for c in router.calls if c[0] == "search")
+
+    quiet = FakeRouter(pages)
+    await run(quiet)
+    busy = FakeRouter(pages)
+    runtime = FakeRuntime(busy)
+    runtime.limiter = _Busy()
+    monkeypatch.setattr(build_module, "open_runtime", lambda _c: runtime)
+    await build_module.run_build(DOMAIN, lambda units: None)
+    assert count_searches(busy) < count_searches(quiet)

@@ -19,6 +19,7 @@ from .runtime import Runtime, open_runtime
 log = logging.getLogger(__name__)
 
 SECOND_WAVE_MAX = 8
+SECOND_WAVE_MAX_LOAD = 60  # skipped while many builds share the providers (R1.83)
 SECOND_WAVE_RESERVE = 6  # units kept for extracting what the second wave finds
 
 
@@ -30,6 +31,7 @@ class BuildRun:
         self.domain = domain
         self.config = config
         self.budget = Budget()
+        self._limiter = runtime.limiter
         self.gateway = Gateway(runtime, self.budget, spend, config)
         self.evidence = Evidence(domain)
         self._tasks: set[asyncio.Task] = set()
@@ -120,7 +122,8 @@ class BuildRun:
         """Spend spare units on queries shaped like the titles already found."""
         early = asyncio.get_running_loop().time() - self._started <= self.config.second_wave_window
         spare = (self.budget.remaining - SECOND_WAVE_RESERVE) // 2
-        if not early or spare <= 0:
+        busy = self._limiter.in_flight > SECOND_WAVE_MAX_LOAD
+        if not early or busy or spare <= 0:
             return
         titles = [t for t, _ in self._titles.most_common()]
         name = self.domain.split(".")[0].replace("-", " ").title()
@@ -167,5 +170,4 @@ async def run_build(domain: str, spend: Callable[[int], None]) -> dict:
     except Exception:  # a build never raises: it ends with what it has
         log.exception("research build crashed for %s", domain)
         return {"ok": False, "fields": unknown_fields()}
-    finally:
-        await runtime.aclose()
+

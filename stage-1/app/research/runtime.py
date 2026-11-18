@@ -1,12 +1,13 @@
-"""One WebRouter client per build and one in-flight limiter shared by all builds.
+"""One WebRouter client per event loop and one in-flight limiter shared by all builds.
 
-Builds may run in separate threads, each with its own event loop, so the limiter
-is thread-safe and loop-independent.
+Builds share their loop's client, so connections are reused instead of opened per
+build. The limiter is thread-safe and loop-independent.
 """
 from __future__ import annotations
 
 import asyncio
 import threading
+import weakref
 from dataclasses import dataclass
 
 from web_router import AsyncWebRouter
@@ -22,6 +23,10 @@ class SharedLimiter:
         self._in_flight = 0
         self._lock = threading.Lock()
 
+    @property
+    def in_flight(self) -> int:
+        return self._in_flight
+
     async def __aenter__(self) -> None:
         while True:
             with self._lock:
@@ -35,7 +40,11 @@ class SharedLimiter:
             self._in_flight -= 1
 
 
-_LIMITER = SharedLimiter(24)
+# Calls of concurrent builds run in parallel up to this many sockets in all; builds
+# that each wait on 1 s providers must not queue behind one another (R1.83).
+MAX_IN_FLIGHT = 200
+_LIMITER = SharedLimiter(MAX_IN_FLIGHT)
+_PER_LOOP: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, Runtime]" = weakref.WeakKeyDictionary()
 
 
 @dataclass
@@ -43,8 +52,6 @@ class Runtime:
     router: AsyncWebRouter
     limiter: SharedLimiter
 
-    async def aclose(self) -> None:
-        await self.router.aclose()
 
 
 def _provider_config(config: Config) -> dict:
@@ -55,5 +62,10 @@ def _provider_config(config: Config) -> dict:
 
 
 def open_runtime(config: Config) -> Runtime:
-    router = AsyncWebRouter("nimble", provider_config=_provider_config(config))
-    return Runtime(router, _LIMITER)
+    """The running loop's runtime, created on first use."""
+    loop = asyncio.get_running_loop()
+    runtime = _PER_LOOP.get(loop)
+    if runtime is None:
+        router = AsyncWebRouter("nimble", provider_config=_provider_config(config))
+        runtime = _PER_LOOP[loop] = Runtime(router, _LIMITER)
+    return runtime
