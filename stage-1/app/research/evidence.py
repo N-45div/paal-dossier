@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .pages import split_page
-from .sentences import split_line, split_prose
+from .sentences import split_prose
 from .support import Value, supported_values
 from .words import collapse_whitespace
 
@@ -52,8 +52,8 @@ class Evidence:
             claimed = claims.get(name)
             if claimed is None or not citation.snippet or not citation.url:
                 continue
-            for sentence in split_line(collapse_whitespace(citation.snippet)):
-                self._add_sentence(citation.url, sentence, "nimble", only=(name, claimed))
+            # the claim is asserted only when its citation, as served, supports it on its own
+            self._add_sentence(citation.url, citation.snippet, "nimble", only=(name, claimed))
 
     def finish(self) -> list[Candidate]:
         """Candidates, with snippet sentences for pages that have no full text."""
