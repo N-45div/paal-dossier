@@ -38,7 +38,7 @@ class FakeRouter:
         if queue:
             raise queue.pop(0)
         results = [
-            SimpleNamespace(url=u, title="", description=t[:300], content=t[:300])
+            SimpleNamespace(url=u, title="Title one", description=t[:300], content=t[:300])
             for u, t in list(self.pages.items())[:max_results]
         ]
         return SimpleNamespace(results=results)

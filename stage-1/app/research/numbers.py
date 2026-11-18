@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from decimal import Decimal
+from fractions import Fraction
 
 _CLUSTER = re.compile(r"\d+(?:[,.]\d+)*")
 _VALID_NUMBER = re.compile(r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?")
@@ -24,19 +24,19 @@ class Number:
         return "." in self.text
 
     @property
-    def value(self) -> Decimal:
-        return Decimal(self.text.replace(",", ""))
+    def value(self) -> Fraction:
+        return Fraction(self.text.replace(",", ""))
 
 
 @dataclass(frozen=True)
 class Amount:
     start: int
     end: int
-    dollars: Decimal
+    dollars: Fraction
 
     @property
     def whole_dollars(self) -> int | None:
-        return int(self.dollars) if self.dollars == self.dollars.to_integral_value() else None
+        return int(self.dollars) if self.dollars.denominator == 1 else None
 
 
 def _alnum_at(text: str, i: int) -> bool:

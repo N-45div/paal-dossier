@@ -27,7 +27,7 @@ D = "acme-robotics.test"
     ("Acme Robotics has 20000 employees.", "headcount_range", "10001+"),
     ("Acme Robotics employs 5,001 people.", "headcount_range", "5001-10000"),
 ])
-def test_supported(excerpt, field, value):
+def test_R1_46_R1_129_supported(excerpt, field, value):
     assert supports(excerpt, D, field) == value
 
 
@@ -55,67 +55,67 @@ def test_supported(excerpt, field, value):
     ("Other Corp was founded in 2014.", "founded_year"),
     ("Acme Robotics was founded in 2014", "hq_city"),
 ])
-def test_not_supported(excerpt, field):
+def test_R1_125_R1_126_R1_127_not_supported(excerpt, field):
     assert supports(excerpt, D, field) is None
 
 
-def test_domain_names_the_company():
+def test_R1_124_domain_names_the_company():
     assert supports("acme-robotics.test was founded in 2014.", D, "founded_year") == 2014
     assert supports("See www.acme-robotics.test: founded in 2014.", D, "founded_year") == 2014
 
 
-def test_company_word_boundaries():
+def test_R1_128_company_word_boundaries():
     assert supports("Acme Roboticsx was founded in 2014.", D, "founded_year") is None
     assert supports("Notacme Robotics was founded in 2014.", D, "founded_year") is None
 
 
-def test_case_insensitive_phrases_and_company():
+def test_R1_128_case_insensitive_phrases_and_company():
     assert supports("ACME ROBOTICS WAS FOUNDED IN 2014.", D, "founded_year") == 2014
 
 
 @pytest.mark.parametrize("neg", ["could", "would", "might", "former", "formerly", "reportedly",
                                  "rumoured", "seeking", "plans to", "will become", "not"])
-def test_negating_phrases(neg):
+def test_R1_131_negating_phrases(neg):
     assert supports(f"Acme Robotics {neg} be founded in 2014.", D, "founded_year") is None
 
 
-def test_negation_is_whole_word():
+def test_R1_128_negation_is_whole_word():
     assert supports("Acme Robotics, a notable firm, was founded in 2014.", D, "founded_year") == 2014
 
 
-def test_two_sentences_are_not_supported():
+def test_R1_123_two_sentences_are_not_supported():
     assert supports("Acme Robotics was founded in 2014. It grew.", D, "founded_year") is None
     assert supports("Acme Robotics was founded in 2014! Wow", D, "founded_year") is None
 
 
-def test_legal_form_suffix_does_not_end_sentence():
+def test_R1_121_legal_form_suffix_does_not_end_sentence():
     text = "Acme Robotics, Inc. was founded in 2014."
     assert supports(text, D, "founded_year") == 2014
 
 
-def test_sentence_end_with_closer():
+def test_R1_121_sentence_end_with_closer():
     assert supports("(Acme Robotics was founded in 2014.) Next", D, "founded_year") is None
 
 
-def test_whitespace_runs_collapse():
+def test_R1_122_whitespace_runs_collapse():
     assert supports("Acme   Robotics\twas founded\n in 2014.", D, "founded_year") == 2014
 
 
-def test_ceo_run_not_part_of_longer_run():
+def test_R1_136_ceo_run_not_part_of_longer_run():
     assert supports("Acme Robotics CEO Anna Maria Lopez Perez leads.", D, "ceo") is None
     assert supports("Acme Robotics CEO Anna Maria Lopez leads.", D, "ceo") == "Anna Maria Lopez"
 
 
-def test_ceo_non_latin_names():
+def test_R1_132_ceo_non_latin_names():
     assert supports("Müller Schmidt is CEO of Acme Robotics.", D, "ceo") == "Müller Schmidt"
     assert supports("Zoë Ünal is CEO of Acme Robotics.", D, "ceo") == "Zoë Ünal"
 
 
-def test_ceo_removal_separates_words():
+def test_R1_136_ceo_removal_separates_words():
     assert supports("Anna Acme Robotics Lopez CEO.", D, "ceo") is None
 
 
-def test_amount_requires_boundaries():
+def test_R1_139_amount_requires_boundaries():
     assert supports("Acme Robotics has raised $12Mx.", D, "funding_total") is None
     assert supports("Acme Robotics has raised x$12M.", D, "funding_total") is None
     assert supports("Acme Robotics has raised $1,2 million.", D, "funding_total") is None
@@ -126,18 +126,18 @@ def test_amount_requires_boundaries():
     assert supports("Acme Robotics has raised $12 thousand.", D, "funding_total") == 12000
 
 
-def test_amount_does_not_leak_into_year_or_headcount():
+def test_R1_137_R1_138_amount_does_not_leak_into_year_or_headcount():
     assert supports("Acme Robotics founded 2014 raised $2,015.", D, "founded_year") == 2014
     assert supports("Acme Robotics founded $2,015.", D, "founded_year") is None
     assert supports("Acme Robotics employs 120 people and raised $12M.", D, "headcount_range") == "51-200"
 
 
-def test_numbers_joined_by_separators_are_not_numbers():
+def test_R1_133_numbers_joined_by_separators_are_not_numbers():
     assert supports("Acme Robotics was founded in 2014,2015.", D, "founded_year") is None
     assert supports("Acme Robotics was founded in 2014a.", D, "founded_year") is None
     assert supports("Acme Robotics was founded in 2014.", D, "founded_year") == 2014
 
 
-def test_multiple_agreeing_values_support():
+def test_R1_127_multiple_agreeing_values_support():
     assert supports("Acme Robotics was founded in 2014, established 2014.", D, "founded_year") == 2014
     assert supports("Acme Robotics employs 60 to 150 people.", D, "headcount_range") == "51-200"

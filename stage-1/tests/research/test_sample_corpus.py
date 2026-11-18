@@ -25,14 +25,14 @@ def served_text(page):
 
 
 @pytest.mark.parametrize("domain", LABELLED)
-def test_labels_are_supported(domain):
+def test_R1_46_R1_129_labels_are_supported(domain):
     for label in labels(domain):
         got = supported_values(label["excerpt"], domain)
         assert got.get(label["field"]) == label["value"], label
 
 
 @pytest.mark.parametrize("domain", LABELLED)
-def test_every_sentence_matches_labels(domain):
+def test_R1_46_R1_82_every_sentence_matches_labels(domain):
     company = json.loads((FIXTURES / f"{domain}.json").read_text())
     expected = {(s["excerpt"], s["field"], s["value"]) for s in labels(domain)}
     found = set()

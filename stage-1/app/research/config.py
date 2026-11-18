@@ -17,7 +17,7 @@ class Config:
     call_timeout: float      # one search or extract call
     research_timeout: float  # one research run
     build_deadline: float    # whole build, seconds from its start
-    max_in_flight: int       # provider calls at once, across all builds
+    second_wave_window: float  # second search wave starts only this early in a build
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -28,8 +28,8 @@ class Config:
             live=live,
             tavily_enabled=bool(os.environ.get("TAVILY_API_KEY")),
             tavily_base_url=tavily_url,
-            call_timeout=45.0 if live else 4.0,
-            research_timeout=150.0 if live else 6.0,
-            build_deadline=270.0 if live else 9.0,
-            max_in_flight=24,
+            call_timeout=45.0 if live else 12.0,
+            research_timeout=150.0 if live else 12.0,
+            build_deadline=270.0 if live else 25.0,
+            second_wave_window=3.0,
         )

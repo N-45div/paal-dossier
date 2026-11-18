@@ -54,6 +54,7 @@ class CallFailed(Exception):
 class Hit:
     url: str
     text: str
+    title: str = ""
 
 
 class Gateway:
@@ -72,7 +73,7 @@ class Gateway:
             lambda: router.search(query, provider=provider, max_results=10,
                                   search_depth=depth, data_apis=False),
         )
-        return [Hit(r.url, r.content or r.description or "") for r in response.results if r.url]
+        return [Hit(r.url, r.content or r.description or "", r.title or "") for r in response.results if r.url]
 
     async def extract(self, provider: str, url: str) -> str | None:
         """The served text of ``url``, or None when the provider has no page for it."""

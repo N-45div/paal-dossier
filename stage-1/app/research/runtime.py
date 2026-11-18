@@ -1,21 +1,50 @@
-"""One WebRouter client and one in-flight limiter per event loop."""
+"""One WebRouter client per build and one in-flight limiter shared by all builds.
+
+Builds may run in separate threads, each with its own event loop, so the limiter
+is thread-safe and loop-independent.
+"""
 from __future__ import annotations
 
 import asyncio
-import weakref
+import threading
 from dataclasses import dataclass
 
 from web_router import AsyncWebRouter
 
 from .config import Config
 
-_PER_LOOP: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, Runtime]" = weakref.WeakKeyDictionary()
+
+class SharedLimiter:
+    """Caps provider calls in flight across every build, whatever loop they run on."""
+
+    def __init__(self, limit: int) -> None:
+        self._limit = limit
+        self._in_flight = 0
+        self._lock = threading.Lock()
+
+    async def __aenter__(self) -> None:
+        while True:
+            with self._lock:
+                if self._in_flight < self._limit:
+                    self._in_flight += 1
+                    return
+            await asyncio.sleep(0.02)
+
+    async def __aexit__(self, *exc) -> None:
+        with self._lock:
+            self._in_flight -= 1
+
+
+_LIMITER = SharedLimiter(24)
 
 
 @dataclass
 class Runtime:
     router: AsyncWebRouter
-    limiter: asyncio.Semaphore
+    limiter: SharedLimiter
+
+    async def aclose(self) -> None:
+        await self.router.aclose()
 
 
 def _provider_config(config: Config) -> dict:
@@ -25,11 +54,6 @@ def _provider_config(config: Config) -> dict:
     return provider_config
 
 
-def runtime_for(config: Config) -> Runtime:
-    loop = asyncio.get_running_loop()
-    runtime = _PER_LOOP.get(loop)
-    if runtime is None:
-        router = AsyncWebRouter("nimble", provider_config=_provider_config(config))
-        runtime = Runtime(router, asyncio.Semaphore(config.max_in_flight))
-        _PER_LOOP[loop] = runtime
-    return runtime
+def open_runtime(config: Config) -> Runtime:
+    router = AsyncWebRouter("nimble", provider_config=_provider_config(config))
+    return Runtime(router, _LIMITER)
