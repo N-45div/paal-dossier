@@ -81,7 +81,7 @@ class Gateway:
         try:
             response = await self._call(
                 costs.extract_cost(provider), self._config.call_timeout,
-                lambda: router.extract(url, provider=provider),
+                lambda: router.extract(url, provider=provider), no_page_ok=True,
             )
         except _NoPage:
             return None
@@ -100,11 +100,12 @@ class Gateway:
                 output_schema=schema, timeout=self._config.research_timeout),
         )
 
-    async def _call(self, cost: int, timeout: float, make: Callable[[], Awaitable[Any]]) -> Any:
+    async def _call(self, cost: int, timeout: float, make: Callable[[], Awaitable[Any]],
+                    no_page_ok: bool = False) -> Any:
         rate_limited = server_errors = 0
         while True:
             try:
-                return await self._attempt(cost, timeout, make)
+                return await self._attempt(cost, timeout, make, no_page_ok)
             except CallFailed as failed:
                 if not failed.refused:
                     raise
@@ -118,7 +119,8 @@ class Gateway:
                     raise
                 await asyncio.sleep(wait)
 
-    async def _attempt(self, cost: int, timeout: float, make: Callable[[], Awaitable[Any]]) -> Any:
+    async def _attempt(self, cost: int, timeout: float, make: Callable[[], Awaitable[Any]],
+                       no_page_ok: bool) -> Any:
         if not self._budget.reserve(cost):
             raise OutOfBudget()
         charged = False
@@ -131,7 +133,10 @@ class Gateway:
         except ProviderError as exc:
             if exc.status_code is None:
                 raise CallFailed() from exc
-            if exc.original is None:  # answered, but had no page: not a refusal
+            if exc.original is None:
+                if not no_page_ok:
+                    raise CallFailed() from exc
+                # an extract answered, but had no page for the URL: not a refusal
                 self.successes += 1
                 raise _NoPage() from exc
             charged = False

@@ -258,3 +258,20 @@ async def test_R1_83_second_wave_is_skipped_while_many_builds_share_the_provider
     monkeypatch.setattr(build_module, "open_runtime", lambda _c: runtime)
     await build_module.run_build(DOMAIN, lambda units: None)
     assert count_searches(busy) < count_searches(quiet)
+
+
+async def test_R1_143_no_page_answer_is_only_a_success_for_extract(run):
+    from app.research.gateway import CallFailed, Gateway
+    from app.research.budget import Budget
+    from fakes import FakeRuntime
+    from web_router.exceptions import ProviderError
+
+    class Router(FakeRouter):
+        async def search(self, *a, **k):
+            raise ProviderError("nimble", "no URL could be extracted: x: backend fetched nothing and reported status 'fatal'")
+
+    spent = []
+    gateway = Gateway(FakeRuntime(Router({})), Budget(), spent.append, CONFIG)
+    with pytest.raises(CallFailed):
+        await gateway.search("nimble", DOMAIN)
+    assert gateway.successes == 0
