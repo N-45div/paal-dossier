@@ -244,3 +244,80 @@ def test_run_build_never_raises_and_reports_not_ok_without_gateway():
     assert set(result.fields) == set(FIELD_NAMES)
 
 
+
+
+def test_different_text_served_for_same_url_is_all_evidence():
+    # R1.50: each served text is evidence; a second search serving other text for the
+    # same URL must not be discarded, and the extract must not replace it.
+    url = "https://acme-robotics.test/about"
+    gateway = FakeGateway(
+        answers={
+            BARE_KEY: Answer(OK, (page(url, "Acme Robotics was founded in 2014."),)),
+            search_key(EXTRA_QUERY_TEMPLATES[0].format(name="Acme Robotics")): Answer(
+                OK, (page(url, "Acme Robotics CEO: Dana Ruiz."),)
+            ),
+            ("extract", (url,)): Answer(OK, (page(url, "Acme Robotics was founded in 2014."),)),
+        }
+    )
+    result = build_fields(D, gateway)
+    assert result.fields["founded_year"].value == 2014
+    assert result.fields["ceo"].value == "Dana Ruiz"
+    assert result.fields["ceo"].citations == [
+        {"url": url, "excerpt": "Acme Robotics CEO: Dana Ruiz.", "provider": "nimble"}
+    ]
+
+
+def test_two_searches_serving_different_text_for_one_url_both_count():
+    url = "https://acme-robotics.test/about"
+    gateway = FakeGateway(
+        answers={
+            BARE_KEY: Answer(OK, (page(url, "Acme Robotics was founded in 2014."),)),
+            search_key(EXTRA_QUERY_TEMPLATES[0].format(name="Acme Robotics")): Answer(
+                OK, (page(url, "Acme Robotics CEO: Dana Ruiz."),)
+            ),
+        }
+    )
+    result = build_fields(D, gateway)
+    assert result.fields["founded_year"].value == 2014
+    assert result.fields["ceo"].value == "Dana Ruiz"
+    assert result.fields["ceo"].citations[0]["url"] == url
+
+
+def test_search_and_extract_serving_different_text_for_one_url_both_count():
+    url = "https://acme-robotics.test/about"
+    gateway = FakeGateway(
+        answers={
+            # the truncated search body carries the CEO sentence
+            BARE_KEY: Answer(OK, (page(url, "Acme Robotics CEO: Dana Ruiz."),)),
+            # the full extract carries the founding sentence the search body lacks
+            ("extract", (url,)): Answer(OK, (page(url, "Acme Robotics was founded in 2014."),)),
+        }
+    )
+    result = build_fields(D, gateway)
+    assert result.fields["ceo"].value == "Dana Ruiz"
+    assert result.fields["founded_year"].value == 2014
+    assert result.fields["founded_year"].citations == [
+        {"url": url, "excerpt": "Acme Robotics was founded in 2014.", "provider": "nimble"}
+    ]
+
+
+def test_research_snippet_is_evidence_only_through_its_own_text():
+    url = "https://acme-robotics.test/about"
+    claims = (
+        Claim("ceo", "Dana Ruiz", url, "Acme Robotics CEO: Dana Ruiz.", "nimble"),
+        # a claim whose own snippet does not support its value adds nothing
+        Claim("founded_year", 2014, url, "Acme Robotics CEO: Dana Ruiz.", "nimble"),
+    )
+    gateway = FakeGateway(
+        answers={
+            BARE_KEY: Answer(OK, (page(url, "Acme Robotics was founded in 2015."),)),
+            ("research", D, tuple(FIELD_NAMES)): Answer(OK, claims),
+        }
+    )
+    result = build_fields(D, gateway)
+    assert result.fields["ceo"].value == "Dana Ruiz"
+    assert result.fields["ceo"].citations == [
+        {"url": url, "excerpt": "Acme Robotics CEO: Dana Ruiz.", "provider": "nimble"}
+    ]
+    assert result.fields["founded_year"].value == 2015
+    assert all(c["excerpt"] != "Acme Robotics CEO: Dana Ruiz." for c in result.fields["founded_year"].citations)

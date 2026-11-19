@@ -55,14 +55,15 @@ def build_fields(domain: str, gateway: Gateway) -> BuildResult:
     name = _company_name(domain)
     for template in EXTRA_QUERY_TEMPLATES:
         pages.extend(_query_pages(gateway, template.format(name=name)))
-    texts = _first_text_per_url(pages)
 
     urls = _extract_candidates(domain, pages)
+    extracted: list[Page] = []
     if urls and gateway.can_call(EXTRACT_UNIT * len(urls)):
-        # A full extract replaces the truncated search body of the same URL.
-        texts.update((page.url, page) for page in _pages_of(gateway.extract(urls)))
+        extracted = _pages_of(gateway.extract(urls))
 
-    for page in texts.values():
+    # Every served text is evidence (R1.50): a URL may be served with different text by
+    # different searches, and each text can support a value on its own.
+    for page in pages + extracted:
         evidence.add_page(page)
 
     if gateway.can_call(RESEARCH_UNITS):
@@ -106,19 +107,11 @@ def _company_name(domain: str) -> str:
     return domain.split(".", 1)[0].replace("-", " ").title()
 
 
-def _first_text_per_url(pages: list[Page]) -> dict[str, Page]:
-    """The first page served for each URL, in the order the searches served them."""
-    first: dict[str, Page] = {}
-    for page in pages:
-        first.setdefault(page.url, page)
-    return first
-
-
 def _extract_candidates(domain: str, pages: list[Page]) -> list[str]:
     """Distinct page URLs, the company's own site first, at most MAX_EXTRACT_URLS."""
     own: list[str] = []
     other: list[str] = []
-    for url in _first_text_per_url(pages):
+    for url in dict.fromkeys(page.url for page in pages):
         host = urlsplit(url).hostname or ""
         if host == domain or host.endswith("." + domain):
             own.append(url)
