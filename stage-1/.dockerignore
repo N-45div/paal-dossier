@@ -1,0 +1,7 @@
+acceptance/
+LEDGER.md
+RUN.md
+src/tests/
+**/__pycache__/
+**/*.pyc
+.git/
