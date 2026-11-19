@@ -15,3 +15,5 @@ DOSSIER_RESOURCE_PREFIX=gatekeeper DOSSIER_PORT_MIN=18300 DOSSIER_PORT_MAX=18399
 The service and mock share an internal network, reached through a fixed-destination ingress relay. The suite applies the shared build lock and 2 CPU / 3 GiB service limits. No live provider key or public network is used by the service at runtime.
 
 The explicitly skipped review-accounting cases identify requirements assigned to Gatekeeper review or classified by Lead as non-requirements. A skipped case is not a passing black-box verdict. The R1.106 mock-delay case may run for up to 300 seconds plus an 11-second check for late calls; Gatekeeper separately reviews live-provider timeouts.
+
+`test_concurrency_model.py` starts seeded, overlapping HTTP requests and searches the possible serial histories subject to their real-time intervals. It checks the final observable users, sessions and dossier, plus concurrent export/replay; it uses no hooks in the service. Its randomized schedules are reproducible but do not exhaust every possible interleaving.

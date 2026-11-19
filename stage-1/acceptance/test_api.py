@@ -311,6 +311,10 @@ def test_export_during_refresh_restores_last_completed(client):
     assert c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(t)).json() == previous
     time.sleep(3)
     assert c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(t)).json() == previous
+    calls = c.calls()
+    replay = c.request("POST", "/dossiers/" + DOMAIN + "/refresh", headers=c.auth(t, "refresh"))
+    assert replay.status_code == 200 and replay.json() == refresh.json()
+    assert c.calls() == calls
 
 
 def test_conflicting_idempotency_burst(client):
