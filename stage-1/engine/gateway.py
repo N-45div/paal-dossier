@@ -103,11 +103,24 @@ class Gateway:
             ),
         )
 
-    def extract(self, url: str, keep: int = 0):
-        """Extract one URL through nimble. Returns the document, or None."""
-        units = EXTRACT_COST_PER_URL["nimble"]
+    def reserve_extract(self, keep: int = 0) -> bool:
+        """Reserve the unit for one extract, keeping ``keep`` units free. Settle via extract_reserved."""
+        return self._ledger.reserve(EXTRACT_COST_PER_URL["nimble"], keep=keep)
 
-        def call():
+    def extract(self, url: str, keep: int = 0):
+        """Reserve one unit, then extract the URL. Returns the document, or None."""
+        units = EXTRACT_COST_PER_URL["nimble"]
+        if not self._ledger.reserve(units, keep=keep):
+            return None
+        return self.extract_reserved(url)
+
+    def extract_reserved(self, url: str):
+        """Extract a URL whose unit the caller has already reserved. Settles the reservation."""
+        units = EXTRACT_COST_PER_URL["nimble"]
+        if self._cancel_requested():
+            self._ledger.settle(units, 0)
+            return None
+        try:
             response = self._router.extract(
                 url,
                 provider="nimble",
@@ -115,9 +128,12 @@ class Gateway:
                 timeout=CALL_TIMEOUT_S,
                 data_apis=False,
             )
-            return response.documents[0] if response.documents else None
-
-        return self._run(units, keep, call)
+        except Exception as error:
+            self._ledger.settle(units, charged_units(error, units))
+            return None
+        self._ledger.settle(units, units)
+        self._record_answer()
+        return response.documents[0] if response.documents else None
 
     def start_research(self, domain: str, name: str):
         """Start the nimble research run for all six fields. Returns the job, or None."""

@@ -1,8 +1,14 @@
-"""One build: discover pages, extract them, research the six fields, decide (RL4-RL7, RL13).
+"""One build (RL4-RL7, RL13, RL14, RL19).
 
-Order of work: start the research run (25 units), run the exact-domain search and the six
-support searches together, extract the ranked URLs while the run works, then read the run's
-citations, extract any cited page not yet gathered, and decide each field from the evidence.
+Order of work:
+1. Start the nimble research run (25 units).
+2. Run the exact-domain search and the six support searches together.
+3. Free text: a lite snippet already held is page text. A snippet shorter than 300 characters
+   is the whole prose, so its URL is not extracted. A longer snippet gives its complete sentences.
+4. Extract the remaining candidates in priority order (RL19), keeping the research reserve free.
+5. Read the research answer; extract cited URLs not held in full (reserve units) and assert
+   only the claims whose verbatim citation supports the claimed value.
+6. Decide each field from the gathered pages.
 """
 
 from __future__ import annotations
@@ -12,17 +18,18 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Optional
 
-from .discovery import rank_urls, support_queries
+from .discovery import Hit, candidates, support_queries
 from .evidence import Evidence
 from .gateway import Gateway
 from .ledger import Ledger
-from .support import company_name
+from .support import complete_sentences_prefix, company_name
 
 GATHER_LIMIT_S = 240.0  # hard stop for gathering and waiting on the research run
 EXTRACT_WORKERS = 8
 SEARCH_WORKERS = 4
-CITATION_RESERVE_UNITS = 6  # kept free for pages that the research run cites but nothing else found
+CITATION_RESERVE_UNITS = 6  # kept for the research run's cited pages (one per field)
 DOMAIN_SEARCH_ATTEMPTS = 2
+SNIPPET_CHARS = 300  # the lite snippet length: a shorter one is the whole prose
 
 
 def build(
@@ -35,17 +42,36 @@ def build(
     tavily_url = _tavily_base_url()
     gateway = Gateway(ledger, cancelled=cancelled, tavily_base_url=tavily_url)
     try:
-        evidence = Evidence(domain)
         job = gateway.start_research(domain, company_name(domain).title())
         keep = CITATION_RESERVE_UNITS if job is not None else 0
 
         hits = _search(gateway, domain, tavily_allowed=tavily_url is not None)
-        pages = _extract_all(gateway, rank_urls(hits, domain), keep, deadline)
-        for url, document in pages.items():
-            evidence.add_page(url, document.content, "nimble")
+        ranked = candidates(hits, domain)
 
-        if job is not None:
-            _take_research(gateway, job, evidence, deadline)
+        free_pages, partial_pages = _free_text(ranked)
+        fetched = _extract_in_priority(
+            gateway, [c.url for c in ranked if c.url not in free_pages], keep, deadline
+        )
+
+        answer = gateway.await_research(job, deadline) if job is not None else None
+        cited = _cited_urls(answer)
+        missing = [u for u in cited if u not in fetched and u not in free_pages]
+        fetched.update(_extract_in_priority(gateway, missing, 0, deadline))
+
+        evidence = Evidence(domain)
+        searched = {c.url for c in ranked}  # RL21: pages a search of this build returned
+        for url in [c.url for c in ranked]:
+            if url in fetched:
+                evidence.add_served_text(url, fetched[url].content, "nimble", searched=True)
+            elif url in free_pages:
+                evidence.add_prose(url, free_pages[url], "nimble", searched=True)
+            elif url in partial_pages:
+                evidence.add_prose(url, partial_pages[url], "nimble", searched=True)
+        for url in cited:
+            if url in fetched and url not in evidence.pages:
+                evidence.add_served_text(url, fetched[url].content, "nimble", searched=url in searched)
+        if answer is not None:
+            _assert_research_claims(evidence, answer)
 
         return gateway.answered_calls > 0, evidence.decide()
     finally:
@@ -59,19 +85,27 @@ def _tavily_base_url() -> Optional[str]:
     return None
 
 
-def _search(gateway: Gateway, domain: str, tavily_allowed: bool) -> list[tuple[str, int]]:
-    """Every answered search as (url, rank) hits. The domain search goes first."""
+def _search(gateway: Gateway, domain: str, tavily_allowed: bool) -> list[Hit]:
+    """Every answered search as hits. Query 0 is the exact-domain search."""
+    queries = [domain] + support_queries(domain)
     with ThreadPoolExecutor(SEARCH_WORKERS) as pool:
         domain_future = pool.submit(_domain_search, gateway, domain, tavily_allowed)
-        support_futures = [
-            pool.submit(gateway.search, "nimble", query) for query in support_queries(domain)
-        ]
+        support_futures = [pool.submit(gateway.search, "nimble", q) for q in queries[1:]]
         responses = [domain_future.result()] + [future.result() for future in support_futures]
-    hits: list[tuple[str, int]] = []
-    for response in responses:
+    hits: list[Hit] = []
+    for query_index, response in enumerate(responses):
         if response is None:
             continue
-        hits.extend((result.url, rank) for rank, result in enumerate(response.results))
+        for rank, result in enumerate(response.results):
+            hits.append(
+                Hit(
+                    url=result.url,
+                    rank=rank,
+                    query=query_index,
+                    title=result.title or "",
+                    snippet=result.description or "",
+                )
+            )
     return hits
 
 
@@ -86,29 +120,52 @@ def _domain_search(gateway: Gateway, domain: str, tavily_allowed: bool):
     return None
 
 
-def _extract_all(gateway: Gateway, urls: list[str], keep: int, deadline: float) -> dict:
-    """Extract URLs concurrently; returns url -> document for those that came back in time."""
-    def task(url: str):
-        if time.monotonic() >= deadline:
-            return None
-        return gateway.extract(url, keep=keep)
+def _free_text(ranked) -> tuple[dict, dict]:
+    """Page text already held in search snippets: (whole pages, partial pages by URL)."""
+    whole: dict[str, str] = {}
+    partial: dict[str, str] = {}
+    for candidate in ranked:
+        snippet = candidate.snippet
+        if not snippet:
+            continue
+        if len(snippet) < SNIPPET_CHARS:
+            whole[candidate.url] = snippet
+        else:
+            prefix = complete_sentences_prefix(snippet)
+            if prefix:
+                partial[candidate.url] = prefix
+    return whole, partial
 
+
+def _extract_in_priority(gateway: Gateway, urls: list[str], keep: int, deadline: float) -> dict:
+    """Reserve one unit per URL in priority order, then extract concurrently.
+
+    Reservation happens here, in the calling thread, so the priority order decides which URLs
+    get the units. Returns url -> document for the URLs that came back in time.
+    """
+    futures = {}
     with ThreadPoolExecutor(EXTRACT_WORKERS) as pool:
-        documents = list(pool.map(task, urls))
-    return {url: doc for url, doc in zip(urls, documents) if doc is not None}
+        for url in urls:
+            if time.monotonic() >= deadline or not gateway.reserve_extract(keep=keep):
+                break
+            futures[url] = pool.submit(gateway.extract_reserved, url)
+        documents = {url: future.result() for url, future in futures.items()}
+    return {url: doc for url, doc in documents.items() if doc is not None}
 
 
-def _take_research(gateway: Gateway, job, evidence: Evidence, deadline: float) -> None:
-    """Read the run's answer: gather each cited page, then assert the claims it supports."""
-    answer = gateway.await_research(job, deadline)
+def _cited_urls(answer) -> list[str]:
     if answer is None or not answer.structured or not isinstance(answer.structured, dict):
-        return
-    citations = [c for c in (answer.citations or []) if (c.field or "").startswith("$.")]
-    missing = list(dict.fromkeys(c.url for c in citations if c.url not in evidence.pages))
-    for url, document in _extract_all(gateway, missing, 0, deadline).items():
-        evidence.add_page(url, document.content, "nimble")
-    for citation in citations:
-        field = citation.field[2:]
+        return []
+    urls = [c.url for c in (answer.citations or []) if (c.field or "").startswith("$.")]
+    return list(dict.fromkeys(urls))
+
+
+def _assert_research_claims(evidence: Evidence, answer) -> None:
+    for citation in answer.citations or []:
+        field = (citation.field or "")
+        if not field.startswith("$."):
+            continue
+        field = field[2:]
         claimed = answer.structured.get(field)
         if claimed is not None:
             evidence.add_research_claim(citation.url, field, claimed, citation.snippet or "")

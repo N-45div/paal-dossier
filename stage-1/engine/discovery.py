@@ -1,10 +1,17 @@
-"""Discovery plan (RL4, RL6): the support queries and the order in which to extract URLs."""
+"""Discovery (RL4, RL6, RL19): the support queries, what each search hit carries, and the
+order in which candidate URLs get extract slots.
+
+Extract priority (RL19): company-domain host, then a title or snippet that names the
+company, then more distinct queries returning the URL, then the best rank, then the URL.
+A URL that does not name the company in its title or snippet goes last.
+"""
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
-from .support import company_name
+from .support import company_name, names_company
 
 SUPPORT_QUERY_TEMPLATES = (
     "{name} headquarters city",
@@ -12,13 +19,36 @@ SUPPORT_QUERY_TEMPLATES = (
     "{name} founded year",
     "{name} employees headcount",
     "{name} funding raised",
-    "{name} legal name registered",
 )
 
 
 def support_queries(domain: str) -> list[str]:
     name = company_name(domain).title()
     return [template.format(name=name) for template in SUPPORT_QUERY_TEMPLATES]
+
+
+@dataclass(frozen=True)
+class Hit:
+    """One search result: where it ranked, which query returned it, and what it says."""
+
+    url: str
+    rank: int
+    query: int
+    title: str
+    snippet: str
+
+
+@dataclass
+class Candidate:
+    url: str
+    best_rank: int
+    queries: set = field(default_factory=set)
+    snippet: str = ""
+    names_company: bool = False
+    company_host: bool = False
+
+    def priority(self) -> tuple:
+        return (not self.company_host, not self.names_company, -len(self.queries), self.best_rank, self.url)
 
 
 def host_of(url: str) -> str:
@@ -31,13 +61,20 @@ def is_company_host(url: str, domain: str) -> bool:
     return host == domain or host.endswith("." + domain)
 
 
-def rank_urls(hits: list[tuple[str, int]], domain: str) -> list[str]:
-    """Distinct URLs, company pages first, then by best (lowest) rank, then by URL.
-
-    ``hits`` holds (url, rank) pairs from every search that answered.
-    """
-    best: dict[str, int] = {}
-    for url, rank in hits:
-        if url not in best or rank < best[url]:
-            best[url] = rank
-    return sorted(best, key=lambda url: (not is_company_host(url, domain), best[url], url))
+def candidates(hits: list[Hit], domain: str) -> list[Candidate]:
+    """Distinct URLs from all answered searches, in extract priority order."""
+    by_url: dict[str, Candidate] = {}
+    for hit in hits:
+        candidate = by_url.get(hit.url)
+        if candidate is None:
+            candidate = by_url[hit.url] = Candidate(url=hit.url, best_rank=hit.rank)
+        candidate.best_rank = min(candidate.best_rank, hit.rank)
+        candidate.queries.add(hit.query)
+        if not candidate.snippet:
+            candidate.snippet = hit.snippet
+        candidate.names_company = candidate.names_company or names_company(
+            f"{hit.title} {hit.snippet}", domain
+        )
+    for candidate in by_url.values():
+        candidate.company_host = is_company_host(candidate.url, domain)
+    return sorted(by_url.values(), key=Candidate.priority)

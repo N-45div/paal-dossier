@@ -14,6 +14,7 @@ from typing import Optional
 from .discovery import is_company_host
 from .support import (
     FIELDS,
+    MAX_EXCERPT_CHARS,
     is_verbatim_in_prose,
     normalize_ws,
     page_claims,
@@ -21,7 +22,6 @@ from .support import (
     supports,
 )
 
-MAX_EXCERPT_CHARS = 500
 MAX_CITATIONS = 3
 
 
@@ -39,14 +39,24 @@ class Evidence:
     # field -> value -> url -> {excerpt, ...}
     support: dict = dataclass_field(default_factory=dict)
 
-    def add_page(self, url: str, served_text: str, provider: str) -> None:
-        """Gather a page's text. The first text served for a URL is kept."""
+    def add_served_text(self, url: str, served_text: str, provider: str, searched: bool = True) -> None:
+        """Gather a page from its served text: header lines, a blank line, then the prose."""
+        _, prose = parse_page(served_text)
+        self.add_prose(url, prose, provider, searched=searched)
+
+    def add_prose(self, url: str, prose: str, provider: str, searched: bool = True) -> None:
+        """Gather a page's prose. The first text gathered for a URL is kept.
+
+        RL21: a page that no search of the build returned (searched=False) is kept only for
+        verifying research claims. Its sentences do not become evidence for any field.
+        """
         if url in self.pages:
             return
-        _, prose = parse_page(served_text)
         self.pages[url] = Page(url=url, prose=prose, provider=provider)
-        for sentence, field, value in page_claims(prose, self.domain):
-            self._add(field, value, url, sentence)
+        if not searched:
+            return
+        for excerpt, field, value in page_claims(prose, self.domain):
+            self._add(field, value, url, excerpt)
 
     def add_research_claim(self, url: str, field: str, claimed, excerpt: str) -> None:
         """Assert a research claim only when its verbatim citation supports the claimed value."""
