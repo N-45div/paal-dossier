@@ -44,14 +44,18 @@ def signup(store: Store, body: dict) -> Session:
 
 
 def login(store: Store, body: dict) -> Session:
+    """Check the password outside the lock, then issue a token only if no reset or import
+    happened meanwhile: a login that raced a reset is refused, as if it came after it."""
     fields = read_fields(body, _LOGIN_FIELDS)
     with store.lock:
         user_id = store.user_by_email.get(fields["email"].casefold())
         user = store.users.get(user_id) if user_id else None
-        stored_hash = user.password_hash if user else None
-    if stored_hash is None or not verify_password(fields["password"], stored_hash):
+        generation = store.generation
+    if user is None or not verify_password(fields["password"], user.password_hash):
         raise unauthenticated("wrong email or password")
     with store.lock:
+        if store.generation != generation:
+            raise unauthenticated("the account changed during login")
         token = _issue_token(store, user.user_id)
     return Session(user.user_id, user.display_name, token)
 
