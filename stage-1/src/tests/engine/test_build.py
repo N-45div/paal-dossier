@@ -321,3 +321,16 @@ def test_research_snippet_is_evidence_only_through_its_own_text():
     ]
     assert result.fields["founded_year"].value == 2015
     assert all(c["excerpt"] != "Acme Robotics CEO: Dana Ruiz." for c in result.fields["founded_year"].citations)
+
+
+def test_long_served_sentence_still_makes_the_field_known():
+    # R1.104: a supported value inside a 545-character served sentence is known, and the
+    # citation is the fragment that supports it on its own.
+    url = "https://acme-robotics.test/about"
+    long_sentence = "Acme Robotics was founded in 2014 and " + ("zeta " * 103).strip()
+    gateway = FakeGateway(answers={BARE_KEY: Answer(OK, (page(url, long_sentence),))})
+    result = build_fields(D, gateway)
+    assert result.fields["founded_year"].value == 2014
+    assert result.fields["founded_year"].citations == [
+        {"url": url, "excerpt": "Acme Robotics was founded in 2014", "provider": "nimble"}
+    ]
