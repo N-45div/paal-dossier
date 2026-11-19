@@ -4,6 +4,7 @@ R1.7 R1.8 R1.12 R1.18 R1.20: run the built image alone with provider
 environment variables on a network without external routes.
 """
 import os
+import json
 import socket
 import subprocess
 import time
@@ -49,6 +50,29 @@ threading.Event().wait()
 def pytest_addoption(parser):
     parser.addoption('--service-root', default=os.environ.get('DOSSIER_ROOT'),
                      help='worktree containing stage-1/')
+    parser.addoption('--corpus', default=str(CORPUS), help='mock web corpus directory')
+
+
+def pytest_generate_tests(metafunc):
+    if 'company_path' in metafunc.fixturenames:
+        corpus = Path(metafunc.config.getoption('--corpus')).resolve()
+        if not corpus.is_dir():
+            raise pytest.UsageError(f'Corpus directory does not exist: {corpus}')
+        companies = sorted(corpus.glob('*.test.json'))
+        if not companies:
+            raise pytest.UsageError(f'No company files in corpus: {corpus}')
+        metafunc.parametrize('company_path', companies, ids=lambda p: p.stem)
+
+
+@pytest.fixture(scope='session')
+def all_companies(request):
+    corpus = Path(request.config.getoption('--corpus')).resolve()
+    return [json.loads(path.read_text()) for path in sorted(corpus.glob('*.test.json'))]
+
+
+@pytest.fixture(scope='session')
+def all_pages(all_companies):
+    return [page for company in all_companies for page in company['pages'] if 0 in page['epochs']]
 
 
 def docker(*args, timeout=300, check=True):
@@ -93,6 +117,9 @@ def deployment(request):
     if not root:
         pytest.fail('Set DOSSIER_ROOT or pass --service-root to a worktree containing stage-1')
     service = Path(root).resolve() / 'stage-1'
+    corpus = Path(request.config.getoption('--corpus')).resolve()
+    if not corpus.is_dir():
+        pytest.fail(f'Corpus directory does not exist: {corpus}')
     if not (service / 'Dockerfile').is_file():
         pytest.fail(f'No Dockerfile in {service}')
     tag = 'prover-' + uuid.uuid4().hex[:12]
@@ -110,7 +137,7 @@ def deployment(request):
         docker('network', 'connect', network, relay)
         docker('run', '-d', '--name', mock, '--network', network, '--network-alias', 'mock',
                '-e', 'MOCK_ADMIN_TOKEN=prover-local-admin',
-               '-v', f'{CORPUS}:/data/corpus:ro', web_image)
+               '-v', f'{corpus}:/data/corpus:ro', web_image)
         healthy(f'http://127.0.0.1:{mock_port}/_mock/health')
         docker('run', '-d', '--name', app, '--network', network, '--network-alias', 'app',
                '--cpus', '2', '--memory', '3g',

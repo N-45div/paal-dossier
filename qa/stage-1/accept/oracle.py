@@ -161,3 +161,22 @@ def corpus_candidates(domain, pages):
                 for field in FIELDS:
                     answer[field].update(candidates(domain, field, sentence))
     return answer
+
+
+def evidence_candidates(domain, companies, epoch=0):
+    """RL14: searchable pages across companies plus supported research claims."""
+    pages = [page for company in companies for page in company['pages'] if epoch in page['epochs']]
+    answer = corpus_candidates(domain, [page for page in pages if page.get('searchable', True)])
+    for company in companies:
+        if company['domain'] != domain:
+            continue
+        for claim in company.get('research', {}).get('nimble', {}).get(str(epoch), []):
+            field, value, excerpt = claim['field'], claim['value'], claim['excerpt']
+            if field not in FIELDS or not 1 <= len(excerpt) <= 500:
+                continue
+            if value not in candidates(domain, field, excerpt):
+                continue
+            normal = lambda text: re.sub(r'\s+', ' ', text).strip()
+            if any(page['url'] == claim['url'] and normal(excerpt) in normal(page['text']) for page in pages):
+                answer[field].add(value)
+    return answer

@@ -4,8 +4,7 @@ import time
 
 import pytest
 
-from conftest import CORPUS
-from oracle import FIELDS, candidates, corpus_candidates, prose, sentences
+from oracle import FIELDS, candidates, evidence_candidates, prose, sentences
 from test_api import auth, create, done
 
 
@@ -55,15 +54,38 @@ def test_R1_47_R1_131_sentence_boundaries_and_header():
     assert prose('No header here.\nSecond line.') == 'No header here.\nSecond line.'
 
 
-COMPANIES = sorted(p for p in CORPUS.glob('*.test.json'))
+def test_R1_41_R1_45_R1_86_cross_company_and_research_evidence():
+    domain = 'acme-robotics.test'
+    companies = [
+        {'domain': domain, 'pages': [
+            {'url': 'https://acme-robotics.test/hidden', 'epochs': [0], 'searchable': False,
+             'text': 'Acme Robotics CEO Sam Ortiz.'},
+            {'url': 'https://acme-robotics.test/uncited', 'epochs': [0], 'searchable': False,
+             'text': 'Acme Robotics CEO Dana Ruiz.'},
+        ], 'research': {'nimble': {'0': [
+            {'field': 'ceo', 'value': 'Sam Ortiz', 'url': 'https://acme-robotics.test/hidden',
+             'excerpt': 'Acme Robotics CEO Sam Ortiz.'},
+            {'field': 'ceo', 'value': 'Dana Ruiz', 'url': 'https://acme-robotics.test/uncited',
+             'excerpt': 'Acme Robotics hired Dana Ruiz.'},
+        ]}}},
+        {'domain': 'other.test', 'pages': [
+            {'url': 'https://other.test/news', 'epochs': [0],
+             'text': 'Acme Robotics was founded in 2014.'},
+            {'url': 'https://other.test/future', 'epochs': [1],
+             'text': 'Acme Robotics was founded in 2015.'},
+        ]},
+    ]
+    result = evidence_candidates(domain, companies)
+    assert result['ceo'] == {'Sam Ortiz'}
+    assert result['founded_year'] == {2014}
+    assert result['funding_total'] == set()
 
 
-@pytest.mark.parametrize('path', COMPANIES, ids=lambda p: p.stem)
-def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost(api, mock, seeded, path):
+def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost(api, mock, seeded, company_path, all_pages, all_companies):
     """R1.111 R1.112 R1.113 R1.114 R1.115 R1.116 R1.117 R1.118 R1.119 R1.120:
     verify each applicable price and depth for provider calls observed, without requiring optional calls.
     """
-    company = json.loads(path.read_text())
+    company = json.loads(company_path.read_text())
     domain = company['domain']
     token = seeded[0]
     started = time.monotonic()
@@ -91,16 +113,7 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
             assert domain in call['query']
             assert set(call['fields']) == set(FIELDS)
     assert set(dossier['fields']) == set(FIELDS)
-    all_pages = [page for file in COMPANIES for page in json.loads(file.read_text())['pages']
-                 if 0 in page['epochs']]
-    supported = corpus_candidates(domain, [page for page in all_pages if page.get('searchable', True)])
-    for claim in company.get('research', {}).get('nimble', {}).get('0', []):
-        field, value, excerpt = claim['field'], claim['value'], claim['excerpt']
-        if field in FIELDS and value in candidates(domain, field, excerpt) and any(
-            page['url'] == claim['url'] and normalized(excerpt) in normalized(page['text'])
-            for page in all_pages
-        ):
-            supported[field].add(value)
+    supported = evidence_candidates(domain, all_companies)
     for field, result in dossier['fields'].items():
         value = result['value']
         if supported[field]:
