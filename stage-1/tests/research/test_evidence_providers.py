@@ -95,3 +95,32 @@ def test_no_call_is_started_with_less_than_the_minimum_wait_left():
     calls = ProviderCalls(lambda units: None, timeouts, env={"NIMBLE_API_KEY": "k"}, router=router)
     results, outcome = asyncio.run(calls.search("halvorsen-robotics.test"))
     assert results is None and not outcome.ok and router.calls == []
+
+
+def test_error_statuses_are_free_even_when_webrouter_calls_them_timeouts():
+    for status, kind in [(408, "timeout"), (429, "rate_limit"), (500, "upstream"), (503, "upstream"), (400, "bad_request")]:
+        error = ProviderError("nimble", f"answered {status}", kind=kind)
+        error.status_code = status
+        assert not is_charged_failure(error), status
+
+
+def test_a_timeout_with_no_status_is_charged():
+    error = ProviderError("nimble", "Request timed out.", kind="timeout")
+    error.status_code = None
+    assert is_charged_failure(error)
+
+
+def test_connection_refused_is_charged():
+    assert is_charged_failure(connection_error())
+
+
+def test_extract_with_no_page_is_charged_whatever_its_status():
+    for status in (None, 404, 200):
+        error = ProviderError("nimble", "no URL could be extracted: https://x.test/: no page at this URL", kind="target")
+        error.status_code = status
+        assert is_charged_failure(error), status
+
+
+def test_other_failures_are_not_charged():
+    assert not is_charged_failure(ValueError("bug"))
+    assert not is_charged_failure(KeyError("x"))

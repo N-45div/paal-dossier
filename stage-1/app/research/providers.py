@@ -75,16 +75,20 @@ class Gathered:
 
 
 def is_charged_failure(error: BaseException) -> bool:
-    """True when a failed call still costs its units: it timed out, lost its connection, or was answered with no page."""
+    """True when a failed call still costs its units: it timed out, lost its connection, or was answered with no page.
+
+    A call the provider answered with an error status costs nothing, whatever kind WebRouter gives it: an HTTP 408
+    is classed as a timeout but is a refusal, so a status is checked before the kind.
+    """
     if isinstance(error, (DeadlineExceededError, ResearchTimeoutError, asyncio.TimeoutError)):
         return True
     if not isinstance(error, ProviderError):
         return False
     if "no URL could be extracted" in str(error):
         return True
-    if getattr(error, "kind", None) == "timeout":
-        return True
-    return getattr(error, "status_code", None) is None and getattr(error, "kind", None) in (None, "upstream")
+    if getattr(error, "status_code", None) is not None:
+        return False
+    return getattr(error, "kind", None) in (None, "timeout", "upstream")
 
 
 class ProviderCalls:
