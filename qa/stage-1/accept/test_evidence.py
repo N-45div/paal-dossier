@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from oracle import FIELDS, candidates, corpus_candidates, evidence_candidates, prose, sentences
+from oracle import FIELDS, candidates, corpus_candidates, evidence_candidates, page_prose, prose, sentences
 from test_api import auth, create, done
 
 
@@ -77,7 +77,8 @@ def test_R1_41_R1_45_R1_86_cross_company_and_research_evidence():
         ]}}},
         {'domain': 'other.test', 'pages': [
             {'url': 'https://other.test/news', 'epochs': [0],
-             'text': 'Acme Robotics was founded in 2014.'},
+             'text': 'Acme Robotics was founded in 2016.',
+             'static_text': 'Acme Robotics was founded in 2014.'},
             {'url': 'https://other.test/future', 'epochs': [1],
              'text': 'Acme Robotics was founded in 2015.'},
         ]},
@@ -107,7 +108,8 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
     assert response.status_code == 202
     assert response.json()['domain'] == domain and response.json()['state'] == 'building'
     dossier = done(api, token, domain)
-    assert time.monotonic() - started <= 10
+    elapsed = time.monotonic() - started
+    assert elapsed <= 10
     assert dossier['state'] == 'ready'
     calls = mock.get('/_mock/log').json()['calls']
     assert sum(call['cost'] for call in calls) <= 80
@@ -131,7 +133,7 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
     for field, result in dossier['fields'].items():
         value = result['value']
         if supported[field]:
-            assert result['status'] == 'known' and value in supported[field], (domain, field, value, supported[field])
+            assert result['status'] == 'known' and value in supported[field], (domain, field, value, supported[field], result['citations'])
             expected_type = int if field in ('founded_year', 'funding_total') else str
             assert type(value) is expected_type
             assert result['citations']
@@ -143,13 +145,13 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
             assert len(sentences(normalized(excerpt))) == 1
             assert value in candidates(domain, field, excerpt), (domain, field, value, excerpt)
             assert citation['provider'] in ('nimble', 'tavily')
-            assert any(page['url'] == citation['url'] and normalized(excerpt) in normalized(page['text'])
+            assert any(page['url'] == citation['url'] and normalized(excerpt) in normalized(page_prose(page))
                        for page in all_pages), citation
             assert any((len(sentence) <= 500 or
                         (value in candidates(domain, field, sentence) and normalized(sentence).startswith(normalized(excerpt))))
                        and normalized(excerpt) in normalized(sentence)
                        for page in all_pages if page['url'] == citation['url']
-                       for sentence in sentences(page['text'])), citation
+                       for sentence in sentences(page_prose(page))), citation
             assert any(normalized(excerpt) in normalized(prose(served['text']))
                        for call in calls if call['provider'] == citation['provider']
                        for served in call.get('served', []) if served['url'] == citation['url']), citation
@@ -157,3 +159,6 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
     assert api.get('/dossiers', headers=auth(token)).status_code == 200
     assert api.get('/dossiers/' + domain, headers=auth(token)).status_code == 200
     assert mock.get('/_mock/log').json()['calls'] == before
+    knowable = sum(bool(values) for values in supported.values())
+    known = sum(item['status'] == 'known' for item in dossier['fields'].values())
+    print(f'MEASURE {domain} known={known}/{knowable} units={sum(call["cost"] for call in calls)} time={elapsed:.3f}s exact_domain_searches=1')

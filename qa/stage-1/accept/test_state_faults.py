@@ -1,6 +1,7 @@
 import time
 import concurrent.futures
 import threading
+from collections import Counter
 
 import httpx
 import pytest
@@ -42,7 +43,7 @@ def test_R1_9_R1_62_R1_85_nimble_failure(api, mock, seeded):
     calls = mock.get('/_mock/log').json()['calls']
     succeeded = any(c['status'] < 400 for c in calls)
     assert dossier['state'] == ('ready' if succeeded else 'failed')
-    assert dossier['spent_units'] == sum(c['cost'] for c in calls)
+    assert dossier['spent_units'] == sum(c['cost'] for c in calls), Counter((c['provider'], c['method'], c['status'], c['cost']) for c in calls)
 
 
 def test_R1_62_R1_85_R1_87_rate_limits(api, mock, seeded):
@@ -56,7 +57,7 @@ def test_R1_62_R1_85_R1_87_rate_limits(api, mock, seeded):
     calls = mock.get('/_mock/log').json()['calls']
     assert time.monotonic() - started <= 10
     assert dossier['state'] == ('ready' if any(c['status'] < 400 for c in calls) else 'failed')
-    assert dossier['spent_units'] == sum(c['cost'] for c in calls)
+    assert dossier['spent_units'] == sum(c['cost'] for c in calls), Counter((c['provider'], c['method'], c['status'], c['cost']) for c in calls)
 
 
 def test_R1_87_delay_under_one_second(api, mock, seeded):

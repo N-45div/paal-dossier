@@ -151,10 +151,16 @@ def candidates(domain, field, text):
     return set(values) if len(set(values)) == 1 else set()
 
 
+def page_prose(page):
+    """Text served for normal, non-rendered searches and extracts."""
+    static = page.get('static_text')
+    return static if isinstance(static, str) else page['text']
+
+
 def corpus_candidates(domain, pages):
     answer = {field: set() for field in FIELDS}
     for page in pages:
-        for sentence in sentences(page['text']):
+        for sentence in sentences(page_prose(page)):
             for field in FIELDS:
                 supported = candidates(domain, field, sentence)
                 if not supported:
@@ -189,6 +195,6 @@ def evidence_candidates(domain, companies, epoch=0):
             if value not in candidates(domain, field, excerpt):
                 continue
             normal = lambda text: re.sub(r'\s+', ' ', text).strip()
-            if any(page['url'] == claim['url'] and normal(excerpt) in normal(page['text']) for page in pages):
+            if any(page['url'] == claim['url'] and normal(excerpt) in normal(page_prose(page)) for page in pages):
                 answer[field].add(value)
     return answer
