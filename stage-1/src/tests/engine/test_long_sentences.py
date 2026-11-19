@@ -26,7 +26,8 @@ def test_fragment_at_the_end_of_a_long_sentence_is_found():
     sentence = filler + " and Acme Robotics was founded in 2014."
     assert len(sentence) > EXCERPT_MAX_CHARS
     found = fragment_values(sentence)
-    assert found == [("founded_year", 2014, "Acme Robotics was founded in 2014")]
+    # the word "2014." ends at its full stop, the word boundary the window cuts at
+    assert found == [("founded_year", 2014, "Acme Robotics was founded in 2014.")]
 
 
 def test_no_fragment_when_the_whole_sentence_has_a_negating_phrase():
@@ -65,3 +66,26 @@ def test_ceo_name_inside_a_longer_capitalised_run_is_cited():
     found = fragment_values(sentence)
     assert found == [("ceo", "Dana Ruiz", "Dana Ruiz Acme Robotics CEO")]
     assert supports(found[0][2], D, "ceo", "Dana Ruiz")
+
+
+def test_headcount_fragment_in_a_long_sentence():
+    sentence = "Acme Robotics employs 120 people " + ("zeta " * 103).strip()
+    assert len(sentence) > EXCERPT_MAX_CHARS
+    found = fragment_values(sentence)
+    # "employs" alone with the number is the shortest window that supports the range
+    assert found == [("headcount_range", "51-200", "Acme Robotics employs 120")]
+    assert supports(found[0][2], D, "headcount_range", "51-200")
+
+
+def test_funding_fragment_in_a_long_sentence():
+    sentence = "Acme Robotics has raised $12M " + ("zeta " * 103).strip()
+    assert len(sentence) > EXCERPT_MAX_CHARS
+    found = fragment_values(sentence)
+    assert found == [("funding_total", 12_000_000, "Acme Robotics has raised $12M")]
+    assert supports(found[0][2], D, "funding_total", 12_000_000)
+
+
+def test_ceo_fragment_for_name_inside_a_longer_run_is_the_exact_window():
+    sentence = "Dana Ruiz Acme Robotics CEO " + ("x" * 510)
+    found = fragment_values(sentence)
+    assert found == [("ceo", "Dana Ruiz", "Dana Ruiz Acme Robotics CEO")]

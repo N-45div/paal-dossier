@@ -155,71 +155,41 @@ def supporting_excerpts(text: str, domain: str) -> list[tuple[str, str | int, st
     return found
 
 
-def _shortest_fragment(sentence: str, domain: str, field: str, value: str | int) -> str | None:
-    """The shortest fragment of ``sentence`` that supports ``value`` for ``field``.
+FRAGMENT_CHECK_LIMIT = 2000  # most supports() calls one long sentence may cost
 
-    Candidate fragments start and end at word boundaries of the company mention, the
-    statement phrase and the value: a supporting fragment can be trimmed to the first and
-    last of those matches, so the candidates are exactly the spans between their edges.
+
+def _shortest_fragment(sentence: str, domain: str, field: str, value: str | int) -> str | None:
+    """The shortest window of ``sentence`` that supports ``value`` for ``field``.
+
+    Windows start at a word boundary at or before the company mention or the statement
+    phrase, and end at a word boundary at or after them; each is at most EXCERPT_MAX_CHARS.
+    The first window, shortest first, for which ``supports`` holds is returned. The same
+    predicate decides support for fragments and for whole sentences, so A.4 phrase removal
+    needs no special case here. At most FRAGMENT_CHECK_LIMIT windows are checked.
     """
     company = _company(domain.lower())
-    amounts = _amounts(sentence)
-    numbers = _numbers_outside(sentence, amounts)
-    spans = [match.span() for match in company.mention.finditer(sentence)]
-    spans += [match.span() for match in _STATEMENT_PATTERNS[field].finditer(sentence)]
-    spans += _value_spans(field, sentence, company, value, amounts, numbers)
-    starts = sorted({span[0] for span in spans})
-    ends = sorted({span[1] for span in spans})
-    best: str | None = None
-    for start in starts:
-        for end in ends:
-            if not 0 < end - start <= EXCERPT_MAX_CHARS:
-                continue
-            fragment = sentence[start:end].strip()
-            if best is not None and len(fragment) >= len(best):
-                continue
-            if supports(fragment, domain, field, value):
-                best = fragment
-    return best
-
-
-def _value_spans(
-    field: str,
-    sentence: str,
-    company: _Company,
-    value: str | int,
-    amounts: list[_Amount],
-    numbers: list[tuple[_Span, str]],
-) -> list[tuple[int, int]]:
-    """Spans of the matches of ``field``'s format that normalise to ``value``."""
-    if field == "legal_name":
-        return [m.span() for m in company.legal_name.finditer(sentence) if m.group(0) == value]
-    if field == "hq_city":
-        return [
-            m.span("place")
-            for m in _HQ_PLACE.finditer(sentence)
-            if m.group("place") == value
-        ]
-    if field == "ceo":
-        # A name can sit inside a longer capitalised run (the company name next to it), so
-        # every whole-word occurrence of the name counts, not only maximal runs (A.4).
-        return [
-            m.span()
-            for m in re.finditer(BEFORE_WORD + re.escape(str(value)) + AFTER_WORD, sentence)
-        ]
-    if field == "founded_year":
-        return [
-            (span.start, span.end)
-            for span, token in numbers
-            if re.fullmatch(r"[0-9]{4}", token) and int(token) == value
-        ]
-    if field == "headcount_range":
-        return [
-            (span.start, span.end)
-            for span, token in numbers
-            if "." not in token and _headcount_range(int(token.replace(",", ""))) == value
-        ]
-    return [(a.span.start, a.span.end) for a in amounts if a.value == value]
+    anchors = [m.span() for m in company.mention.finditer(sentence)]
+    anchors += [m.span() for m in _STATEMENT_PATTERNS[field].finditer(sentence)]
+    if not anchors:
+        return None
+    word_spans = [m.span() for m in re.finditer(r"\S+", sentence)]
+    latest_anchor_start = max(span[0] for span in anchors)
+    earliest_anchor_end = min(span[1] for span in anchors)
+    starts = [span[0] for span in word_spans if span[0] <= latest_anchor_start]
+    ends = [span[1] for span in word_spans if span[1] >= earliest_anchor_end]
+    windows = sorted(
+        (end - start, start, end)
+        for start in starts
+        for end in ends
+        if 0 < end - start <= EXCERPT_MAX_CHARS
+    )
+    for checked, (_, start, end) in enumerate(windows):
+        if checked >= FRAGMENT_CHECK_LIMIT:
+            break
+        fragment = sentence[start:end]
+        if supports(fragment, domain, field, value):
+            return fragment
+    return None
 
 
 def supports(excerpt: str, domain: str, field: str, value: str | int) -> bool:
