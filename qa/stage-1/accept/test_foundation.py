@@ -85,6 +85,15 @@ def test_R1_23_R1_33_R1_48_fixture_validation_atomic(api, seeded, changes, statu
     assert login.status_code == 200 and login.json()['user_id'] == 'u_ada'
 
 
+@pytest.mark.parametrize('missing', ['id', 'email', 'password', 'display_name'])
+def test_R1_23_R1_48_missing_fixture_field(api, seeded, missing):
+    """R1.23 R1.48: missing fixture user fields yield 422 and preserve state."""
+    user = {'id':'test', 'email':'fixture', 'password':'', 'display_name':''}
+    del user[missing]
+    error(api.post('/_test/reset', json={'now':'2026-01-01T00:00:00+00:00','users':[user]}, timeout=10), 422, 'validation_failed')
+    assert api.post('/auth/login', json={'email':'ada@example.com','password':'correct horse'}).status_code == 200
+
+
 def test_R1_23_R1_48_fixture_duplicate_ids_atomic(api, seeded):
     'R1.23 R1.48'
     first = {'id':'same', 'email':'first', 'password':'', 'display_name':''}
@@ -185,3 +194,31 @@ def test_R1_126_missing_export_sections_rejected_atomically(api, seeded):
         login = api.post('/auth/login', json={'email':'ada@example.com','password':'correct horse'})
         assert login.status_code == 200 and login.json()['user_id'] == 'u_ada'
     error(api.post('/_test/import', json=[]), 400, 'malformed_request')
+
+
+@pytest.mark.parametrize('corruption', ['token_reference', 'counter', 'password_record'])
+def test_R1_70_R1_126_R1_127_invalid_snapshot_entries_are_atomic(api, seeded, corruption):
+    """R1.70 R1.126 R1.127: reject malformed entries without replacing credentials."""
+    if corruption == 'counter':
+        response = api.post('/auth/signup', json={'email':'counter@example.com', 'password':'correct horse', 'display_name':'Counter'})
+        assert response.status_code == 201
+    snapshot = api.get('/_test/export', timeout=10).json()
+    state = snapshot['state']
+    if corruption == 'token_reference':
+        entries = state['tokens']
+        assert isinstance(entries, list) and entries and isinstance(entries[0], dict) and 'user_id' in entries[0]
+        entries[0]['user_id'] = 'nonexistent-prover-user'
+    elif corruption == 'counter':
+        counters = state['counters']
+        assert isinstance(counters, dict)
+        numeric_keys = [key for key, value in counters.items() if type(value) is int]
+        assert numeric_keys
+        counters[numeric_keys[0]] = 10**40
+    else:
+        users = state['users']
+        assert isinstance(users, list) and users and isinstance(users[0], dict) and 'password_hash' in users[0]
+        users[0]['password_hash'] = 'malformed-scrypt-record'
+    error(api.post('/_test/import', json=snapshot, timeout=10), 422, 'validation_failed')
+    login = api.post('/auth/login', json={'email':'ada@example.com','password':'correct horse'})
+    assert login.status_code == 200 and login.json()['user_id'] == 'u_ada'
+    assert api.get('/dossiers', headers=auth(seeded[0])).status_code == 200
