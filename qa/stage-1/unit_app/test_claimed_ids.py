@@ -8,7 +8,7 @@ docker smoke run recorded in the handoff; "gap:" entries are declared gaps with 
 import importlib
 import unittest
 
-MODULES = ["test_foundation", "test_domain", "test_dossiers", "test_precision_and_limits", "test_import_validation"]
+MODULES = ["test_foundation", "test_domain", "test_dossiers", "test_precision_and_limits", "test_import_validation", "test_server_limits", "test_declared_gaps"]
 
 P1_IDS = [6, 7, 8, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
           48, 49, 50, 51, 53, 54, 56, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 70, 124, 125, 126, 127, 128]
@@ -20,13 +20,13 @@ COVERAGE = {
     7: ["manual: docker build and run per RUN.md, smoke recorded in handoff"],
     8: ["manual: docker run with -e PORT and a port mapping, smoke recorded in handoff"],
     11: ["manual: Dockerfile pip install line, image contains webrouter"],
-    12: ["gap: provider variables are read by the engine (P4); P1 reads PORT only"],
+    12: ["DeclaredGapTests.test_r1_12_port_is_the_only_setting_p1_reads"],
     14: ["manual: container limits measured with docker stats (222 MiB, 2 vCPU cap)"],
     15: ["manual: health reachable within seconds of container start (smoke)"],
     16: ["manual: 50 concurrent logins measured (smoke, 0.16 s)"],
     17: ["PrecisionTests.test_R1_17_two_thousand_user_fixture_resets_within_budget"],
     19: ["manual: state held in memory, container restart clears it (RUN.md)"],
-    20: ["gap: no runtime assets in P1; nothing to include"],
+    20: ["DeclaredGapTests.test_r1_20_app_package_ships_no_runtime_assets"],
     21: ["manual: app/__main__.py binds 0.0.0.0 at PORT (smoke)"],
     22: ["FoundationTests.test_health_is_ok_without_auth"],
     23: ["FoundationTests.test_reset_clears_previous_accounts",
@@ -39,9 +39,9 @@ COVERAGE = {
          "FoundationTests.test_clock_rejects_earlier_time_and_offsets_are_required"],
     28: ["FoundationTests.test_clock_rejects_earlier_time_and_offsets_are_required"],
     29: ["PrecisionTests.test_R1_29_responses_are_json_utf8_and_ascii_escaped"],
-    30: ["gap: timestamps use format_ts (explicit offset); no test asserts the output string yet"],
-    31: ["FoundationTests.test_unknown_fields_are_ignored"],
-    32: ["FoundationTests.test_unknown_fields_are_ignored"],
+    30: ["DeclaredGapTests.test_r1_30_researched_at_is_rfc3339_with_explicit_offset"],
+    31: ["FoundationTests.test_unknown_fields_are_ignored", "ServerLimitTests.test_r1_31_body_up_to_16_mib_with_unknown_field_is_accepted", "ServerLimitTests.test_r1_31_body_above_16_mib_is_413_payload_too_large"],
+    32: ["FoundationTests.test_unknown_fields_are_ignored", "ServerLimitTests.test_r1_31_body_up_to_16_mib_with_unknown_field_is_accepted"],
     33: ["PrecisionTests.test_R1_33_counter_is_bounded_so_ids_stay_within_64_characters"],
     34: ["FoundationTests.test_seeded_user_logs_in_with_given_password",
          "FoundationTests.test_signup_then_duplicate_email_is_409"],
@@ -84,7 +84,7 @@ COVERAGE = {
     60: ["DossierTests.test_missing_or_empty_key_is_400_and_long_key_is_422"],
     61: ["DossierTests.test_list_rejects_bad_integers"],
     71: ["DossierTests.test_same_key_on_different_path_is_independent"],
-    72: ["gap: cross-user key independence is not unit tested; prover acceptance covers it"],
+    72: ["DeclaredGapTests.test_r1_72_same_key_for_two_users_is_independent"],
     73: ["DossierTests.test_same_key_on_different_path_is_independent"],
     74: ["DossierTests.test_missing_or_empty_key_is_400_and_long_key_is_422"],
     75: ["DossierTests.test_first_open_is_202_and_replay_is_200_with_same_body"],
@@ -96,9 +96,9 @@ COVERAGE = {
     81: ["DossierTests.test_export_import_keeps_dossiers_and_idempotent_replay"],
     82: ["DossierTests.test_replay_survives_unknown_field_changes_but_invalid_body_is_409"],
     83: ["DossierTests.test_refresh_is_404_without_dossier_and_202_with_one"],
-    84: ["gap: a second refresh while a build runs is not unit tested; the handler checks state under the lock"],
+    84: ["DeclaredGapTests.test_r1_84_second_refresh_while_building_starts_no_second_build"],
     85: ["DossierTests.test_failed_build_leaves_fields_unknown"],
-    89: ["gap: reads make no provider call is not unit tested; the read handlers do not touch the engine"],
+    89: ["DeclaredGapTests.test_r1_89_reads_make_no_provider_call"],
     90: ["DossierTests.test_open_requires_bearer_before_key_check"],
     91: ["DossierTests.test_first_open_is_202_and_replay_is_200_with_same_body"],
     92: ["DossierTests.test_first_open_is_202_and_replay_is_200_with_same_body"],
@@ -128,6 +128,8 @@ _CLASSES = {
     "DossierTests": "test_dossiers",
     "PrecisionTests": "test_precision_and_limits",
     "ImportValidationTests": "test_import_validation",
+    "ServerLimitTests": "test_server_limits",
+    "DeclaredGapTests": "test_declared_gaps",
 }
 
 
@@ -151,6 +153,19 @@ class ClaimedIdTraceabilityTests(unittest.TestCase):
             for entry in entries:
                 if entry.startswith("gap:"):
                     self.assertGreater(len(entry), len("gap: "), f"id {ident} gap has no reason")
+
+    def test_every_mapped_test_names_its_id_in_docstring_or_name(self):
+        """RL18.6: each claimed id is named in the docstring or the name of every test that covers it."""
+        for ident, entries in COVERAGE.items():
+            for entry in entries:
+                if entry.startswith(("manual:", "gap:")):
+                    continue
+                with self.subTest(ident=ident, entry=entry):
+                    cls_name, method = entry.split(".")
+                    function = getattr(getattr(importlib.import_module(_CLASSES[cls_name]), cls_name), method)
+                    doc = function.__doc__ or ""
+                    named = f"R1.{ident}" in doc or f"r1_{ident}_" in method.lower()
+                    self.assertTrue(named, f"{entry} does not name R1.{ident}")
 
 
 if __name__ == "__main__":

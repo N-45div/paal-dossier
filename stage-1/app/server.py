@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .app import App
 from .wire import encode_json
 
-MAX_BODY_BYTES = 16 * 1024 * 1024
+MAX_BODY_BYTES = 16 * 1024 * 1024  # RL20: bodies above this are 413 payload_too_large
 REQUEST_QUEUE_SIZE = 128
 _JSON_TYPE = "application/json; charset=utf-8"
 
@@ -27,10 +27,15 @@ class _Handler(BaseHTTPRequestHandler):
     def _serve(self) -> None:
         try:
             length = int(self.headers.get("Content-Length") or 0)
-            if length < 0 or length > MAX_BODY_BYTES:
-                raise ValueError("body length out of range")
         except ValueError:
+            length = -1
+        if length < 0:
             self._send_error_envelope(400, "malformed_request", "invalid Content-Length")
+            self.close_connection = True
+            return
+        if length > MAX_BODY_BYTES:
+            # The body is not read; answer the envelope and close so the connection is not reused.
+            self._send_error_envelope(413, "payload_too_large", "request body exceeds 16 MiB")
             self.close_connection = True
             return
         body = self.rfile.read(length) if length else b""

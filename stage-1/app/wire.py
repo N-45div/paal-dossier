@@ -1,34 +1,39 @@
 """JSON and RFC 3339 helpers shared by every endpoint (§3.5).
 
-Timestamps are `Moment`s: exact nanoseconds since the Unix epoch plus the display offset.
-Comparisons use the nanoseconds, so fractional seconds of any RFC 3339 precision order
-correctly. Output is whole seconds with the explicit offset.
+Timestamps are `Moment`s: an exact Fraction of seconds since the Unix epoch, the fraction
+digits as written, and the display offset. Comparisons are exact at any fraction precision.
 """
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from fractions import Fraction
 from typing import Any
 
 from .errors import malformed, validation
 
 _RFC3339 = re.compile(
-    r"(\d{4})-(\d{2})-(\d{2})[Tt ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?"
+    r"(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?"
     r"(?:([Zz])|([+-])(\d{2}):(\d{2}))"
 )
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
-_NS = 10**9
 
 
 @dataclass(frozen=True)
 class Moment:
-    ns: int  # nanoseconds since the Unix epoch
+    at: Fraction  # exact seconds since the Unix epoch, any fraction precision
+    frac: str  # the fraction digits as written, trailing zeros removed ("" for none)
     offset: timedelta  # the offset the timestamp was written with
 
 
 def parse_rfc3339(value: Any) -> Moment | None:
-    """Parse an RFC 3339 timestamp that carries an explicit offset; None if invalid."""
+    """Parse an RFC 3339 timestamp with an explicit offset (Z or ±HH:MM); None if invalid.
+
+    The separator is T or t, the zone designator Z or z. Fractions of any length are exact.
+    """
     if not isinstance(value, str):
         return None
     match = _RFC3339.fullmatch(value)
@@ -48,15 +53,19 @@ def parse_rfc3339(value: Any) -> Moment | None:
         )
     except ValueError:
         return None
-    whole_seconds = (instant - _EPOCH) // timedelta(seconds=1)
-    fraction_ns = int((fraction or "").ljust(9, "0"))
-    return Moment(whole_seconds * _NS + fraction_ns, offset)
+    whole = (instant - _EPOCH) // timedelta(seconds=1)
+    digits = fraction or ""
+    exact = Fraction(whole) + (Fraction(Decimal("0." + digits)) if digits else Fraction(0))
+    return Moment(exact, digits.rstrip("0"), offset)
 
 
 def format_ts(moment: Moment) -> str:
-    """RFC 3339 with the explicit offset, to whole seconds."""
-    local = datetime.fromtimestamp(moment.ns // _NS, tz=timezone(moment.offset))
-    return local.isoformat(timespec="seconds")
+    """RFC 3339 with the explicit offset; the fraction is printed as the clock holds it."""
+    seconds = math.floor(moment.at)
+    local = datetime.fromtimestamp(seconds, tz=timezone(moment.offset)).isoformat(timespec="seconds")
+    if not moment.frac:
+        return local
+    return local[:19] + "." + moment.frac + local[19:]
 
 
 def parse_json(raw: bytes) -> Any:

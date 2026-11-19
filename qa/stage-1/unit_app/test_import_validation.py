@@ -1,6 +1,12 @@
 """RL17 structural import validation (R1.126, R1.125): every rejection is 422 with no change.
 
 Run from the repository root:  PYTHONPATH=stage-1 python3 -m unittest discover -s qa/stage-1/unit_app -t qa/stage-1/unit_app
+
+Index of claimed ids covered in this module:
+    R1.125 -> ImportValidationTests.test_fresh_reset_export_is_itself_a_valid_import
+    R1.126 -> ImportValidationTests.test_empty_object_state_is_rejected
+    R1.126 -> ImportValidationTests.test_missing_section_or_extra_section_is_rejected
+    R1.126 -> ImportValidationTests.test_non_object_state_and_missing_state_are_422
 """
 
 import copy
@@ -57,9 +63,11 @@ class ImportValidationTests(unittest.TestCase):
         return copy.deepcopy(self.before["state"])
 
     def test_empty_object_state_is_rejected(self):
+        """Covers R1.126."""
         self.assert_rejected({}, "{} is never a valid state")
 
     def test_non_object_state_and_missing_state_are_422(self):
+        """Covers R1.126."""
         self.assertEqual(call(self.app, "POST", "/_test/import", {"track": "dossier", "format_version": 1, "state": []})[0], 422)
         self.assertEqual(call(self.app, "POST", "/_test/import", {"track": "dossier", "format_version": 1})[0], 422)
 
@@ -70,6 +78,7 @@ class ImportValidationTests(unittest.TestCase):
         self.assertEqual(call(self.app, "POST", "/_test/import", b"[1]")[0], 400)
 
     def test_missing_section_or_extra_section_is_rejected(self):
+        """Covers R1.126."""
         for section in ("users", "tokens", "counters", "dossiers", "idempotency"):
             state = self.base()
             del state[section]
@@ -187,6 +196,7 @@ class ImportValidationTests(unittest.TestCase):
         self.assertEqual(again["state"]["idempotency"][0]["path"], "/dossiers/acme-robotics.test/refresh")
 
     def test_fresh_reset_export_is_itself_a_valid_import(self):
+        """Covers R1.125."""
         exported = call(self.app, "GET", "/_test/export")[1]
         self.assertEqual(call(self.app, "POST", "/_test/import", exported)[0], 204)
 

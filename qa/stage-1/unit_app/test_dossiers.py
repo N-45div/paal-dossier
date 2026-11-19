@@ -1,6 +1,51 @@
 """Unit tests for the P3 dossier API: idempotency, open/read/refresh/list, build lifecycle.
 
 Run from the repository root:  PYTHONPATH=stage-1 python3 -m unittest discover -s qa/stage-1/unit_app -t qa/stage-1/unit_app
+
+Index of claimed ids covered in this module:
+    R1.100 -> DossierTests.test_read_normalises_path_and_404s_unknown
+    R1.101 -> DossierTests.test_refresh_is_404_without_dossier_and_202_with_one
+    R1.102 -> DossierTests.test_refresh_is_404_without_dossier_and_202_with_one
+    R1.103 -> DossierTests.test_refresh_is_404_without_dossier_and_202_with_one
+    R1.104 -> DossierTests.test_refresh_is_404_without_dossier_and_202_with_one
+    R1.105 -> DossierTests.test_list_filters_orders_and_pages
+    R1.106 -> DossierTests.test_list_filters_orders_and_pages
+    R1.107 -> DossierTests.test_list_filters_orders_and_pages
+    R1.108 -> DossierTests.test_list_filters_orders_and_pages
+    R1.109 -> DossierTests.test_list_filters_orders_and_pages
+    R1.127 -> DossierTests.test_export_import_keeps_dossiers_and_idempotent_replay
+    R1.128 -> DossierTests.test_export_of_building_dossier_is_its_last_completed_state
+    R1.40 -> DossierTests.test_build_becomes_ready_with_fields_and_spend
+    R1.52 -> DossierTests.test_missing_or_empty_key_is_400_and_long_key_is_422
+    R1.55 -> DossierTests.test_same_key_different_body_is_409
+    R1.58 -> DossierTests.test_list_rejects_bad_integers
+    R1.59 -> DossierTests.test_list_rejects_bad_integers
+    R1.60 -> DossierTests.test_missing_or_empty_key_is_400_and_long_key_is_422
+    R1.61 -> DossierTests.test_list_rejects_bad_integers
+    R1.71 -> DossierTests.test_same_key_on_different_path_is_independent
+    R1.73 -> DossierTests.test_same_key_on_different_path_is_independent
+    R1.74 -> DossierTests.test_missing_or_empty_key_is_400_and_long_key_is_422
+    R1.75 -> DossierTests.test_first_open_is_202_and_replay_is_200_with_same_body
+    R1.76 -> DossierTests.test_first_open_is_202_and_replay_is_200_with_same_body
+    R1.77 -> DossierTests.test_same_key_different_body_is_409
+    R1.78 -> DossierTests.test_failed_4xx_does_not_claim_key
+    R1.79 -> DossierTests.test_replay_survives_unknown_field_changes_but_invalid_body_is_409
+    R1.80 -> DossierTests.test_concurrent_identical_opens_create_one_dossier
+    R1.81 -> DossierTests.test_export_import_keeps_dossiers_and_idempotent_replay
+    R1.82 -> DossierTests.test_replay_survives_unknown_field_changes_but_invalid_body_is_409
+    R1.83 -> DossierTests.test_refresh_is_404_without_dossier_and_202_with_one
+    R1.85 -> DossierTests.test_failed_build_leaves_fields_unknown
+    R1.90 -> DossierTests.test_open_requires_bearer_before_key_check
+    R1.91 -> DossierTests.test_first_open_is_202_and_replay_is_200_with_same_body
+    R1.92 -> DossierTests.test_first_open_is_202_and_replay_is_200_with_same_body
+    R1.93 -> DossierTests.test_concurrent_identical_opens_create_one_dossier
+    R1.94 -> DossierTests.test_failed_4xx_does_not_claim_key
+    R1.94 -> DossierTests.test_read_normalises_path_and_404s_unknown
+    R1.95 -> DossierTests.test_build_becomes_ready_with_fields_and_spend
+    R1.96 -> DossierTests.test_build_becomes_ready_with_fields_and_spend
+    R1.97 -> DossierTests.test_failed_build_leaves_fields_unknown
+    R1.98 -> DossierTests.test_build_becomes_ready_with_fields_and_spend
+    R1.99 -> DossierTests.test_build_becomes_ready_with_fields_and_spend
 """
 
 import json
@@ -76,10 +121,12 @@ class DossierTests(unittest.TestCase):
     # --- auth and idempotency -------------------------------------------
 
     def test_open_requires_bearer_before_key_check(self):
+        """Covers R1.90."""
         status, body = call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, {})
         self.assertEqual((status, body["error"]["code"]), (401, "unauthenticated"))
 
     def test_missing_or_empty_key_is_400_and_long_key_is_422(self):
+        """Covers R1.52, R1.60, R1.74."""
         headers = {"authorization": self.auth["authorization"]}
         self.assertEqual(call(self.app, "POST", "/dossiers", {"domain": "a.test"}, headers)[0], 400)
         headers["idempotency-key"] = ""
@@ -88,6 +135,7 @@ class DossierTests(unittest.TestCase):
         self.assertEqual(call(self.app, "POST", "/dossiers", {"domain": "a.test"}, headers)[0], 422)
 
     def test_first_open_is_202_and_replay_is_200_with_same_body(self):
+        """Covers R1.75, R1.76, R1.91, R1.92."""
         status, first = self._open("Acme-Robotics.TEST.")
         self.assertEqual(status, 202)
         self.assertEqual(first["domain"], "acme-robotics.test")
@@ -96,24 +144,29 @@ class DossierTests(unittest.TestCase):
         self.assertEqual((status, replay), (200, first))
 
     def test_same_key_different_body_is_409(self):
+        """Covers R1.55, R1.77."""
         self._open("acme-robotics.test")
         self.assertEqual(self._open("other.test")[0], 409)
 
     def test_replay_survives_unknown_field_changes_but_invalid_body_is_409(self):
+        """Covers R1.79, R1.82."""
         self._open("acme-robotics.test")
         self.assertEqual(self._open("acme-robotics.test", extra={"domain": "acme-robotics.test", "x": 1})[0], 200)
         self.assertEqual(self._open(None, extra={"domain": 5})[0], 409)
 
     def test_failed_4xx_does_not_claim_key(self):
+        """Covers R1.78, R1.94."""
         self.assertEqual(self._open("not a domain")[0], 422)
         self.assertEqual(self._open("acme-robotics.test")[0], 202)
 
     def test_same_key_on_different_path_is_independent(self):
+        """Covers R1.71, R1.73."""
         self._open("acme-robotics.test")
         status, body = call(self.app, "POST", "/dossiers/acme-robotics.test/refresh", None, dict(self.auth, **{"idempotency-key": "k1"}))
         self.assertEqual(status, 202)
 
     def test_concurrent_identical_opens_create_one_dossier(self):
+        """Covers R1.80, R1.93."""
         results = []
         threads = [threading.Thread(target=lambda: results.append(self._open("acme-robotics.test"))) for _ in range(8)]
         for thread in threads:
@@ -127,6 +180,7 @@ class DossierTests(unittest.TestCase):
     # --- read, refresh, list, build lifecycle ----------------------------
 
     def test_build_becomes_ready_with_fields_and_spend(self):
+        """Covers R1.40, R1.95, R1.96, R1.98, R1.99."""
         self._open("acme-robotics.test")
         body = self._wait_settled("acme-robotics.test")
         self.assertEqual(body["state"], "ready")
@@ -137,6 +191,7 @@ class DossierTests(unittest.TestCase):
         self.assertEqual(set(body["fields"]), {"legal_name", "hq_city", "ceo", "founded_year", "headcount_range", "funding_total"})
 
     def test_failed_build_leaves_fields_unknown(self):
+        """Covers R1.85, R1.97."""
         app = App(Clock(), engine=failing_engine)
         call(app, "POST", "/_test/reset", FIXTURE)
         token = call(app, "POST", "/auth/login", {"email": "ada@example.com", "password": "correct horse"})[1]["token"]
@@ -152,12 +207,14 @@ class DossierTests(unittest.TestCase):
         self.assertEqual(body["researched_at"], None)
 
     def test_read_normalises_path_and_404s_unknown(self):
+        """Covers R1.94, R1.100."""
         self._open("acme-robotics.test")
         self.assertEqual(call(self.app, "GET", "/dossiers/WWW.Acme-Robotics.test.", headers=self.auth)[0], 200)
         self.assertEqual(call(self.app, "GET", "/dossiers/unknown.test", headers=self.auth)[0], 404)
         self.assertEqual(call(self.app, "GET", "/dossiers/not%20valid", headers=self.auth)[0], 422)
 
     def test_refresh_is_404_without_dossier_and_202_with_one(self):
+        """Covers R1.83, R1.101, R1.102, R1.103, R1.104."""
         headers = dict(self.auth, **{"idempotency-key": "r1"})
         self.assertEqual(call(self.app, "POST", "/dossiers/none.test/refresh", None, headers)[0], 404)
         self._open("acme-robotics.test")
@@ -167,6 +224,7 @@ class DossierTests(unittest.TestCase):
         self.assertEqual(self._wait_settled("acme-robotics.test")["spent_units"], 2)
 
     def test_list_filters_orders_and_pages(self):
+        """Covers R1.105, R1.106, R1.107, R1.108, R1.109."""
         for domain in ["zeta.test", "alpha.test", "mid.test"]:
             self._open(domain, key=domain)
         for domain in ["zeta.test", "alpha.test", "mid.test"]:
@@ -181,6 +239,7 @@ class DossierTests(unittest.TestCase):
         self.assertEqual([d["domain"] for d in body["dossiers"]], ["alpha.test"])
 
     def test_list_rejects_bad_integers(self):
+        """Covers R1.58, R1.59, R1.61."""
         for query in ["limit=0", "limit=201", "limit=1e9", "limit=4.0", "limit=+4", "offset=-1"]:
             with self.subTest(query=query):
                 self.assertEqual(call(self.app, "GET", f"/dossiers?{query}", headers=self.auth)[0], 422)
@@ -208,6 +267,7 @@ class DossierTests(unittest.TestCase):
         self.assertEqual(body["dossiers"], [])
 
     def test_export_of_building_dossier_is_its_last_completed_state(self):
+        """Covers R1.128."""
         self._open("acme-robotics.test")
         exported = call(self.app, "GET", "/_test/export")[1]
         record = exported["state"]["dossiers"][0]
@@ -216,6 +276,7 @@ class DossierTests(unittest.TestCase):
             self.assertTrue(all(f["value"] is None for f in record["fields"].values()))
 
     def test_export_import_keeps_dossiers_and_idempotent_replay(self):
+        """Covers R1.81, R1.127."""
         status, first = self._open("acme-robotics.test")
         self._wait_settled("acme-robotics.test")
         exported = call(self.app, "GET", "/_test/export")[1]
