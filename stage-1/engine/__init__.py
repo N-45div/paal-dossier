@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
+from .ledger import Ledger
+
 FIELD_NAMES = (
     "legal_name",
     "hq_city",
@@ -37,5 +39,16 @@ def run_build(
     on_spend: Optional[Callable[[int], None]] = None,
     cancelled: Optional[Callable[[], bool]] = None,
 ) -> BuildResult:
-    """Research one company. Stub: returns all fields unknown, no spend."""
-    return BuildResult(ok=True, spent=0, fields=_unknown_fields())
+    """Research one company by its normalised domain. Blocking; never raises.
+
+    ``on_spend(units)`` is called after every provider call that costs units. ``cancelled``
+    is polled between calls. ok is False only when no provider call answered.
+    """
+    from .build import build
+
+    ledger = Ledger(budget, on_spend)
+    try:
+        ok, fields = build(domain, ledger, cancelled)
+    except Exception:  # last resort: a build must never raise into the service
+        return BuildResult(ok=False, spent=ledger.spent, fields=_unknown_fields())
+    return BuildResult(ok=ok, spent=ledger.spent, fields=fields)
