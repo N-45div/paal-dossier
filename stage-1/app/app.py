@@ -6,8 +6,10 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from . import auth_routes, control_routes
+from . import auth_routes, control_routes, dossier_routes
+from .builds import BuildRunner
 from .clock import Clock
+from .engine_adapter import run_build
 from .errors import ApiError, unauthenticated
 from .router import Router
 from .store import Store
@@ -36,12 +38,14 @@ class Reply:
 
 
 class App:
-    def __init__(self, clock: Clock | None = None) -> None:
+    def __init__(self, clock: Clock | None = None, engine=None) -> None:
         self.clock = clock or Clock()
         self.store = Store(self.clock)
+        self.runner = BuildRunner(self.store, engine or run_build)
         self.router = Router()
         control_routes.register(self.router)
         auth_routes.register(self.router)
+        dossier_routes.register(self.router)
 
     def handle(self, method: str, target: str, headers: dict[str, str], body: bytes) -> Reply:
         try:

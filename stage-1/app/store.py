@@ -1,21 +1,25 @@
 """The state guard: every read and write of service state goes through this class.
 
-One lock protects the state. Password hashing runs outside the lock; any operation
-that spans a hash checks the state generation (RL9) before it writes, so a reset or
-import that lands in between is never overwritten by an older result.
+One lock protects the state. Password hashing runs outside the lock; an operation that
+spans a hash checks the state generation (RL9) before it writes, so a reset or import
+that lands in between is never overwritten. Builds report back through `add_spend` and
+`finish_build`, which drop their writes when the generation has changed.
 """
 
 import secrets
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Iterator
 
 from .clock import Clock
+from .dossiers import fields_from_engine
 from .errors import email_taken, unauthenticated, validation
 from .passwords import hash_password, verify_password
 from .state import State, state_from_json
 from .validation import is_valid_display_name, is_valid_email, is_valid_password
+from .wire import format_ts
 
 _TOKEN_BYTES = 32
 
@@ -53,6 +57,12 @@ class Store:
         with self._lock:
             return self._generation
 
+    @contextmanager
+    def transact(self) -> Iterator[tuple[State, int]]:
+        """Hold the lock for a multi-step operation; yields the state and its generation."""
+        with self._lock:
+            yield self._state, self._generation
+
     # --- accounts -------------------------------------------------------
 
     def signup(self, email: str, password: str, display_name: str) -> Account:
@@ -66,7 +76,7 @@ class Store:
         with self._lock:
             if email.lower() in self._state.emails:
                 raise email_taken()
-            user_id = self._state.next_id("user", "u_")
+            user_id = self._state.next_id("user", "u_", self._state.users)
             self._state.add_user(user_id, email, display_name, encoded)
             token = self._issue_token(user_id)
         return Account(user_id, display_name, token)
@@ -103,7 +113,41 @@ class Store:
         self._state.tokens[token] = user_id
         return token
 
-    # --- control: reset, clock, export, import ---------------------------
+    # --- builds ---------------------------------------------------------
+
+    def add_spend(self, dossier_id: str, generation: int, units: int) -> None:
+        with self._lock:
+            if generation != self._generation:
+                return
+            record = self._record_by_id(dossier_id)
+            if record is not None:
+                record["spent_units"] += units
+
+    def finish_build(self, dossier_id: str, generation: int, requested_at: datetime, result: Any, reported: int) -> None:
+        """Apply a finished build (RL3): ready with its fields, or failed and fields unchanged."""
+        with self._lock:
+            if generation != self._generation:
+                return
+            record = self._record_by_id(dossier_id)
+            if record is None:
+                return
+            if result is None or not getattr(result, "ok", False):
+                record["state"] = "failed"
+                if result is not None:
+                    record["spent_units"] += max(0, int(result.spent) - reported)
+                return
+            record["spent_units"] += max(0, int(result.spent) - reported)
+            record["fields"] = fields_from_engine(result.fields)
+            record["researched_at"] = format_ts(requested_at)
+            record["state"] = "ready"
+
+    def _record_by_id(self, dossier_id: str) -> dict | None:
+        for record in self._state.dossiers.values():
+            if record["dossier_id"] == dossier_id:
+                return record
+        return None
+
+    # --- control: reset, export, import ---------------------------------
 
     def reset(self, fixture: Fixture) -> None:
         """Replace all state with the fixture and set the clock to its `now`."""

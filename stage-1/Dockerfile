@@ -10,7 +10,7 @@ WORKDIR /srv
 COPY requirements.txt ./
 RUN pip install "webrouter[search,extract,research]>=0.12.0"
 
-COPY app ./app
+COPY . ./
 
 ENV PORT=8080
 EXPOSE 8080
