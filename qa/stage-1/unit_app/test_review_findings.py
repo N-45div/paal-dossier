@@ -2,7 +2,7 @@
 
 Index of claimed ids covered in this module:
     R1.23 -> test_r1_23_token_removed_by_reset_is_refused, test_r1_23_controlled_reset_race_request_behaves_as_after_reset
-    R1.40 -> test_r1_40_invalid_stored_values_are_refused_on_import, test_r1_40_each_invalid_import_field_is_refused_and_a_valid_one_is_accepted
+    R1.40 -> test_r1_40_invalid_stored_values_are_refused_on_import, test_r1_40_each_invalid_import_field_is_refused_and_a_valid_one_is_accepted, test_r1_40_funding_total_zero_is_a_valid_known_value
     R1.61 -> test_r1_61_very_long_digit_offsets_answer_without_5xx, test_r1_61_leading_zero_and_huge_offsets_and_limits_are_plain_digits
     R1.125 -> test_r1_125_export_during_failed_refresh_shows_the_last_completed_build
     R1.126 -> test_r1_126_export_during_failed_refresh_round_trips_unchanged
@@ -192,7 +192,7 @@ class ReviewFindingTests(unittest.TestCase):
         cases = {
             "legal_name with leading space": lambda f: f["legal_name"].update(value=" Acme Robotics, Inc."),
             "ceo empty string known": lambda f: f.update(ceo={"value": "", "status": "known", "citations": [cite]}),
-            "funding_total zero": lambda f: f.update(funding_total={"value": 0, "status": "known", "citations": [cite]}),
+            "funding_total negative": lambda f: f.update(funding_total={"value": -1, "status": "known", "citations": [cite]}),
             "status mismatch: known value marked unknown": lambda f: f["founded_year"].update(status="unknown"),
             "headcount outside the ranges": lambda f: f.update(headcount_range={"value": "7", "status": "known", "citations": [cite]}),
             "founded_year is a boolean": lambda f: f["founded_year"].update(value=True),
@@ -210,6 +210,20 @@ class ReviewFindingTests(unittest.TestCase):
                 self.assertEqual(call(self.app, "GET", "/_test/export")[1], before)
         valid = fields(lambda f: f.update(headcount_range={"value": "51-200", "status": "known", "citations": [cite]}))
         self.assertEqual(call(self.app, "POST", "/_test/import", valid)[0], 204)
+
+    def test_r1_40_funding_total_zero_is_a_valid_known_value(self):
+        """Covers R1.40, R1.126: $0 is an amount (RL24); funding_total 0 imports as known and round-trips."""
+        call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(self.headers, **{"idempotency-key": "z"}))
+        self.settle("acme-robotics.test")
+        exported = call(self.app, "GET", "/_test/export")[1]
+        cite = {"url": "https://acme-robotics.test/about", "excerpt": "Acme Robotics raised $0.", "provider": "nimble"}
+        zero = copy.deepcopy(exported)
+        zero["state"]["dossiers"][0]["fields"]["funding_total"] = {"value": 0, "status": "known", "citations": [cite]}
+        self.assertEqual(call(self.app, "POST", "/_test/import", zero)[0], 204)
+        status, body = call(self.app, "GET", "/dossiers/acme-robotics.test", headers=self.headers)
+        self.assertEqual(body["fields"]["funding_total"]["status"], "known")
+        self.assertEqual(body["fields"]["funding_total"]["value"], 0)
+        self.assertEqual(call(self.app, "GET", "/_test/export")[1], zero)
 
 
 if __name__ == "__main__":

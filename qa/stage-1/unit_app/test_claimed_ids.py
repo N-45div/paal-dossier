@@ -130,6 +130,7 @@ COVERAGE[126].append("ReviewFindingTests.test_r1_126_export_during_failed_refres
 COVERAGE[128].append("ReviewFindingTests.test_r1_125_export_during_failed_refresh_shows_the_last_completed_build")
 COVERAGE[23].append("ReviewFindingTests.test_r1_23_controlled_reset_race_request_behaves_as_after_reset")
 COVERAGE[40].append("ReviewFindingTests.test_r1_40_each_invalid_import_field_is_refused_and_a_valid_one_is_accepted")
+COVERAGE[40].append("ReviewFindingTests.test_r1_40_funding_total_zero_is_a_valid_known_value")
 COVERAGE[61].append("ReviewFindingTests.test_r1_61_leading_zero_and_huge_offsets_and_limits_are_plain_digits")
 COVERAGE[61].append("ServerLimitTests.test_r1_61_overlong_request_target_answers_the_envelope")
 

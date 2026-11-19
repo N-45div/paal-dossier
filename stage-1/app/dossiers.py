@@ -190,7 +190,7 @@ def _is_value(name: str, value: Any) -> bool:
     if name == "founded_year":
         return 1800 <= value <= 2099
     if name == "funding_total":
-        return value >= 1
+        return value >= 0  # RL24: $0 is an amount that normalises to 0 (A.4/A.5); negatives are not
     if name in ("legal_name", "hq_city", "ceo"):
         return value != "" and value == value.strip()
     if name == "headcount_range":
