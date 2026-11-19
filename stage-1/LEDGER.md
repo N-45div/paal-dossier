@@ -378,6 +378,8 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 
 - **L1.31 Comma-grouped years; shortest legal name.** (A.4) A number written with grouping commas, such as `2,014`, has exactly four digits and therefore is a `founded_year`-format value (value 2014) when it is from 1800 to 2099 and not part of an amount; "exactly four digits" counts digits, not characters. For `legal_name`, "the shortest counts" applies across every candidate text starting at the same place, including different lengths of capitalised/uppercase word runs before the same suffix: the shortest one wins (e.g. `HALVORSEN ROBOTICS AS AS THE REGISTERED NAME …` gives `HALVORSEN ROBOTICS AS`).
 
+- **L1.32 Charging is decided by whether an HTTP answer arrived.** (R1.143) Any call answered with an HTTP error status (4xx/5xx, including 408 and 429) is refused and costs 0, whatever WebRouter's error `kind` says. Only a call with no HTTP answer (client-side timeout, connection refused/reset, DNS failure: `status_code` absent) is charged its table cost. Exception, per R1.143: an extract answered with no page for a requested URL is not refused and is charged per URL whatever the status.
+
 ## Rejections (stage 1)
 
 | # | Commit | Package | Ledger ids | Reason | Change |
