@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from make_cases import CASES
-from support_oracle import norm, prose, sentences, supports
+from support_oracle import NEGATIONS, SUFFIXES, norm, prose, sentences, supports
 
 BASE = os.environ['PROVER_URL']
 DEST = os.environ.get('PROVER_DEST', BASE)
@@ -83,6 +83,30 @@ class OracleSelfCheck(unittest.TestCase):
                     self.assertTrue(any(supports(domain, field, value, s) for s in sentences(text)))
         self.assertFalse(supports('acme-robotics.test', 'funding_total', 40000000, 'Acme Robotics is reportedly in talks to raise $40M.'))
         self.assertFalse(supports('acme-robotics.test', 'hq_city', 'Porto', 'Acme Robotics opened a sales office in Porto.'))
+
+    def test_support_boundaries_R1_121_R1_126_R1_127_R1_128_R1_131_R1_133_R1_134_R1_137_R1_138_R1_139_R1_140(self):
+        domain = 'acme-robotics.test'
+        for negation in NEGATIONS:
+            with self.subTest(negation=negation):
+                self.assertFalse(supports(domain, 'founded_year', 2014, 'Acme Robotics ' + negation + ' was founded in 2014.'))
+        for suffix in SUFFIXES:
+            value = 'Acme Robotics ' + suffix
+            with self.subTest(suffix=suffix):
+                self.assertTrue(supports(domain, 'legal_name', value, 'Acme Robotics registered as ' + value + '.'))
+        for year, expected in [(1799, False), (1800, True), (2099, True), (2100, False)]:
+            with self.subTest(year=year):
+                self.assertEqual(supports(domain, 'founded_year', year, f'Acme Robotics was founded in {year}.'), expected)
+        bands = [(1,'1-10'), (10,'1-10'), (11,'11-50'), (50,'11-50'), (51,'51-200'), (200,'51-200'), (201,'201-500'), (500,'201-500'), (501,'501-1000'), (1000,'501-1000'), (1001,'1001-5000'), (5000,'1001-5000'), (5001,'5001-10000'), (10000,'5001-10000'), (10001,'10001+')]
+        for count, value in bands:
+            with self.subTest(count=count):
+                self.assertTrue(supports(domain, 'headcount_range', value, f'Acme Robotics employs {count} people.'))
+        self.assertFalse(supports(domain, 'headcount_range', '11-50', 'Acme Robotics employs 50-51 people.'))
+        self.assertFalse(supports(domain, 'founded_year', 2014, 'Acme Robotics was refounded in 2014.'))
+        self.assertTrue(supports(domain, 'founded_year', 2014, 'Acme Robotics was founded in 2014, a note states.'))
+        self.assertFalse(supports(domain, 'funding_total', 1, 'Acme Robotics raised $0.001.'))
+        self.assertFalse(supports(domain, 'funding_total', 1, 'Acme Robotics raised $1,23.'))
+        self.assertTrue(supports(domain, 'funding_total', 12500000, 'Acme Robotics raised US$12.5 million.'))
+        self.assertFalse(supports(domain, 'ceo', 'Dana Ruiz', 'Acme Robotics CEO Dana Ruiz leads. Acme Robotics employs 10 people.'))
 
 
 class Acceptance(unittest.TestCase):
@@ -208,6 +232,41 @@ class Acceptance(unittest.TestCase):
         self.assertEqual(huge_offset[0], 200, f'R1.56 huge offset: {huge_offset[:2]}')
         self.assertEqual(huge_offset[1]['dossiers'], [], 'R1.56 huge offset')
         self.error(app('GET', '/dossiers?limit=' + huge, token=self.token), 422, 'validation_failed', 'R1.56 huge limit')
+
+    def test_query_decimal_forms_L1_28_R1_56_R1_57_R1_113(self):
+        self.assertEqual(self.create('one.test', 'one')[0], 202)
+        zeros = '0' * 5000
+        for query in ('limit=1', 'limit=200', 'limit=0001', 'limit=' + zeros + '1', 'limit=' + zeros + '200'):
+            with self.subTest(query=query[:24]):
+                response = app('GET', '/dossiers?' + query, token=self.token)
+                self.assertEqual(response[0], 200, f'L1.28 {query[:24]}: {response[:2]}')
+                self.assertEqual(len(response[1]['dossiers']), 1, 'L1.28')
+        for query in ('limit=0', 'limit=201', 'limit=' + zeros + '201', 'limit=%2B4', 'limit=-1', 'limit=4.0', 'limit=1e9', 'limit=%204', 'limit=%D9%A1'):
+            with self.subTest(query=query[:24]):
+                self.error(app('GET', '/dossiers?' + query, token=self.token), 422, 'validation_failed', 'L1.28')
+        for offset in ('0', '0000', zeros):
+            with self.subTest(offset=offset[:24]):
+                response = app('GET', '/dossiers?offset=' + offset, token=self.token)
+                self.assertEqual(response[0], 200, 'L1.28')
+                self.assertEqual(len(response[1]['dossiers']), 1, 'L1.28 zero offset')
+        for offset in ('%2B4', '-1', '4.0', '1e9', '%204', '%D9%A1'):
+            self.error(app('GET', '/dossiers?offset=' + offset, token=self.token), 422, 'validation_failed', 'L1.28')
+        response = app('GET', '/dossiers?offset=' + '9'*5000, token=self.token)
+        self.assertEqual(response[0], 200, 'L1.28 huge offset')
+        self.assertEqual(response[1]['dossiers'], [])
+        self.assertFalse(response[1]['has_more'])
+        poll('one.test', self.token)
+
+    def test_percent_encoded_paths_L1_03_R1_72(self):
+        self.assertEqual(self.create('one.test', 'initial')[0], 202)
+        poll('one.test', self.token)
+        first = app('POST', '/dossiers/one.test/refresh', token=self.token, key='same')
+        encoded = app('POST', '/dossiers/%6fne.test/refresh', token=self.token, key='same')
+        self.assertEqual(first[0], 202, 'L1.03')
+        self.assertEqual(encoded[0], 202, 'L1.03 raw encoded path is distinct')
+        retry = app('POST', '/dossiers/%6fne.test/refresh', token=self.token, key='same')
+        self.assertEqual(retry[:2], (200, encoded[1]), 'L1.03')
+        poll('one.test', self.token)
 
     def test_domains_and_idempotency_R1_35_R1_36_R1_37_R1_70_R1_71_R1_72_R1_73_R1_74_R1_75_R1_77(self):
         first = self.create(' WWW.Example.TEST. ', 'key')
@@ -447,11 +506,16 @@ class Acceptance(unittest.TestCase):
         response = self.create(domain, 'slow')
         self.assertEqual(response[0], 202)
         self.assertLess(response[2], 5, 'R1.15')
+        remaining = 1 - (time.monotonic() - started)
+        if remaining > 0:
+            time.sleep(remaining)
+            self.assertEqual(app('GET', '/dossiers/' + domain, token=self.token)[1]['state'], 'building', 'L1.27 build must await in-flight calls')
         item = poll(domain, self.token, bound=300, reason='INCONCLUSIVE: slow-provider harness wait expired')
         calls = mock('GET', '/_mock/log')[1]['calls']
         self.assertTrue(any(c['method'] == 'search' and c['query'] == domain and 200 <= c['status'] < 300 for c in calls), 'L1.25 5-second search abandoned')
         self.assertGreaterEqual(time.monotonic() - started, 5, 'L1.25 delayed answer was not awaited')
         self.assertEqual(item['state'], 'ready', 'R1.81')
+        self.assertEqual(item['spent_units'], sum(c['cost'] for c in calls), 'L1.27 account completed calls')
 
     def test_controlled_support_R1_49_R1_50_R1_121_R1_122_R1_123_R1_124_R1_125_R1_126_R1_127_R1_128_R1_129_R1_130_R1_131_R1_132_R1_133_R1_134_R1_135_R1_136_R1_137_R1_138_R1_139_R1_140(self):
         for domain, (prose, expected) in CASES.items():
@@ -472,6 +536,17 @@ class Acceptance(unittest.TestCase):
                         for citation in actual['citations']:
                             self.assertEqual(citation['url'], 'https://' + domain + '/about')
                             self.assertIn(' '.join(citation['excerpt'].split()), ' '.join(prose.split()))
+
+    def test_majority_distinct_urls_R1_48_L1_12(self):
+        domain = 'multiproof.test'
+        self.assertEqual(self.create(domain, 'majority')[0], 202)
+        item = poll(domain, self.token)
+        field = item['fields']['ceo']
+        self.assertEqual(field['value'], 'Dana Ruiz', 'L1.12: two supporting URLs beat one URL with repeated excerpts')
+        self.assertTrue(field['citations'])
+        for citation in field['citations']:
+            self.assertIn(citation['url'], ['https://multiproof.test/a', 'https://multiproof.test/b'])
+            self.assertEqual(citation['excerpt'], 'Multiproof CEO: Dana Ruiz.')
 
     def test_corpus_R1_01a_R1_06_R1_38_R1_39_R1_40_R1_41_R1_42_R1_44_R1_45_R1_46_R1_47_R1_48_R1_82_R1_141_R1_149_M1_5(self):
         key = json.loads((CORPUS / 'key.json').read_text())

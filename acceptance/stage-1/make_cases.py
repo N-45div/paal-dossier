@@ -38,3 +38,10 @@ if __name__ == '__main__':
         if domain == 'evidencealpha.test':
             claims.append({'field':'ceo','value':'Sam Ortiz','url':page['url'],'excerpt':'Evidencealpha CEO: Dana Müller.'})
         (root / (domain + '.json')).write_text(json.dumps({'domain': domain, 'names': [name], 'pages': [page], 'research': {'nimble': {'0': claims, '1': claims}}}))
+    domain = 'multiproof.test'
+    pages = []
+    for path, text in [('a', 'Multiproof CEO: Dana Ruiz.'), ('b', 'Multiproof CEO: Dana Ruiz.'), ('c', '\n'.join(['Multiproof CEO: Sam Ortiz.'] * 5))]:
+        pages.append({'url':'https://' + domain + '/' + path, 'kind':'own', 'epochs':[0,1], 'searchable':True,
+                      'published_at':None, 'true_from':None, 'title':'Multiproof ' + path, 'text':text, 'facts':{},
+                      'lineage':{'canonical':None,'first_published_by':None,'registrant':domain}})
+    (root / (domain + '.json')).write_text(json.dumps({'domain':domain,'names':['Multiproof'],'pages':pages,'research':{'nimble':{'0':[],'1':[]}}}))
