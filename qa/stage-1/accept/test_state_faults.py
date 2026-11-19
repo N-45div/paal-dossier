@@ -14,6 +14,7 @@ def fault(mock, provider, methods, mode, **extra):
 
 
 def test_R1_9_R1_62_R1_85_provider_errors(api, mock, seeded):
+    'R1.9 R1.62 R1.85'
     for provider, methods in [('nimble', ['search', 'extract', 'research']), ('tavily', ['search', 'extract'])]:
         fault(mock, provider, methods, 'error')
     token = seeded[0]
@@ -25,6 +26,7 @@ def test_R1_9_R1_62_R1_85_provider_errors(api, mock, seeded):
 
 
 def test_R1_9_tavily_failure_does_not_prevent_nimble(api, mock, seeded):
+    'R1.9'
     fault(mock, 'tavily', ['search', 'extract'], 'error')
     token = seeded[0]
     assert create(api, token, 'ashgrove-solar.test', 'nimble-only').status_code == 202
@@ -32,6 +34,7 @@ def test_R1_9_tavily_failure_does_not_prevent_nimble(api, mock, seeded):
 
 
 def test_R1_9_R1_62_R1_85_nimble_failure(api, mock, seeded):
+    'R1.9 R1.62 R1.85'
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'error')
     token = seeded[0]
     assert create(api, token, 'ashgrove-solar.test', 'nimble-error').status_code == 202
@@ -43,6 +46,7 @@ def test_R1_9_R1_62_R1_85_nimble_failure(api, mock, seeded):
 
 
 def test_R1_62_R1_85_R1_87_rate_limits(api, mock, seeded):
+    'R1.62 R1.85 R1.87'
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'rate_limit')
     fault(mock, 'tavily', ['search', 'extract'], 'rate_limit')
     token = seeded[0]
@@ -56,6 +60,7 @@ def test_R1_62_R1_85_R1_87_rate_limits(api, mock, seeded):
 
 
 def test_R1_87_delay_under_one_second(api, mock, seeded):
+    'R1.87'
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.2)
     token = seeded[0]
     started = time.monotonic()
@@ -65,6 +70,7 @@ def test_R1_87_delay_under_one_second(api, mock, seeded):
 
 
 def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, deployment):
+    'R1.84 R1.102'
     token, domain = seeded[0], 'ashgrove-solar.test'
     assert create(api, token, domain, 'initial').status_code == 202
     initial = done(api, token, domain)
@@ -92,6 +98,7 @@ def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, deployment
 
 
 def test_R1_85_failed_refresh_preserves_ready_fields(api, mock, seeded):
+    'R1.85'
     token, domain = seeded[0], 'ashgrove-solar.test'
     assert create(api, token, domain, 'initial').status_code == 202
     initial = done(api, token, domain)
@@ -107,6 +114,7 @@ def test_R1_85_failed_refresh_preserves_ready_fields(api, mock, seeded):
 
 
 def test_R1_23_R1_84_R1_128_reset_during_build(api, mock, seeded):
+    'R1.23 R1.84 R1.128'
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
     fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
     token = seeded[0]
@@ -122,6 +130,7 @@ def test_R1_23_R1_84_R1_128_reset_during_build(api, mock, seeded):
 
 
 def test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip(api, mock, seeded):
+    'R1.70 R1.124 R1.125 R1.126 R1.127'
     token = seeded[0]
     original = create(api, token, 'ashgrove-solar.test', 'snapshot-key')
     assert original.status_code == 202
@@ -151,6 +160,7 @@ def test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip(api, mock, se
     {'track':'dossier','format_version':1,'state':[]},
     {'track':'dossier','format_version':1,'state':{}}])
 def test_R1_126_invalid_import_does_not_replace_state(api, seeded, body):
+    'R1.126'
     token = seeded[0]
     error(api.post('/_test/import', json=body), 422, 'validation_failed')
     assert api.get('/dossiers', headers=auth(token)).status_code == 200
@@ -158,6 +168,7 @@ def test_R1_126_invalid_import_does_not_replace_state(api, seeded, body):
 
 
 def test_R1_128_export_first_build_in_progress(api, mock, seeded):
+    'R1.128'
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
     fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
     token = seeded[0]
@@ -173,6 +184,7 @@ def test_R1_128_export_first_build_in_progress(api, mock, seeded):
 
 
 def test_R1_97_R1_128_export_refresh_in_progress(api, mock, seeded):
+    'R1.97 R1.128'
     token = seeded[0]
     assert create(api, token, 'ashgrove-solar.test', 'first').status_code == 202
     original = done(api, token, 'ashgrove-solar.test')

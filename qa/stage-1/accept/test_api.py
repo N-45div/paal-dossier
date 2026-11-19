@@ -39,12 +39,14 @@ def create(api, token, domain, key):
 
 
 def test_R1_15_R1_21_R1_22_R1_49_health(api, mock):
+    'R1.7 R1.8 R1.12 R1.15 R1.18 R1.20 R1.21 R1.22 R1.49'
     response = api.get('/health')
     assert response.status_code == 200 and response.json() == {'status': 'ok'}
     assert mock.get('/_mock/log').json()['calls'] == []
 
 
 def test_R1_29_R1_30_json_and_timestamp(api, seeded):
+    'R1.29 R1.30'
     token = seeded[0]
     response = api.get('/health')
     assert response.headers['content-type'].lower().replace(' ', '') == 'application/json;charset=utf-8'
@@ -54,6 +56,7 @@ def test_R1_29_R1_30_json_and_timestamp(api, seeded):
 
 
 def test_R1_90_R1_91_R1_104_R1_106_dossier_contract(api, seeded):
+    'R1.90 R1.91 R1.104 R1.106'
     token = seeded[0]
     error(api.post('/dossiers', headers=auth(token), json={'domain':'x.test'}), 400, 'missing_idempotency_key')
     error(api.post('/dossiers/missing.test/refresh', headers=auth(token, 'x')), 404, 'not_found')
@@ -66,6 +69,7 @@ def test_R1_90_R1_91_R1_104_R1_106_dossier_contract(api, seeded):
 
 
 def test_R1_23_R1_48_R1_63_R1_65_R1_66_R1_69_auth_reset(api, seeded):
+    'R1.23 R1.48 R1.63 R1.65 R1.66 R1.69'
     ada, bob = seeded
     response = api.post('/auth/login', json={'email': 'ADA@example.com', 'password': 'correct horse'})
     assert response.status_code == 200 and response.json()['user_id'] == 'u_ada'
@@ -89,10 +93,12 @@ def test_R1_23_R1_48_R1_63_R1_65_R1_66_R1_69_auth_reset(api, seeded):
     ({'password': '12345678', 'display_name': 'X'}, 422, 'validation_failed'),
 ])
 def test_R1_49_R1_50_R1_51_R1_56_R1_57_R1_64_R1_65_signup_validation(api, seeded, body, status, code):
+    'R1.49 R1.50 R1.51 R1.56 R1.57 R1.64 R1.65'
     error(api.post('/auth/signup', json=body), status, code)
 
 
 def test_R1_31_R1_33_R1_64_signup_extra_fields(api, seeded):
+    'R1.31 R1.33 R1.64'
     response = api.post('/auth/signup', json={'email': 'new@example.com', 'password': '12345678', 'display_name': 'New', 'extra': True})
     assert response.status_code == 201
     assert len(response.json()['user_id']) <= 64
@@ -101,6 +107,7 @@ def test_R1_31_R1_33_R1_64_signup_extra_fields(api, seeded):
 
 @pytest.mark.parametrize('header', [None, '', 'Basic x', 'Bearer unknown', 'Bearer'])
 def test_R1_53_R1_67_R1_68_auth_precedes_key(api, seeded, header):
+    'R1.53 R1.67 R1.68'
     headers = {} if header is None else {'Authorization': header}
     error(api.post('/dossiers', headers=headers, json={'domain': 'foo.test'}), 401, 'unauthenticated')
 
@@ -109,10 +116,12 @@ def test_R1_53_R1_67_R1_68_auth_precedes_key(api, seeded, header):
     ('GET', '/dossiers'), ('GET', '/dossiers/missing.test'),
     ('POST', '/dossiers'), ('POST', '/dossiers/missing.test/refresh')])
 def test_R1_53_R1_67_missing_auth_all_routes(api, seeded, method, path):
+    'R1.53 R1.67'
     error(api.request(method, path), 401, 'unauthenticated')
 
 
 def test_R1_49_R1_51_R1_56_malformed_body_types(api, seeded):
+    'R1.49 R1.51 R1.56'
     error(api.post('/auth/login', content=b'{', headers={'Content-Type': 'application/json'}), 400, 'malformed_request')
     error(api.post('/auth/login', json={'email': 'ada@example.com', 'password': 7}), 400, 'malformed_request')
     error(api.post('/auth/login', json={'email': 'ada@example.com'}), 422, 'validation_failed')
@@ -120,6 +129,7 @@ def test_R1_49_R1_51_R1_56_malformed_body_types(api, seeded):
 
 
 def test_R1_24_R1_25_R1_26_R1_27_R1_28_clock(api, seeded):
+    'R1.24 R1.25 R1.26 R1.27 R1.28'
     t = seeded[0]
     assert api.post('/_test/clock', json={'now': '2026-03-01T10:00:00+00:00'}).status_code == 204
     error(api.post('/_test/clock', json={'now': '2026-03-01T09:59:59+00:00'}), 422, 'validation_failed')
@@ -134,10 +144,12 @@ def test_R1_24_R1_25_R1_26_R1_27_R1_28_clock(api, seeded):
 
 @pytest.mark.parametrize('domain', ['localhost', '-a.test', 'a-.test', 'a..test', 'https://a.test', 'a.test/path', 'a_b.test', 'a'*64+'.test', 'a.test..'])
 def test_R1_35_R1_51_R1_57_R1_94_invalid_domains(api, seeded, domain):
+    'R1.35 R1.51 R1.57 R1.94'
     error(create(api, seeded[0], domain, 'domain'), 422, 'validation_failed')
 
 
 def test_R1_31_R1_35_R1_36_R1_92_R1_100_normalisation(api, seeded):
+    'R1.31 R1.35 R1.36 R1.92 R1.100'
     token = seeded[0]
     first = create(api, token, '  WWW.Acme-Robotics.TEST.  ', 'norm1')
     assert first.status_code == 202 and first.json()['domain'] == 'acme-robotics.test'
@@ -150,6 +162,7 @@ def test_R1_31_R1_35_R1_36_R1_92_R1_100_normalisation(api, seeded):
 
 
 def test_R1_52_R1_54_R1_55_R1_59_R1_60_R1_71_R1_72_R1_73_R1_74_R1_75_R1_76_R1_77_R1_78_R1_79_R1_81_R1_82_idempotency(api, seeded):
+    'R1.52 R1.54 R1.55 R1.59 R1.60 R1.71 R1.72 R1.73 R1.74 R1.75 R1.76 R1.77 R1.78 R1.79 R1.81 R1.82'
     ada, bob = seeded
     error(api.post('/dossiers', headers=auth(ada), content=b'{'), 400, 'missing_idempotency_key')
     error(api.post('/dossiers', headers=auth(ada, 'x'*256), json={'domain':'foo.test'}), 422, 'validation_failed')
@@ -173,10 +186,12 @@ def test_R1_52_R1_54_R1_55_R1_59_R1_60_R1_71_R1_72_R1_73_R1_74_R1_75_R1_76_R1_77
 
 @pytest.mark.parametrize('parameter,value', [('limit','0'), ('limit','201'), ('limit','1e9'), ('limit','4.0'), ('limit','+4'), ('offset','-1'), ('offset','1e9')])
 def test_R1_58_R1_61_R1_109_pagination_invalid(api, seeded, parameter, value):
+    'R1.58 R1.61 R1.109'
     error(api.get('/dossiers', headers=auth(seeded[0]), params={parameter:value}), 422, 'validation_failed')
 
 
 def test_R1_32_R1_34_R1_105_R1_107_R1_108_R1_109_order_and_pagination(api, seeded):
+    'R1.32 R1.34 R1.105 R1.107 R1.108 R1.109'
     ada, bob = seeded
     for domain in ('zebra.test', 'alpha.test', 'middle.test'):
         assert create(api, ada, domain, domain).status_code == 202
@@ -193,6 +208,7 @@ def test_R1_32_R1_34_R1_105_R1_107_R1_108_R1_109_order_and_pagination(api, seede
 
 
 def test_R1_59_R1_60_R1_78_key_boundaries_and_failed_refresh_reuse(api, seeded):
+    'R1.59 R1.60 R1.78'
     token = seeded[0]
     error(api.post('/dossiers/new.test/refresh', headers=auth(token, 'same')), 404, 'not_found')
     assert create(api, token, 'new.test', 'x'*255).status_code == 202
@@ -203,6 +219,7 @@ def test_R1_59_R1_60_R1_78_key_boundaries_and_failed_refresh_reuse(api, seeded):
 
 
 def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(deployment, seeded):
+    'R1.2 R1.16 R1.17 R1.62 R1.80 R1.93 R1.129'
     token = seeded[0]
     barrier = threading.Barrier(50)
     with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
@@ -220,6 +237,7 @@ def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(deployme
 
 
 def test_R1_14_container_memory_limit(deployment, seeded):
+    'R1.14'
     reading = docker('stats', '--no-stream', '--format', '{{.MemUsage}}', deployment['container'], timeout=10).stdout.strip()
     used = reading.split('/')[0].strip()
     units = {'B': 1, 'KiB': 1024, 'MiB': 1024**2, 'GiB': 1024**3}
@@ -232,6 +250,7 @@ def test_R1_14_container_memory_limit(deployment, seeded):
 
 
 def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(deployment, seeded):
+    'R1.16 R1.55 R1.62 R1.77 R1.80 R1.129'
     barrier = threading.Barrier(50)
     with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
         def one(i):
@@ -252,6 +271,7 @@ def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(deployment,
 
 
 def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(deployment, seeded):
+    'R1.16 R1.17 R1.62 R1.65 R1.69 R1.129'
     barrier = threading.Barrier(50)
     with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
         def one(_):
@@ -268,6 +288,7 @@ def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(deployment, seed
 
 
 def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(deployment, seeded):
+    'R1.16 R1.17 R1.62 R1.69'
     barrier = threading.Barrier(50)
     with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
         def one(_):
@@ -282,6 +303,7 @@ def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(deployment, seeded):
 
 
 def test_R1_16_R1_62_R1_93_R1_129_concurrent_different_keys(deployment, seeded):
+    'R1.16 R1.62 R1.93 R1.129'
     barrier = threading.Barrier(50)
     with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
         def one(i):
@@ -298,6 +320,7 @@ def test_R1_16_R1_62_R1_93_R1_129_concurrent_different_keys(deployment, seeded):
 
 
 def test_R1_81_R1_89_R1_101_R1_102_R1_103_refresh_and_replay(api, mock, seeded):
+    'R1.81 R1.89 R1.101 R1.102 R1.103'
     token = seeded[0]
     first = create(api, token, 'ashgrove-solar.test', 'create')
     assert first.status_code == 202

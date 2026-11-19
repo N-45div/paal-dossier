@@ -48,10 +48,12 @@ def normalized(text):
     ('ceo', 'Acme Robotics CEO Ana María Laura Müller.', set()),
 ])
 def test_R1_130_R1_132_R1_133_R1_134_R1_135_R1_136_R1_137_R1_138_R1_139_R1_140_R1_141_R1_142_R1_143_R1_144_R1_145_R1_146_R1_147_R1_148_R1_149_R1_150_R1_151_R1_152_R1_153_R1_154_R1_155_R1_156_R1_157_R1_158_R1_159_R1_160_R1_161_R1_162_R1_163_R1_164_oracle_examples(field, text, expected):
+    'R1.130 R1.132 R1.133 R1.134 R1.135 R1.136 R1.137 R1.138 R1.139 R1.140 R1.141 R1.142 R1.143 R1.144 R1.145 R1.146 R1.147 R1.148 R1.149 R1.150 R1.151 R1.152 R1.153 R1.154 R1.155 R1.156 R1.157 R1.158 R1.159 R1.160 R1.161 R1.162 R1.163 R1.164'
     assert candidates('acme-robotics.test', field, text) == expected
 
 
 def test_R1_47_R1_131_sentence_boundaries_and_header():
+    'R1.47 R1.131'
     text = 'Kind: news\nFacts: {"ceo":"invented"}\n\nAcme Robotics, Inc. employs 10 people. Another line!\nAcme Robotics CEO: Sam Ortiz.'
     assert sentences(prose(text)) == [
         'Acme Robotics, Inc. employs 10 people.', 'Another line!', 'Acme Robotics CEO: Sam Ortiz.']
@@ -59,6 +61,7 @@ def test_R1_47_R1_131_sentence_boundaries_and_header():
 
 
 def test_R1_41_R1_45_R1_86_cross_company_and_research_evidence():
+    'R1.41 R1.45 R1.86'
     domain = 'acme-robotics.test'
     companies = [
         {'domain': domain, 'pages': [
@@ -86,6 +89,7 @@ def test_R1_41_R1_45_R1_86_cross_company_and_research_evidence():
 
 
 def test_R1_43_R1_44_R1_133_long_sentence_full_support():
+    'R1.43 R1.44 R1.133'
     prefix = 'Acme Robotics raised $25M ' + ('quiet detail ' * 50)
     domain = 'acme-robotics.test'
     assert corpus_candidates(domain, [{'text': prefix + 'for growth.'}])['funding_total'] == {25000000}
@@ -94,9 +98,7 @@ def test_R1_43_R1_44_R1_133_long_sentence_full_support():
 
 
 def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost(api, mock, seeded, company_path, all_pages, all_companies):
-    """R1.111 R1.112 R1.113 R1.114 R1.115 R1.116 R1.117 R1.118 R1.119 R1.120:
-    verify each applicable price and depth for provider calls observed, without requiring optional calls.
-    """
+    'R1.111 R1.112 R1.113 R1.114 R1.115 R1.116 R1.117 R1.118 R1.119 R1.120:\n    verify each applicable price and depth for provider calls observed, without requiring optional calls.\n    \nR1.3 R1.4 R1.5 R1.37 R1.38 R1.39 R1.40 R1.41 R1.42 R1.43 R1.44 R1.45 R1.46 R1.47 R1.83 R1.85 R1.86 R1.87 R1.89 R1.95 R1.96 R1.97 R1.98 R1.99 R1.110 R1.121 R1.122 R1.123'
     company = json.loads(company_path.read_text())
     domain = company['domain']
     token = seeded[0]
