@@ -1,0 +1,5 @@
+# Stage 1 black-box acceptance
+
+From this checkout, run `acceptance/stage-1/run.sh <commit>` (default `HEAD`). The runner builds the specified commit's `stage-1/` Dockerfile and the challenge mock web image, then starts both and a Python test client on a private internal Docker network. Only Nimble is configured, as required. Docker and Python 3 are needed. The mock corpus defaults to `/home/ndivij/buildathon/sf-buildathon-2026/challenges/dossier/web`; override with `MOCK_WEB_DIR`. Published host ports default to 18200 and 18201; use `PROVER_PORT` and `PROVER_MOCK_PORT` to select distinct ports within 18200–18299. The client uses the isolated network directly, so host forwarding is not required. The runner holds `/tmp/factory-heavy.lock`, limits the service to 2 CPUs and 3 GiB, and cleans up its containers, images and network. No live credentials are used.
+
+Tests exercise only the HTTP interface and mock admin log. Assertions include requirement IDs. Failing individual cases do not prevent later tests from running. The mock key and call log are local test evidence; exports can contain secrets and are held in memory only.
