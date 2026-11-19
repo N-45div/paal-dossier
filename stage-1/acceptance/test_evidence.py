@@ -163,3 +163,24 @@ def test_supported_fragment_of_long_sentence(client):
             assert 1 <= len(excerpt) <= 500 and supports(excerpt, domain, field, value)
             assert any(call["provider"] == citation["provider"] and any(item["url"] == citation["url"] and excerpt in " ".join(item["text"].split()) for item in call["served"]) for call in calls)
     assert dossier["fields"]["headcount_range"] == {"value": None, "status": "unknown", "citations": []}
+
+
+def test_long_sentence_ceo_adjacent_to_company_name(client):
+    """R1.53 R1.104 R1.155: company and CEO phrase separate a person's name before parsing."""
+    c = client
+    token = c.login()
+    domain, url = "people-split.test", "https://people-split.test/about"
+    response = c.request("POST", "/dossiers", headers=c.auth(token, "long-name"), json={"domain": domain})
+    assert response.status_code == 202
+    dossier = c.finish(domain, token)
+    assert dossier["state"] == "ready"
+    calls = c.calls()
+    texts = [item["text"] for call in calls for item in call["served"]
+             if item["url"] == url and "Dana Ruiz People Split CEO" in item["text"]]
+    assert texts and any(len(text) > 500 for text in texts)
+    result = dossier["fields"]["ceo"]
+    assert result["status"] == "known" and result["value"] == "Dana Ruiz" and result["citations"]
+    for citation in result["citations"]:
+        excerpt = " ".join(citation["excerpt"].split())
+        assert 1 <= len(excerpt) <= 500 and supports(excerpt, domain, "ceo", "Dana Ruiz")
+        assert any(call["provider"] == citation["provider"] and any(item["url"] == citation["url"] and excerpt in " ".join(item["text"].split()) for item in call["served"]) for call in calls)

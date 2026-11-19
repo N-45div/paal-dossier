@@ -1,0 +1,33 @@
+{
+  "domain": "people-split.test",
+  "names": [
+    "People Split"
+  ],
+  "pages": [
+    {
+      "url": "https://people-split.test/about",
+      "kind": "own",
+      "epochs": [
+        0,
+        1
+      ],
+      "searchable": true,
+      "published_at": null,
+      "true_from": null,
+      "title": "People Split leadership",
+      "text": "neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral Dana Ruiz People Split CEO.",
+      "facts": {},
+      "lineage": {
+        "canonical": null,
+        "first_published_by": null,
+        "registrant": "people-split.test"
+      }
+    }
+  ],
+  "research": {
+    "nimble": {
+      "0": [],
+      "1": []
+    }
+  }
+}
