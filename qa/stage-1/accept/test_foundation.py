@@ -197,10 +197,10 @@ def test_R1_126_missing_export_sections_rejected_atomically(api, seeded):
     error(api.post('/_test/import', json=[]), 400, 'malformed_request')
 
 
-@pytest.mark.parametrize('corruption', ['token_reference', 'counter', 'password_record'])
+@pytest.mark.parametrize('corruption', ['token_reference', 'counter_high', 'counter_low', 'password_record', 'duplicate_ids'])
 def test_R1_70_R1_126_R1_127_invalid_snapshot_entries_are_atomic(api, seeded, corruption):
     """R1.70 R1.126 R1.127: reject malformed entries without replacing credentials."""
-    if corruption == 'counter':
+    if corruption in ('counter_high', 'counter_low'):
         response = api.post('/auth/signup', json={'email':'counter@example.com', 'password':'correct horse', 'display_name':'Counter'})
         assert response.status_code == 201
     snapshot = api.get('/_test/export', timeout=10).json()
@@ -209,16 +209,22 @@ def test_R1_70_R1_126_R1_127_invalid_snapshot_entries_are_atomic(api, seeded, co
         entries = state['tokens']
         assert isinstance(entries, list) and entries and isinstance(entries[0], dict) and 'user_id' in entries[0]
         entries[0]['user_id'] = 'nonexistent-prover-user'
-    elif corruption == 'counter':
+    elif corruption in ('counter_high', 'counter_low'):
         counters = state['counters']
         assert isinstance(counters, dict)
-        numeric_keys = [key for key, value in counters.items() if type(value) is int]
+        numeric_keys = [key for key, value in counters.items() if type(value) is int and value > 0]
         assert numeric_keys
-        counters[numeric_keys[0]] = 10**40
-    else:
+        counters[numeric_keys[0]] = 10**40 if corruption == 'counter_high' else 0
+    elif corruption == 'password_record':
         users = state['users']
         assert isinstance(users, list) and users and isinstance(users[0], dict) and 'password_hash' in users[0]
         users[0]['password_hash'] = 'malformed-scrypt-record'
+    else:
+        users = state['users']
+        assert isinstance(users, list) and users
+        duplicate = copy.deepcopy(users[0])
+        duplicate['email'] = 'distinct-duplicate@example.com'
+        users.append(duplicate)
     error(api.post('/_test/import', json=snapshot, timeout=10), 422, 'validation_failed')
     login = api.post('/auth/login', json={'email':'ada@example.com','password':'correct horse'})
     assert login.status_code == 200 and login.json()['user_id'] == 'u_ada'

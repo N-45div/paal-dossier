@@ -1,5 +1,6 @@
 """Controlled-corpus checks through the service and provider interfaces."""
 import re
+import copy
 
 import httpx
 import pytest
@@ -196,3 +197,29 @@ def test_R1_43_R1_44_R1_86_long_sentence_full_context(synthetic, domain):
     dossier = done(api, token, domain)
     assert dossier['state'] == 'ready'
     assert dossier['fields']['funding_total'] == {'value':None, 'status':'unknown', 'citations':[]}
+
+
+@pytest.mark.parametrize('corruption', ['missing_field', 'known_without_citations', 'unknown_with_citations'])
+def test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic(synthetic, corruption):
+    """R1.40 R1.126 R1.127: reject incomplete or inconsistent dossier fields atomically."""
+    api, mock, token = synthetic
+    domain = 'scale-probe.test'
+    assert create(api, token, domain, 'snapshot-dossier').status_code == 202
+    original = done(api, token, domain)
+    assert original['state'] == 'ready' and original['fields']['funding_total']['value'] == 23000000
+    snapshot = api.get('/_test/export', timeout=10).json()
+    dossiers = snapshot['state']['dossiers']
+    assert isinstance(dossiers, list) and len(dossiers) == 1
+    fields = dossiers[0]['fields']
+    if corruption == 'missing_field':
+        del fields['legal_name']
+    elif corruption == 'known_without_citations':
+        fields['funding_total']['citations'] = []
+    else:
+        citation = copy.deepcopy(fields['funding_total']['citations'][0])
+        assert fields['legal_name']['value'] is None
+        fields['legal_name']['citations'] = [citation]
+    from test_api import error
+    error(api.post('/_test/import', json=snapshot, timeout=10), 422, 'validation_failed')
+    response = api.get('/dossiers/' + domain, headers=auth(token))
+    assert response.status_code == 200 and response.json() == original
