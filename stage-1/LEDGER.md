@@ -61,13 +61,13 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > `NIMBLE_API_KEY` Credential for the `nimble` provider; `NIMBLE_BASE_URL` Base URL of the `nimble` provider endpoint; `TAVILY_API_KEY` Credential for the `tavily` provider; `TAVILY_BASE_URL` Base URL of the `tavily` provider endpoint
 - **R1.10** §2 env — P4 — rejected at freeze (blocker B1: research 958bd72/118b377 not merged; service part on main where applicable)
   > Keys are opaque non-empty strings. WebRouter's `nimble` provider reads `NIMBLE_API_KEY` and `NIMBLE_BASE_URL` from the environment, and its `tavily` provider reads `TAVILY_API_KEY`. A service that uses Tavily passes its base URL to WebRouter in `provider_config`: `provider_config={"tavily": {"api_base_url": <TAVILY_BASE_URL>}}`
-- **R1.11** §2 limits — P1 — built (464c685) (measure M1.3)
+- **R1.11** §2 limits — P1 — accepted (main c521788) (measure M1.3)
   > CPU 2 vCPU; Memory 3 GiB
 - **R1.12** §2 limits — P1/P2 — accepted (main c521788)
   > Concurrent requests: up to 50 in flight
-- **R1.13** §2 limits — P1 — built (464c685) (measure M1.3)
+- **R1.13** §2 limits — P1 — accepted (main c521788) (measure M1.3)
   > Start to first healthy response: 60 s
-- **R1.15** §2 limits — P1/P2 — built (464c685) (measure M1.4)
+- **R1.15** §2 limits — P1/P2 — accepted (main c521788) (measure M1.4)
   > Per-request timeout: 5 s (10 s for `POST /_test/reset`)
 - **R1.16** §2 limits — P1/P4 — accepted (main c521788)
   > Outbound network: available during `docker build`; at run time, **only the provider endpoints this specification lists**. Disk: ephemeral; state need not survive a container restart
