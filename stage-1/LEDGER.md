@@ -35,13 +35,13 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Build from the supplied requirements. Source code, API documentation and schemas from existing products in this domain must not be used. WebRouter's own documentation may be used.
 
 ### §1 Scope
-- **R1.01** §1 — P2/P4 — open
+- **R1.01** §1 — P2/P4 — built (464c685+7653221)
   > A caller asks for a company by its web domain. The service researches the company on the web and keeps a **dossier**: a profile of six fields, each with the value the web supports and the excerpts it came from. A dossier is built in the background, read any number of times, and refreshed on request. Only the HTTP API is required.
-- **R1.01a** §1.1 — P3/P4 — open
+- **R1.01a** §1.1 — P3/P4 — built (7653221)
   > Every value the service asserts cites at least one excerpt that a provider endpoint served to this service, and that excerpt supports the value. No citation is invented, reworded, or attached to a value it does not support.
-- **R1.02** §1.2 — P4 — open (measure M1.1)
+- **R1.02** §1.2 — P4 — built (7653221) (measure M1.1)
   > No build of a dossier spends more than 80 units (§9).
-- **R1.02a** §1 — P4 — open
+- **R1.02a** §1 — P4 — built (7653221)
   > Contact data, people search, and fields other than the six in §4 are out of scope.
 
 ### §2 Delivery and deployment
@@ -51,15 +51,15 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > The submitted `Dockerfile` is built and started, and only its HTTP behavior is exercised; it does not import or execute the submission's source files on the host that runs it.
 - **R1.05** §2 — P1 — built (464c685)
   > The image must run on its own with `-e PORT=<port>` and a port mapping. All runtime dependencies, initialization and seed data must work within that single container. Compose configuration is not used to start the service.
-- **R1.06** §2 Web access — P4 — open
+- **R1.06** §2 Web access — P4 — built (7653221)
   > Nimble is the default provider: every service must be able to research companies using Nimble alone. Tavily is optional: a service may use it beside Nimble, and its absence must not prevent research while Nimble answers.
-- **R1.07** §2 Web access — P4 — open
+- **R1.07** §2 Web access — P4 — built (7653221)
   > The service reaches the providers only through WebRouter, the Python package `webrouter` (module `web_router`). ... every request to a provider goes through `web_router` ... Calling a provider's API by any other route is not permitted.
 - **R1.08** §2 Web access — P1 — built (464c685)
   > The stage folder's dependency manifest lists `webrouter>=0.12.0`. ... Install it and the provider SDK dependencies from PyPI, including in the service's Docker build: `pip install "webrouter[search,extract,research]>=0.12.0"`
-- **R1.09** §2 env — P4 — open
+- **R1.09** §2 env — P4 — built (7653221)
   > `NIMBLE_API_KEY` Credential for the `nimble` provider; `NIMBLE_BASE_URL` Base URL of the `nimble` provider endpoint; `TAVILY_API_KEY` Credential for the `tavily` provider; `TAVILY_BASE_URL` Base URL of the `tavily` provider endpoint
-- **R1.10** §2 env — P4 — open
+- **R1.10** §2 env — P4 — built (7653221)
   > Keys are opaque non-empty strings. WebRouter's `nimble` provider reads `NIMBLE_API_KEY` and `NIMBLE_BASE_URL` from the environment, and its `tavily` provider reads `TAVILY_API_KEY`. A service that uses Tavily passes its base URL to WebRouter in `provider_config`: `provider_config={"tavily": {"api_base_url": <TAVILY_BASE_URL>}}`
 - **R1.11** §2 limits — P1 — built (464c685) (measure M1.3)
   > CPU 2 vCPU; Memory 3 GiB
@@ -117,31 +117,31 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > The normalised domain must then be a valid host name: two or more labels separated by `.`, each label 1 to 63 characters of `a-z`, `0-9` and `-`, not starting or ending with `-`, and 253 characters or fewer in total. Anything else, including a URL with a scheme or a path, is 422 `validation_failed`.
 - **R1.37** §4 Domains — P2 — built (464c685)
   > `Acme-Robotics.TEST.`, `www.acme-robotics.test` and `acme-robotics.test` name the same company and the same dossier. Responses always carry the normalised domain.
-- **R1.38** §4 Fields — P2/P4 — open
+- **R1.38** §4 Fields — P2/P4 — built (464c685+7653221)
   > A dossier has exactly these six fields: `legal_name` String; `hq_city` String (city, without region or country); `ceo` String (full name); `founded_year` Integer; `headcount_range` String: one of `1-10`, `11-50`, `51-200`, `201-500`, `501-1000`, `1001-5000`, `5001-10000`, `10001+`; `funding_total` Integer: total equity funding raised, in whole US dollars
-- **R1.39** §4 Fields — P3 — open
+- **R1.39** §4 Fields — P3 — built (5a24923)
   > A string value is written as the supporting excerpt writes it, without surrounding whitespace. A headcount the web states as a number, or as a range that fits inside one of the ranges above, has the range that contains it as its value.
 - **R1.40** §4 Fields — P2 — built (464c685)
   > Each field in a response has this shape: `{ "value": "Dana Ruiz", "status": "known", "citations": [ { "url": ..., "excerpt": ..., "provider": "nimble" } ] }`
 - **R1.41** §4 Fields — P2/P4 — built (464c685)
   > `status` is `known` when `value` is not null, and `unknown` when it is. A `known` field has one or more citations. An `unknown` field has `"value": null` and `"citations": []`.
-- **R1.42** §4 Fields — P4 — open
+- **R1.42** §4 Fields — P4 — built (7653221)
   > `url` is the URL of the page the excerpt was served for, `provider` is `nimble` or `tavily`, the provider that served it.
-- **R1.43** §4 Evidence — P4 — open
+- **R1.43** §4 Evidence — P4 — built (7653221)
   > The **evidence** for a company is every page that some search, through any provider and for any query naming the company (as in Appendix A.2), returns, with its full text, and every claim that a `nimble` research run for the company asking for all six fields answers with.
-- **R1.44** §4 Evidence — P4 — open
+- **R1.44** §4 Evidence — P4 — built (7653221)
   > Of the searches that a provider answers without an error, every build makes exactly one whose query is exactly the company's normalised domain, through a provider of its choice; its other such searches use other queries. A search that a provider answers with an error does not count. The pages whose text a build obtains from providers are the pages it **gathers**.
-- **R1.45** §4 Citation — P3/P4 — open
+- **R1.45** §4 Citation — P3/P4 — built (5a24923)
   > The excerpt is copied character for character from that served text, except that any run of whitespace may be written as a single space. It is 1 to 500 characters long. It is taken from the page's prose (below), not from its header.
-- **R1.46** §4 Support — P3 — open
+- **R1.46** §4 Support — P3 — built (5a24923)
   > An excerpt **supports** a value when, read on its own, it states that value for that field of this company, as Appendix A defines. The excerpt may write the value differently from the API: `Acme Robotics has raised $12M.` and `Acme Robotics has raised 12 million dollars.` both support a `funding_total` of `12000000`, and `Acme Robotics employs about 120 people.` supports a `headcount_range` of `51-200`.
-- **R1.47** §4 Support — P4 — open
+- **R1.47** §4 Support — P4 — built (7653221)
   > A research answer carries a claimed value for a field and a citation for the claim. The claim is asserted only when its citation supports it. A field is `unknown` when no evidence supports a value for it, even when a research answer claims one.
-- **R1.48** §4 Support — P4 — open
+- **R1.48** §4 Support — P4 — built (7653221)
   > When the evidence supports more than one value for a field, the field holds one of them and cites only excerpts that support that value.
-- **R1.49** §4 Pages — P3 — open
+- **R1.49** §4 Pages — P3 — built (5a24923)
   > Every page has a URL, a title and a text. A text may begin with **header lines**, each of the form `Name: value`, where the name is a capitalised word or several joined by `-`. The header ends at the first empty line; everything after it is the page's **prose**. A text whose first line is not a header line has no header and is all prose.
-- **R1.50** §4 Pages — P3 — open
+- **R1.50** §4 Pages — P3 — built (5a24923)
   > The header line `Facts:` carries a JSON object on the same line. ... It is informative only: citations come from the prose, and whether an excerpt supports a value is decided by Appendix A alone. The service may ignore other header lines.
 - **R1.51** §4 Fixture — P1 — built (464c685)
   > Fixture: `{"now": ..., "users": [ {"id", "email", "password", "display_name"} ]}`. `now` is required and sets the clock (§3.4). Seeded users must be able to log in with the given password immediately.
@@ -207,11 +207,11 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > A dossier has at most one build running at a time.
 - **R1.81** §8 Builds — P2/P4 — built (464c685)
   > A build ends in `ready` when it completed, or `failed` when none of its provider calls succeeded. A failed build leaves the fields as they were.
-- **R1.82** §8 Builds — P4 — open (measure M1.5)
+- **R1.82** §8 Builds — P4 — built (7653221) (measure M1.5)
   > When a build completes `ready`, each field is `known` exactly when the evidence (§4) supports a value for it.
-- **R1.83** §8 Builds — P4 — open (measure M1.2)
+- **R1.83** §8 Builds — P4 — built (7653221) (measure M1.2)
   > A build whose provider calls each answer within one second ends within 10 seconds of the request that started it.
-- **R1.84** §8 Builds — P4 — open
+- **R1.84** §8 Builds — P4 — built (7653221)
   > That bound is not a deadline for slower providers. Against the live providers (`NIMBLE_BASE_URL` unset, or its host `sdk.nimbleway.com`), where a Nimble search can take over ten seconds and a research run about a minute, a build does not give up on a call that has been waiting less than 30 seconds, nor stop gathering because of the time it has run in its first 120 seconds. It still ends `ready` or `failed` within 300 seconds.
 - **R1.85** §8 Builds — P1/P2 — built (464c685)
   > Reading a dossier, listing dossiers and every other request except `POST /dossiers` and `POST /dossiers/{domain}/refresh` make no provider call.
@@ -261,17 +261,17 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > `limit` defaults to 50, range 1 to 200. `offset` defaults to 0. `has_more` is true when items exist beyond the last one returned.
 
 ### §9 Providers and cost
-- **R1.141** §9 — P4 — open (measure M1.1)
+- **R1.141** §9 — P4 — built (7653221) (measure M1.1)
   > Costs: nimble search lite 1, fast 5, deep 15; tavily search lite 8, fast 16, deep 16; extract nimble 1 per URL requested, tavily 2 per URL requested (including a URL for which no page is returned); research run through nimble 25 when started; checking on or collecting a run costs nothing.
-- **R1.142** §9 — P4 — open
+- **R1.142** §9 — P4 — built (7653221)
   > A search's depth is WebRouter's `search_depth`. A search returns at most 10 results, whatever number it asks for.
-- **R1.143** §9 — P4 — open
+- **R1.143** §9 — P4 — built (7653221)
   > A call that a provider refuses with an error status costs nothing. A call whose answer does not arrive, because it times out or its connection fails, costs its units as in the table, whether or not the provider received it. An extract that the provider answers with no page for the URL is not refused: it costs its units, as in the table, whatever status says so.
-- **R1.144** §9 — P4 — open
+- **R1.144** §9 — P4 — built (7653221)
   > An extract through `nimble` does not set `render`.
-- **R1.148** §9 — P4 — open (measure M1.1)
+- **R1.148** §9 — P4 — built (7653221) (measure M1.1)
   > A build stops making provider calls before its spending would exceed 80 units, and completes with the pages and research claims it has obtained.
-- **R1.149** §9 — P4 — open
+- **R1.149** §9 — P4 — built (7653221)
   > A research request names the company by its domain in its query, and names the fields it asks for by the field names in §4, as the property names of its output schema.
 
 ### §10 Export and import
@@ -295,45 +295,45 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Concurrent requests must produce the same results as executing them one at a time in some order. The requirements above hold at every read.
 
 ### Appendix A — support
-- **R1.121** A.1 — P3 — open
+- **R1.121** A.1 — P3 — built (5a24923)
   > A page's prose is split into lines at each line break, and each line into sentences. A sentence ends after a `.`, `!` or `?`, together with any `"`, `”`, `’` or `)` directly after it, when whitespace follows. A `.` that ends one of the legal-form suffixes in A.4, written as a whole word, does not end a sentence. Each sentence is taken without its surrounding whitespace; empty sentences are dropped.
-- **R1.122** A.1 — P3 — open
+- **R1.122** A.1 — P3 — built (5a24923)
   > An excerpt is a **single sentence** when, with every run of whitespace written as one space, this rule splits it into exactly one sentence.
-- **R1.123** A.2.1 — P3 — open
+- **R1.123** A.2.1 — P3 — built (5a24923)
   > It is a single sentence (A.1).
-- **R1.124** A.2.2 — P3 — open
+- **R1.124** A.2.2 — P3 — built (5a24923)
   > It names the company: it contains the company's normalised domain, or the company's name. The company's name is the first label of its domain with each `-` read as a space: `acme-robotics.test` is named by `Acme Robotics`.
-- **R1.125** A.2.3 — P3 — open
+- **R1.125** A.2.3 — P3 — built (5a24923)
   > It contains a statement phrase for F (A.3).
-- **R1.126** A.2.4 — P3 — open
+- **R1.126** A.2.4 — P3 — built (5a24923)
   > It contains none of the negating phrases (A.3).
-- **R1.127** A.2.5 — P3 — open
+- **R1.127** A.2.5 — P3 — built (5a24923)
   > It contains at least one value in F's format (A.4), and every value in F's format that it contains normalises to V (A.5).
-- **R1.128** A.2 — P3 — open
+- **R1.128** A.2 — P3 — built (5a24923)
   > The company's name, its domain and every phrase are matched without regard to case and as whole words: the characters directly before and after the match are not letters or digits. Phrases with a space match one space.
-- **R1.129** A.2 examples — P3 — open
+- **R1.129** A.2 examples — P3 — built (5a24923)
   > `Dana Ruiz has led Acme Robotics as chief executive since 2021.` → `ceo` `Dana Ruiz`; `Acme Robotics CEO: Sam Ortiz.` → `ceo` `Sam Ortiz`; `Acme Robotics was founded in 2014.` → `founded_year` `2014`; `Acme Robotics employs about 120 people.` → `headcount_range` `51-200`; `Acme Robotics is reportedly in talks to raise $40M.` → nothing: a negating phrase; `Acme Robotics opened a sales office in Porto.` → nothing: no statement phrase for `hq_city`
-- **R1.130** A.3 — P3 — open
+- **R1.130** A.3 — P3 — built (5a24923)
   > Statement phrases: `legal_name`: `legal name`, `registered name`, `registered as`, `registered company`, `legal entity`, `name of record`; `hq_city`: `headquartered in`, `headquarters in`, `head office in`, `based in`, `registered office in`, `registered seat in`; `ceo`: `chief executive officer`, `chief executive`, `CEO`; `founded_year`: `founded`, `founding`, `established`, `incorporated`; `headcount_range`: `employs`, `employees`, `staff`, `people`, `headcount`, `workforce`; `funding_total`: `raised`, `funding`, `invested`, `investment`
-- **R1.131** A.3 — P3 — open
+- **R1.131** A.3 — P3 — built (5a24923)
   > The negating phrases are: `in talks to`, `plans to`, `planning to`, `wants to`, `expects to`, `hopes to`, `aims to`, `seeking`, `could`, `would`, `might`, `reportedly`, `rumoured`, `former`, `formerly`, `will become`, `not`.
-- **R1.132** A.4 — P3 — open
+- **R1.132** A.4 — P3 — built (5a24923)
   > A **capitalised word** is an uppercase letter followed by one or more lowercase letters, with no letter or digit directly before or after it. The letters may be of any alphabet: `Zürich` and `Müller` are capitalised words. An **uppercase word** is two or more uppercase letters, with no letter or digit directly before or after it: `AI`, `USA`.
-- **R1.133** A.4 — P3 — open
+- **R1.133** A.4 — P3 — built (5a24923)
   > A **number** is written in digits, optionally with a `,` before each group of three digits and a decimal part after a `.`: `120`, `1,200`, `12.5`, `12,000,000`. Digits directly next to a letter, or joined to other digits by `,` or `.` in any other way, are not a number.
-- **R1.134** A.4 legal_name — P3 — open
+- **R1.134** A.4 legal_name — P3 — built (5a24923)
   > The company's name or its domain (matched as in A.2), then zero or more capitalised or uppercase words each after one space, then an optional `,`, one space, and a legal-form suffix with no letter or digit directly after it. Where several such texts start at the same place, the shortest counts
-- **R1.135** A.4 hq_city — P3 — open
+- **R1.135** A.4 hq_city — P3 — built (5a24923)
   > A place name directly after a statement phrase for `hq_city` and one space: the longest run of capitalised words joined by single spaces or by `-` that starts there, not part of a longer such run
-- **R1.136** A.4 ceo — P3 — open
+- **R1.136** A.4 ceo — P3 — built (5a24923)
   > A person's name: a run of two or three capitalised words joined by single spaces that is not part of a longer such run. Occurrences of the company's name and of the statement phrases for `ceo` are first taken out of the sentence and separate the words around them
-- **R1.137** A.4 founded_year — P3 — open
+- **R1.137** A.4 founded_year — P3 — built (5a24923)
   > A number of exactly four digits, from 1800 to 2099, that is not part of an amount
-- **R1.138** A.4 headcount_range — P3 — open
+- **R1.138** A.4 headcount_range — P3 — built (5a24923)
   > A number with no decimal part, 1 or more, that is not part of an amount. Words before it, such as `about` or `roughly`, do not change it. A stated range such as `51-200 employees` holds two numbers
-- **R1.139** A.4 suffixes & amounts — P3 — open
+- **R1.139** A.4 suffixes & amounts — P3 — built (5a24923)
   > The legal-form suffixes, matched exactly as written here: `Inc.`, `Corp.`, `LLC`, `LLP`, `L.P.`, `Ltd`, `Limited`, `Pty Ltd`, `plc`, `PLC`, `GmbH`, `AG`, `KG`, `SE`, `AS`, `A/S`, `ASA`, `AB`, `Oy`, `Oyj`, `B.V.`, `N.V.`, `S.A.`, `S.A.S.`, `S.L.`, `S.r.l.`, `S.p.A.`, `s.r.o.`, `a.s.`, `K.K.`. An **amount** is written in one of these forms, matched without regard to case, with no letter or digit directly before it or after it: `$`, `US$` or `USD`, an optional space, a number, and optionally a scale: `k`, `m`, `mn` or `bn` directly after the number, or one space and `thousand`, `million` or `billion`. ... A number, optionally one space and `thousand`, `million` or `billion`, then one space and `dollars` or `US dollars`. ... Amounts in other currencies are not amounts.
-- **R1.140** A.5 — P3 — open
+- **R1.140** A.5 — P3 — built (5a24923)
   > `legal_name`, `hq_city`, `ceo`: The text as the excerpt writes it; `founded_year`: The number as an integer; `headcount_range`: The range of §4 that contains the number; `funding_total`: The number times the scale (`k` and `thousand` 1,000; `m`, `mn` and `million` 1,000,000; `bn` and `billion` 1,000,000,000) in US dollars. An amount that does not come to a whole number of dollars is not a value
 
 ## Rulings (stage 1)
@@ -367,6 +367,11 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 
 - **L1.26 No successful call means failed.** (R1.81) A build in which no provider call succeeded — including one that made no provider call at all — ends `failed` with fields unchanged. An exception raised by `run_build` is treated the same way (no 5xx). `run_build` returns `ok: false` in both cases; any stub returns `ok: false`.
 
+- **L1.27 No abandoned calls; uniform patience.** (R1.84, R1.94, R1.143, R1.148, supersedes the mock part of L1.18) A build never finishes while one of its provider calls is still in flight: it awaits every call it issued and accounts each one by its outcome (answered → table cost; refused with an error status → 0; timed out or connection lost → table cost). Units for a call are reserved against the 80-unit budget before the call is issued, so in-flight calls can never push a build over 80. In every mode (mock or live) no call is given up before it has waited 30 s; the whole build is capped at 280 s. Reason: the 10 s bound applies only when calls answer within 1 s, so long timeouts cost nothing there, while a short mock timeout turns a slow-but-valid answer into a charged loss and a `failed` build.
+
+- **L1.28 Integer query parameters (re-plan of R1.56/R1.57/R1.113 after three rejections).** For `limit` and `offset`: the raw value must match `^[0-9]+$` (ASCII digits only; empty, sign, whitespace, `.`, exponent → 422). Strip leading zeros (an all-zero string is `0`); if more than 6 significant digits remain, the value is "huge". `limit`: valid iff not huge and 1 ≤ value ≤ 200, else 422. `offset`: any digit string is valid; a huge offset yields an empty page with `has_more` false. Never call an unbounded integer conversion on caller input. The Prover adds explicit black-box cases for each of these forms (leading zeros on both params, `0`, `200`, `201`, `000…0201`, `+4`, `-1`, `4.0`, `1e9`, ` 4`, huge offset) so the builder works against a fixed test list.
+- **L1.03 clarification (path identity).** "The same path" in §7 is the request path after percent-decoding (as the HTTP framework presents it), with no domain normalisation (case, `www.`, trailing `.` stay as sent). `/dossiers/%6fne.test/refresh` and `/dossiers/one.test/refresh` are therefore the same path (RFC 3986 §6.2.2.2: percent-encoded unreserved characters are equivalent to their decoded form); `/dossiers/One.test/refresh` and `/dossiers/one.test/refresh` are different paths.
+
 ## Rejections (stage 1)
 
 | # | Commit | Package | Ledger ids | Reason | Change |
@@ -374,3 +379,4 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 | 1 | 464c685 | P1+P2 builder-a | R1.03 | RUN.md command contained literal `[-e TAVILY_… ]` brackets, so `docker run` failed with `invalid reference format` | builder-a to give a directly executable command, optional settings described separately; gatekeeper to review the remaining ids in the same pass on resubmission |
 | 2 | 464c685 (functional supplement) | P1+P2 builder-a | R1.54, R1.56, R1.58 | Reset with `"users": null` returned 204 (must be 400 wrong type, state unchanged); `GET /dossiers?offset=<5000 nines>` returned 500 (Python int-conversion limit) | builder-a: type-check every fixture field; parse integer query params by digit string without int() overflow (huge offset → 200 empty page, huge limit → 422). Event check s1-4: 118 pass / 4 fail, all 4 from the stub engine (R1.81 ×2, R1.111, R1.82) |
 | 3 | 28da9f4 | P1+P2 fix + P5 builder-a | R1.54, R1.58 (same defects as #2, fix not yet applied); R1.15 (P5 tool) | Inherited reset `users:null` and huge-offset 500; P5 `load_run.py` discards login latencies; P5 fault checks pass with zero provider calls | builder-a: apply rejection-2 fixes; P5 must record login status/latency and assert each fault case actually exercised the intended provider/method (vacuous pass = fail). Event check s1-5: 118/4, same stub failures |
+| 4 | 4e29d2a | P1+P2 builder-a | R1.56, R1.57, R1.113; R1.72 | Leading-zero `limit=0…01` gave 422 and `offset=0…0` an empty page; percent-encoded path `%6fne.test` treated as same key path as `one.test` | Third rejection touching R1.56 → re-planned by ruling L1.28 (exact algorithm + Prover's explicit case list). The R1.72 finding is withdrawn by the L1.03 clarification (percent-decoded path is the path). s1-6: 110/12, all from the placeholder engine (now correctly `failed`) |
