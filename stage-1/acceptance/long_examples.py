@@ -50,3 +50,12 @@ def write_fixtures(directory):
         entry = {"domain": domain, "names": [name], "pages": [page],
                  "research": {"nimble": {"0": [], "1": []}}}
         (Path(directory) / (domain + ".json")).write_text(json.dumps(entry))
+    domain = "timing-proof.test"
+    text = "Timing Proof was founded in 2014 " + "x " * 20000 + "Timing Proof."
+    page = {"url": f"https://{domain}/about", "kind": "own", "epochs": [0, 1],
+            "searchable": True, "published_at": None, "true_from": None,
+            "title": "Timing Proof company", "text": text, "facts": {},
+            "lineage": {"canonical": None, "first_published_by": None, "registrant": domain}}
+    entry = {"domain": domain, "names": ["Timing Proof"], "pages": [page],
+             "research": {"nimble": {"0": [], "1": []}}}
+    (Path(directory) / (domain + ".json")).write_text(json.dumps(entry))
