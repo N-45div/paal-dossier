@@ -84,19 +84,27 @@ def _urls_to_extract(gathered: Gathered, urls: list[str]) -> list[str]:
 
 
 async def _extract_all(calls: ProviderCalls, gathered: Gathered, urls: list[str], gate: asyncio.Semaphore) -> None:
-    await asyncio.gather(*(_extract(calls, url, gathered, gate) for url in _urls_to_extract(gathered, urls)))
+    await _settled(*(_extract(calls, url, gathered, gate) for url in _urls_to_extract(gathered, urls)))
+
+
+async def _settled(*coroutines) -> None:
+    """Run every coroutine to completion; one failing never leaves another call in flight (L1.27)."""
+    await asyncio.gather(*coroutines, return_exceptions=True)
 
 
 async def gather(calls: ProviderCalls, domain: str) -> Gathered:
-    """Searches first, then extracts of what they found while the (slower) research run finishes."""
+    """Searches first, then extracts of what they found while the (slower) research run finishes.
+
+    Every call issued is awaited before this returns, so every one is accounted for in the build's spending.
+    """
     gathered = Gathered()
     gate = asyncio.Semaphore(EXTRACT_CONCURRENCY)
     research = asyncio.create_task(_research(calls, domain, gathered))
-    await asyncio.gather(
+    await _settled(
         _domain_search(calls, domain, gathered),
         *(_search(calls, query, gathered) for query in discovery_queries(domain)),
     )
     await _extract_all(calls, gathered, gathered.search_urls, gate)
-    await research
+    await _settled(research)
     await _extract_all(calls, gathered, [c.url for c in gathered.claims], gate)
     return gathered

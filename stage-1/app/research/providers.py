@@ -9,7 +9,6 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urlparse
 
 from web_router import AsyncWebRouter
 from web_router.exceptions import DeadlineExceededError, ProviderError, ResearchTimeoutError
@@ -22,7 +21,6 @@ RESEARCH_COST = 25
 UNITS_PER_BUILD = 80
 RETRY_PAUSE_S = 1.1  # the mock refuses a repeat of a throttled call for one second
 
-LIVE_NIMBLE_HOST = "sdk.nimbleway.com"
 RESEARCH_FIELD_QUERY = "Research the company at {domain}: its registered legal name, headquarters city, CEO, founding year, headcount and total equity funding."
 RESEARCH_PROPERTIES = {
     "legal_name": {"type": "string"},
@@ -36,20 +34,14 @@ RESEARCH_PROPERTIES = {
 
 @dataclass(frozen=True)
 class Timeouts:
-    search_s: float
-    extract_s: float
-    research_s: float
-    build_s: float
-    min_call_s: float  # a call is only started when at least this long is left for it to wait
+    """Per-call patience and the build cap (L1.27): the same in every mode, so a slow answer is never a charged loss."""
 
-    @staticmethod
-    def for_environment(env: dict[str, str] | None = None) -> Timeouts:
-        env = os.environ if env is None else env
-        base = env.get("NIMBLE_BASE_URL")
-        live = not base or urlparse(base).hostname == LIVE_NIMBLE_HOST
-        if live:
-            return Timeouts(search_s=45, extract_s=45, research_s=120, build_s=280, min_call_s=30)
-        return Timeouts(search_s=4, extract_s=4, research_s=5, build_s=9, min_call_s=0.5)
+    search_s: float = 45
+    extract_s: float = 45
+    research_s: float = 120
+    build_s: float = 280
+    min_call_s: float = 30  # a call is only started when at least this long is left for it to wait
+    settle_s: float = 5  # grace beyond a call's own timeout before the outer guard gives it up
 
 
 @dataclass
@@ -132,7 +124,7 @@ class ProviderCalls:
     async def close(self) -> None:
         await self._router.aclose()
 
-    async def _call(self, cost: int, make_call: Callable[[], Any], limit_s: float, attempts: int) -> tuple[Any, CallOutcome]:
+    async def _call(self, cost: int, make_call: Callable[[float], Any], limit_s: float, attempts: int) -> tuple[Any, CallOutcome]:
         """Run one provider call with up to ``attempts`` tries; a refused try costs nothing, so is retried."""
         outcome = CallOutcome(False)
         for attempt in range(attempts):
@@ -141,7 +133,7 @@ class ProviderCalls:
                 break
             self._committed += cost
             try:
-                result = await asyncio.wait_for(make_call(), budget_s)
+                result = await asyncio.wait_for(make_call(budget_s), budget_s + self._timeouts.settle_s)
             except Exception as error:  # a provider failure never fails the build
                 if is_charged_failure(error):
                     self._spend(cost)
@@ -158,15 +150,17 @@ class ProviderCalls:
     async def search(self, query: str, provider: str = "nimble", depth: str = "lite", attempts: int = 2) -> tuple[list[Any] | None, CallOutcome]:
         cost = SEARCH_COSTS[provider][depth]
 
-        def make() -> Any:
-            return self._router.search(query, provider=provider, search_depth=depth, max_results=10, data_apis=False)
+        def make(timeout_s: float) -> Any:
+            return self._router.search(
+                query, provider=provider, search_depth=depth, max_results=10, data_apis=False, timeout=timeout_s
+            )
 
         response, outcome = await self._call(cost, make, self._timeouts.search_s, attempts)
         return (None if response is None else response.results), outcome
 
     async def extract(self, url: str, provider: str = "nimble", attempts: int = 2) -> tuple[str | None, CallOutcome]:
-        def make() -> Any:
-            return self._router.extract([url], provider=provider)
+        def make(timeout_s: float) -> Any:
+            return self._router.extract([url], provider=provider, timeout=timeout_s)
 
         response, outcome = await self._call(EXTRACT_COSTS[provider], make, self._timeouts.extract_s, attempts)
         documents = [] if response is None else response.documents
@@ -175,15 +169,15 @@ class ProviderCalls:
     async def research(self, domain: str) -> tuple[list[Claim], CallOutcome]:
         schema = {"type": "object", "properties": RESEARCH_PROPERTIES}
 
-        def make() -> Any:
+        def make(timeout_s: float) -> Any:
             return self._router.research(
                 RESEARCH_FIELD_QUERY.format(domain=domain),
                 provider="nimble",
                 output_schema=schema,
-                timeout=self._timeouts.research_s,
+                timeout=timeout_s,
             )
 
-        response, outcome = await self._call(RESEARCH_COST, make, self._timeouts.research_s + 2, 2)
+        response, outcome = await self._call(RESEARCH_COST, make, self._timeouts.research_s, 2)
         return ([] if response is None else claims_of(response)), outcome
 
 

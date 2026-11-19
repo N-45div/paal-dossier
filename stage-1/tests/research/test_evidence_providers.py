@@ -48,12 +48,10 @@ def test_timeouts_connection_failures_and_missing_pages_are_charged():
     assert is_charged_failure(ProviderError("tavily", "no URL could be extracted: no page at this URL"))
 
 
-def test_timeouts_live_versus_mock():
-    live = Timeouts.for_environment({})
-    assert live.search_s >= 30 and live.research_s >= 100 and live.build_s <= 280
-    assert Timeouts.for_environment({"NIMBLE_BASE_URL": "https://sdk.nimbleway.com"}) == live
-    mock = Timeouts.for_environment({"NIMBLE_BASE_URL": "http://web:8080/nimble"})
-    assert mock.build_s < 10 and mock.search_s < 5
+def test_patience_is_uniform_and_at_least_thirty_seconds():
+    t = Timeouts()
+    assert min(t.search_s, t.extract_s, t.research_s, t.min_call_s) >= 30
+    assert t.build_s <= 280
 
 
 # live-shape parsing and timing (R1.84)
@@ -92,9 +90,7 @@ def test_claims_ignore_a_list_answer():
 
 
 def test_no_call_is_started_with_less_than_the_minimum_wait_left():
-    from app.research.providers import Timeouts
-
-    timeouts = Timeouts(search_s=45, extract_s=45, research_s=120, build_s=20, min_call_s=30)
+    timeouts = Timeouts(build_s=20)
     router = FakeRouter("halvorsen-robotics.test")
     calls = ProviderCalls(lambda units: None, timeouts, env={"NIMBLE_API_KEY": "k"}, router=router)
     results, outcome = asyncio.run(calls.search("halvorsen-robotics.test"))

@@ -120,3 +120,22 @@ def test_research_claim_not_supported_by_its_own_citation_is_not_asserted():
     ]
     result, _ = build(domain, router)
     assert result["fields"]["ceo"]["status"] == "unknown"
+
+
+def issued_cost(router):
+    costs = {"search": 1, "extract": 1, "research": 25}
+    return sum(costs[call[0]] for call in router.calls)
+
+
+@pytest.mark.parametrize("domain", LABELLED)
+def test_spend_accounts_for_every_issued_call(domain):
+    router = FakeRouter(domain)
+    _, spent = build(domain, router)
+    assert sum(spent) == issued_cost(router)
+
+
+def test_a_failing_branch_leaves_no_call_unaccounted():
+    domain = "halvorsen-robotics.test"
+    router = FakeRouter(domain, fail={"extract": connection_error()})
+    _, spent = build(domain, router)
+    assert sum(spent) == issued_cost(router)

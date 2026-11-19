@@ -20,7 +20,7 @@ async def run_build(domain: str, spend: Callable[[int], None], *, router: Any = 
 
     ``spend(units)`` is called once per charged provider call. ``ok`` is false exactly when no provider call succeeded.
     """
-    calls = ProviderCalls(spend, Timeouts.for_environment(), router=router)
+    calls = ProviderCalls(spend, Timeouts(), router=router)
     try:
         gathered = await gather(calls, domain)
     finally:
