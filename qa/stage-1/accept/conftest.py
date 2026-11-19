@@ -1,4 +1,8 @@
-"""Black-box Docker harness. Never imports the service under test."""
+"""Black-box Docker harness; never imports the service under test.
+
+R1.7 R1.8 R1.12 R1.18 R1.20: run the built image alone with provider
+environment variables on a network without external routes.
+"""
 import os
 import socket
 import subprocess

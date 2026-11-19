@@ -18,10 +18,10 @@ SUFFIXES = ('Inc.', 'Corp.', 'LLC', 'LLP', 'L.P.', 'Ltd', 'Limited', 'Pty Ltd', 
             'PLC', 'GmbH', 'AG', 'KG', 'SE', 'AS', 'A/S', 'ASA', 'AB', 'Oy', 'Oyj',
             'B.V.', 'N.V.', 'S.A.', 'S.A.S.', 'S.L.', 'S.r.l.', 'S.p.A.', 's.r.o.', 'a.s.', 'K.K.')
 NUM = r'(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?'
-NUMBER = re.compile(r'(?<![\w,.])' + NUM + r'(?!\w|,\d|\.\d)')
-AMOUNT = re.compile(r'(?<![\w])(?:(?:US\$|\$|USD) ?(' + NUM +
-                    r')(?![,.]\d)(?:((?:mn|bn|k|m))\b| (thousand|million|billion)\b)?|('
-                    + NUM + r')(?![,.]\d)(?: (thousand|million|billion))? (?:US )?dollars)(?![\w])', re.I)
+NUMBER = re.compile(r'(?<![^\W_])(?<!\d[,.])' + NUM + r'(?![^\W_]|[,.]\d)')
+AMOUNT = re.compile(r'(?<![^\W_])(?:(?:US\$|\$|USD) ?(' + NUM +
+                    r')(?![,.]\d)(?:((?:mn|bn|k|m))(?![^\W_])| (thousand|million|billion)(?![^\W_]))?|('
+                    + NUM + r')(?![,.]\d)(?: (thousand|million|billion))? (?:US )?dollars)(?![^\W_])', re.I)
 WORD = r'[^\W\d_]+'
 WORD_RUN = re.compile(r'(?<![^\W_])' + WORD + r'(?:[ -]' + WORD + r')*(?![^\W_])', re.UNICODE)
 

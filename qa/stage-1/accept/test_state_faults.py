@@ -1,5 +1,8 @@
 import time
+import concurrent.futures
+import threading
 
+import httpx
 import pytest
 
 from test_api import auth, create, done, error
@@ -48,15 +51,55 @@ def test_R1_87_delay_under_one_second(api, mock, seeded):
     assert time.monotonic() - started <= 10
 
 
+def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, deployment):
+    token, domain = seeded[0], 'ashgrove-solar.test'
+    assert create(api, token, domain, 'initial').status_code == 202
+    initial = done(api, token, domain)
+    before = mock.get('/_mock/log').json()['calls']
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
+    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
+    barrier = threading.Barrier(50)
+    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+        def one(i):
+            barrier.wait(timeout=5)
+            started = time.monotonic()
+            response = client.post('/dossiers/' + domain + '/refresh', headers=auth(token, 'refresh-' + str(i)))
+            return response.status_code, response.json(), time.monotonic() - started
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+            responses = list(pool.map(one, range(50)))
+    assert all(code == 202 and body['state'] == 'building' for code, body, _ in responses)
+    assert len({body['dossier_id'] for _, body, _ in responses}) == 1
+    assert max(elapsed for _, _, elapsed in responses) < 5
+    final = done(api, token, domain)
+    calls = mock.get('/_mock/log').json()['calls'][len(before):]
+    assert sum(c['method'] == 'search' and c['query'] == domain and c['status'] == 200 for c in calls) == 1
+    assert final['spent_units'] == initial['spent_units'] + sum(c['cost'] for c in calls)
+
+
+def test_R1_85_failed_refresh_preserves_ready_fields(api, mock, seeded):
+    token, domain = seeded[0], 'ashgrove-solar.test'
+    assert create(api, token, domain, 'initial').status_code == 202
+    initial = done(api, token, domain)
+    assert initial['state'] == 'ready'
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'error')
+    fault(mock, 'tavily', ['search', 'extract'], 'error')
+    assert api.post('/dossiers/' + domain + '/refresh', headers=auth(token, 'failed')).status_code == 202
+    failed = done(api, token, domain)
+    assert failed['state'] == 'failed'
+    assert failed['fields'] == initial['fields']
+    assert failed['researched_at'] == initial['researched_at']
+    assert failed['spent_units'] == initial['spent_units']
+
+
 def test_R1_23_R1_84_R1_128_reset_during_build(api, mock, seeded):
-    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=2)
-    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=2)
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
+    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
     token = seeded[0]
     assert create(api, token, 'ashgrove-solar.test', 'slow').status_code == 202
     assert api.get('/dossiers/ashgrove-solar.test', headers=auth(token)).json()['state'] == 'building'
     response = api.post('/_test/reset', json={'now':'2026-03-02T00:00:00+00:00','users':[]}, timeout=10)
     assert response.status_code == 204
-    time.sleep(3)
+    time.sleep(10.2)
     error(api.get('/dossiers', headers=auth(token)), 401, 'unauthenticated')
     assert api.post('/auth/signup', json={'email':'new@example.com','password':'correct horse','display_name':'New'}).status_code == 201
     new_token = api.post('/auth/login', json={'email':'new@example.com','password':'correct horse'}).json()['token']
@@ -89,6 +132,8 @@ def test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip(api, mock, se
 @pytest.mark.parametrize('body', [
     {}, {'track':'other','format_version':1,'state':{}},
     {'track':'dossier','format_version':999,'state':{}},
+    {'track':'dossier','format_version':1,'state':None},
+    {'track':'dossier','format_version':1,'state':[]},
     {'track':'dossier','format_version':1,'state':{}}])
 def test_R1_126_invalid_import_does_not_replace_state(api, seeded, body):
     token = seeded[0]
@@ -98,8 +143,8 @@ def test_R1_126_invalid_import_does_not_replace_state(api, seeded, body):
 
 
 def test_R1_128_export_first_build_in_progress(api, mock, seeded):
-    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=2)
-    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=2)
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
+    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
     token = seeded[0]
     assert create(api, token, 'ashgrove-solar.test', 'inflight').status_code == 202
     assert api.get('/dossiers/ashgrove-solar.test', headers=auth(token)).json()['state'] == 'building'
@@ -108,14 +153,16 @@ def test_R1_128_export_first_build_in_progress(api, mock, seeded):
     item = api.get('/dossiers/ashgrove-solar.test', headers=auth(token)).json()
     assert item['state'] == 'failed' and item['researched_at'] is None
     assert all(v['value'] is None and v['status'] == 'unknown' and v['citations'] == [] for v in item['fields'].values())
+    time.sleep(10.2)
+    assert api.get('/dossiers/ashgrove-solar.test', headers=auth(token)).json() == item
 
 
 def test_R1_97_R1_128_export_refresh_in_progress(api, mock, seeded):
     token = seeded[0]
     assert create(api, token, 'ashgrove-solar.test', 'first').status_code == 202
     original = done(api, token, 'ashgrove-solar.test')
-    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=2)
-    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=2)
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
+    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
     assert api.post('/dossiers/ashgrove-solar.test/refresh', headers=auth(token, 'second')).status_code == 202
     during = api.get('/dossiers/ashgrove-solar.test', headers=auth(token)).json()
     assert during['state'] == 'building' and during['fields'] == original['fields']
