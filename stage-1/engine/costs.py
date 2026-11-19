@@ -15,6 +15,9 @@ RESEARCH_START_COST = {"nimble": 25}
 
 
 PAGE_LEVEL_KINDS = ("target", "not_found")
+# Kinds that only an HTTP error status produces (types_errors.py). Some SDKs omit the status
+# code, so the kind is the evidence that the provider refused the call (429 rate_limit: tavily).
+REFUSAL_KINDS = ("rate_limit", "auth", "bad_request", "not_found")
 
 
 def charged_units(error: BaseException, units: int) -> int:
@@ -47,6 +50,8 @@ def charged_units(error: BaseException, units: int) -> int:
         return 0
     if isinstance(error, ExtractFailedError) and error.kind in PAGE_LEVEL_KINDS:
         return units  # the provider answered that no page exists here: not a refusal
-    if isinstance(error, ProviderError) and error.status_code is not None:
-        return 0
+    if isinstance(error, ProviderError) and (
+        error.status_code is not None or error.kind in REFUSAL_KINDS
+    ):
+        return 0  # an HTTP error status: the provider refused the call
     return units

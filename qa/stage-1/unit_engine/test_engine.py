@@ -433,15 +433,77 @@ class BuildSearchTests(unittest.TestCase):
         self.assertEqual(len(domain_calls), 1)
         self.assertEqual(FakeGateway.calls[0], ("nimble", D))
 
-    def test_r1_42_refused_exact_domain_search_is_retried_through_nimble(self):
-        FakeGateway.script = {D: [None, None]}  # two refusals would give up
-        build_module.build(D, _Ledger(80))
-        self.assertEqual(len([c for c in FakeGateway.calls if c == ("nimble", D)]), 2)
 
-    def test_r1_42_one_refusal_then_answer_needs_exactly_one_retry(self):
-        FakeGateway.script = {D: [None]}
-        build_module.build(D, _Ledger(80))
-        self.assertEqual(len([c for c in FakeGateway.calls if c == ("nimble", D)]), 2)
+
+class _FakeRouter:
+    """Stands in for web_router.WebRouter: each method pops its scripted outcome."""
+
+    outcomes = []  # list of ("ok", value) or ("error", exception)
+    calls = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def search(self, query, **kwargs):
+        _FakeRouter.calls.append(query)
+        kind, value = _FakeRouter.outcomes.pop(0)
+        if kind == "error":
+            raise value
+        return value
+
+    def close(self):
+        pass
+
+
+def _refusal(kind="rate_limit"):
+    error = ProviderError("nimble", "injected")
+    error.status_code = None if kind == "timeout" else 429
+    error.kind = kind
+    return error
+
+
+class GatewayRetryTests(unittest.TestCase):
+    """The gateway retries a refused call once (R1.42, R1.121) and never repeats a full-price one."""
+
+    def setUp(self):
+        import web_router
+        import engine.gateway as gw
+        self._router, self._delay = web_router.WebRouter, gw.RETRY_DELAY_S
+        web_router.WebRouter = _FakeRouter
+        gw.RETRY_DELAY_S = 0
+        _FakeRouter.calls = []
+        _FakeRouter.outcomes = []
+
+    def tearDown(self):
+        import web_router
+        import engine.gateway as gw
+        web_router.WebRouter, gw.RETRY_DELAY_S = self._router, self._delay
+
+    def test_r1_42_refused_exact_domain_search_is_retried_once_through_nimble(self):
+        from engine.gateway import Gateway
+        answer = _Response([])
+        _FakeRouter.outcomes = [("error", _refusal()), ("ok", answer)]
+        ledger = _Ledger(80)
+        gateway = Gateway(ledger)
+        self.assertIs(gateway.search("nimble", D, "lite"), answer)
+        self.assertEqual(_FakeRouter.calls, [D, D])
+        self.assertEqual(ledger.spent, 1)
+
+    def test_r1_121_refused_twice_costs_nothing_and_gives_no_answer(self):
+        from engine.gateway import Gateway
+        _FakeRouter.outcomes = [("error", _refusal()), ("error", _refusal())]
+        ledger = _Ledger(80)
+        self.assertIsNone(Gateway(ledger).search("nimble", D, "lite"))
+        self.assertEqual(ledger.spent, 0)
+        self.assertEqual(len(_FakeRouter.calls), 2)
+
+    def test_r1_121_a_timeout_is_charged_and_not_repeated(self):
+        from engine.gateway import Gateway
+        _FakeRouter.outcomes = [("error", _refusal("timeout")), ("ok", _Response([]))]
+        ledger = _Ledger(80)
+        self.assertIsNone(Gateway(ledger).search("nimble", D, "lite"))
+        self.assertEqual(ledger.spent, 1)
+        self.assertEqual(len(_FakeRouter.calls), 1)
 
 
 class ChargingTests(unittest.TestCase):
@@ -596,6 +658,86 @@ class EvidenceDecisionTests(unittest.TestCase):
         evidence.add_research_claim(url, "founded_year", "around 2014", "Acme Robotics was founded in 2014.")
         self.assertNotIn("around 2014", evidence.support.get("founded_year", {}))
         self.assertIsNone(evidence.decide()["founded_year"]["value"])
+
+
+def _mock_admin(base, token, path, body=None, method="POST"):
+    import json
+    import urllib.request
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(
+        base + path, data=data, method=method,
+        headers={"X-Mock-Admin": token, "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=20) as response:
+        raw = response.read()
+    return json.loads(raw) if raw else None
+
+
+@unittest.skipUnless(
+    os.environ.get("DOSSIER_MOCK_WEB") and os.environ.get("DOSSIER_MOCK_ADMIN"),
+    "needs DOSSIER_MOCK_WEB and DOSSIER_MOCK_ADMIN (the mock's admin token)",
+)
+class MockFaultAccountingTests(unittest.TestCase):
+    """Accounting under injected faults (R1.121, R1.110, R1.122, M1): the engine's on_spend total
+    equals the sum of the mock's own log costs, in every fault mode, and the mock's
+    429 and 500 answers cost nothing."""
+
+    DOMAIN = "halvorsen-robotics.test"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.base = os.environ["DOSSIER_MOCK_WEB"].rstrip("/")
+        cls.token = os.environ["DOSSIER_MOCK_ADMIN"]
+        os.environ["NIMBLE_API_KEY"] = "local"
+        os.environ["NIMBLE_BASE_URL"] = cls.base + "/nimble"
+        os.environ["TAVILY_API_KEY"] = "local"
+        os.environ["TAVILY_BASE_URL"] = cls.base + "/tavily"
+
+    def run_mode(self, mode):
+        from engine import run_build
+        _mock_admin(self.base, self.token, "/_mock/reset", {"epoch": 1})
+        if mode != "none":
+            for provider, methods in (("nimble", ["search", "extract", "research"]), ("tavily", ["search", "extract"])):
+                _mock_admin(self.base, self.token, "/_mock/faults", {"provider": provider, "methods": methods, "mode": mode})
+        spent = []
+        started = time.monotonic()
+        result = run_build(self.DOMAIN, on_spend=spent.append)
+        elapsed = time.monotonic() - started
+        _mock_admin(self.base, self.token, "/_mock/faults", {"provider": "nimble", "methods": ["search"], "mode": "none"})
+        log = _mock_admin(self.base, self.token, "/_mock/log", method="GET")
+        calls = log["calls"] if isinstance(log, dict) else log
+        logged = sum(call["cost"] for call in calls)
+        return result, sum(spent), logged, elapsed, calls
+
+    def assert_accounting(self, mode):
+        result, reported, logged, elapsed, calls = self.run_mode(mode)
+        self.assertEqual(reported, logged, f"{mode}: on_spend {reported} != mock log {logged}")
+        self.assertEqual(result.spent, logged, f"{mode}: reported spent {result.spent} != mock log {logged}")
+        self.assertLessEqual(result.spent, 80)
+        self.assertLess(elapsed, 10, f"{mode}: build took {elapsed:.1f} s")
+        return result, calls
+
+    def test_r1_121_r1_110_rate_limit_costs_nothing_and_the_build_fails(self):
+        result, calls = self.assert_accounting("rate_limit")
+        self.assertFalse(result.ok)
+        self.assertEqual(result.spent, 0)
+        self.assertTrue(all(call["cost"] == 0 for call in calls if call["status"] == 429))
+
+    def test_r1_121_r1_110_server_error_costs_nothing_and_the_build_fails(self):
+        result, calls = self.assert_accounting("error")
+        self.assertFalse(result.ok)
+        self.assertEqual(result.spent, 0)
+        self.assertTrue(all(call["cost"] == 0 for call in calls if call["status"] == 500))
+
+    def test_r1_121_r1_122_throttle_is_retried_and_charged_as_logged(self):
+        result, calls = self.assert_accounting("throttle")
+        self.assertTrue(result.ok)
+        self.assertGreater(result.spent, 0)
+        self.assertTrue(any(call["status"] == 200 for call in calls))
+
+    def test_r1_110_m1_no_fault_matches_the_log(self):
+        result, _calls = self.assert_accounting("none")
+        self.assertTrue(result.ok)
 
 
 @unittest.skipUnless(os.environ.get("DOSSIER_MOCK_WEB"), "needs the mock web (DOSSIER_MOCK_WEB)")

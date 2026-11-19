@@ -25,10 +25,9 @@ from .ledger import Ledger
 from .support import complete_sentences_prefix, company_name
 
 GATHER_LIMIT_S = 240.0  # hard stop for gathering and waiting on the research run
-EXTRACT_WORKERS = 8
-SEARCH_WORKERS = 4
+EXTRACT_WORKERS = 16  # wide enough that one refusal wait (1.1 s) covers a whole round of extracts
+SEARCH_WORKERS = 8  # the research start and the seven searches run in one round
 CITATION_RESERVE_UNITS = 6  # kept for the research run's cited pages (one per field)
-DOMAIN_SEARCH_ATTEMPTS = 2
 SNIPPET_CHARS = 300  # the lite snippet length: a shorter one is the whole prose
 
 
@@ -42,10 +41,12 @@ def build(
     tavily_url = _tavily_base_url()
     gateway = Gateway(ledger, cancelled=cancelled, tavily_base_url=tavily_url)
     try:
-        job = gateway.start_research(domain, company_name(domain).title())
+        with ThreadPoolExecutor(SEARCH_WORKERS) as pool:
+            job_future = pool.submit(gateway.start_research, domain, company_name(domain).title())
+            hits = _search(gateway, domain, tavily_allowed=tavily_url is not None, pool=pool)
+            job = job_future.result()
         keep = CITATION_RESERVE_UNITS if job is not None else 0
 
-        hits = _search(gateway, domain, tavily_allowed=tavily_url is not None)
         ranked = candidates(hits, domain)
 
         free_pages, partial_pages = _free_text(ranked)
@@ -85,13 +86,12 @@ def _tavily_base_url() -> Optional[str]:
     return None
 
 
-def _search(gateway: Gateway, domain: str, tavily_allowed: bool) -> list[Hit]:
+def _search(gateway: Gateway, domain: str, tavily_allowed: bool, pool: ThreadPoolExecutor) -> list[Hit]:
     """Every answered search as hits. Query 0 is the exact-domain search."""
     queries = [domain] + support_queries(domain)
-    with ThreadPoolExecutor(SEARCH_WORKERS) as pool:
-        domain_future = pool.submit(_domain_search, gateway, domain, tavily_allowed)
-        support_futures = [pool.submit(gateway.search, "nimble", q) for q in queries[1:]]
-        responses = [domain_future.result()] + [future.result() for future in support_futures]
+    domain_future = pool.submit(_domain_search, gateway, domain, tavily_allowed)
+    support_futures = [pool.submit(gateway.search, "nimble", q) for q in queries[1:]]
+    responses = [domain_future.result()] + [future.result() for future in support_futures]
     hits: list[Hit] = []
     for query_index, response in enumerate(responses):
         if response is None:
@@ -110,11 +110,11 @@ def _search(gateway: Gateway, domain: str, tavily_allowed: bool) -> list[Hit]:
 
 
 def _domain_search(gateway: Gateway, domain: str, tavily_allowed: bool):
-    """The one search whose query is exactly the domain: nimble lite, retried, then tavily lite."""
-    for _ in range(DOMAIN_SEARCH_ATTEMPTS):
-        response = gateway.search("nimble", domain, "lite")
-        if response is not None:
-            return response
+    """The one search whose query is exactly the domain: nimble lite (the gateway retries a
+    refusal once), then tavily lite when nimble gives no answer."""
+    response = gateway.search("nimble", domain, "lite")
+    if response is not None:
+        return response
     if tavily_allowed:
         return gateway.search("tavily", domain, "lite")
     return None
