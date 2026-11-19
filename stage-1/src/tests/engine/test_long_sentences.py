@@ -55,3 +55,13 @@ def test_fragment_never_exceeds_the_limit():
     sentence = "Acme Robotics was founded in 2014 " + filler + " and that is all."
     for _, _, excerpt in fragment_values(sentence):
         assert 1 <= len(excerpt) <= EXCERPT_MAX_CHARS
+
+
+def test_ceo_name_inside_a_longer_capitalised_run_is_cited():
+    # A.4 takes the company name and CEO phrases out before reading names, so the name
+    # "Dana Ruiz" stands alone although "Dana Ruiz Acme Robotics" is one capitalised run.
+    sentence = "Dana Ruiz Acme Robotics CEO " + ("x" * 510)
+    assert len(sentence) > EXCERPT_MAX_CHARS
+    found = fragment_values(sentence)
+    assert found == [("ceo", "Dana Ruiz", "Dana Ruiz Acme Robotics CEO")]
+    assert supports(found[0][2], D, "ceo", "Dana Ruiz")

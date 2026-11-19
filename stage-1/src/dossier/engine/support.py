@@ -201,7 +201,12 @@ def _value_spans(
             if m.group("place") == value
         ]
     if field == "ceo":
-        return [m.span() for m in _PERSON.finditer(sentence) if m.group(0) == value]
+        # A name can sit inside a longer capitalised run (the company name next to it), so
+        # every whole-word occurrence of the name counts, not only maximal runs (A.4).
+        return [
+            m.span()
+            for m in re.finditer(BEFORE_WORD + re.escape(str(value)) + AFTER_WORD, sentence)
+        ]
     if field == "founded_year":
         return [
             (span.start, span.end)
