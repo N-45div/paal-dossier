@@ -77,5 +77,69 @@ class ServerLimitTests(unittest.TestCase):
         self.assertEqual(data["error"]["code"], "malformed_request")
 
 
+    def _reset_body(self, total: int) -> bytes:
+        head = b'{"now":"2026-03-01T09:00:00+00:00","users":[],"note":"'
+        tail = b'"}'
+        padding = total - len(head) - len(tail)
+        assert padding >= 0
+        return head + b"x" * padding + tail
+
+    def test_r1_31_exact_16_mib_reset_body_is_accepted_over_a_real_socket(self):
+        """Covers R1.31: a Content-Length of exactly 16 MiB with an ignored padding field gets 204 (RL28)."""
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=60)
+        connection.request("POST", "/_test/reset", body=self._reset_body(MAX_BODY_BYTES),
+                           headers={"Content-Type": "application/json"})
+        response = connection.getresponse()
+        response.read()
+        connection.close()
+        self.assertEqual(response.status, 204)
+
+    def test_r1_31_16_mib_plus_one_gets_the_413_envelope_over_a_real_socket(self):
+        """Covers R1.31: a Content-Length of 16 MiB + 1 gets 413 payload_too_large, and the client reads it (RL28)."""
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=60)
+        connection.request("POST", "/_test/reset", body=self._reset_body(MAX_BODY_BYTES + 1),
+                           headers={"Content-Type": "application/json"})
+        response = connection.getresponse()
+        data = json.loads(response.read())
+        connection.close()
+        self.assertEqual(response.status, 413)
+        self.assertEqual(data["error"]["code"], "payload_too_large")
+
+    def test_r1_31_chunked_upload_over_the_cap_gets_413_and_under_it_is_parsed(self):
+        """Covers R1.31: a chunked upload is counted against the cap; over it is 413, under it is parsed (RL28)."""
+        chunk = b"x" * (1024 * 1024)
+        over = http.client.HTTPConnection("127.0.0.1", self.port, timeout=60)
+        over.request("POST", "/auth/login", body=iter([chunk] * 17),
+                     headers={"Content-Type": "application/json", "Transfer-Encoding": "chunked"}, encode_chunked=True)
+        response = over.getresponse()
+        data = json.loads(response.read())
+        over.close()
+        self.assertEqual(response.status, 413)
+        self.assertEqual(data["error"]["code"], "payload_too_large")
+
+        body = b'{"email":"a@example.test","password":"longenough","note":"' + b"x" * (1024 * 1024) + b'"}'
+        under = http.client.HTTPConnection("127.0.0.1", self.port, timeout=60)
+        under.request("POST", "/auth/login", body=iter([body[i:i + 65536] for i in range(0, len(body), 65536)]),
+                      headers={"Content-Type": "application/json", "Transfer-Encoding": "chunked"}, encode_chunked=True)
+        response = under.getresponse()
+        response.read()
+        under.close()
+        self.assertEqual(response.status, 401)
+
+    def test_r1_31_the_cap_applies_to_signup_dossiers_and_import(self):
+        """Covers R1.31: POST /auth/signup, POST /dossiers and POST /_test/import all answer 413 over the cap (RL28)."""
+        for path in ("/auth/signup", "/dossiers", "/_test/import"):
+            with self.subTest(path=path):
+                connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=60)
+                connection.putrequest("POST", path)
+                connection.putheader("Content-Type", "application/json")
+                connection.putheader("Content-Length", str(MAX_BODY_BYTES + 1))
+                connection.endheaders()
+                response = connection.getresponse()
+                data = json.loads(response.read())
+                connection.close()
+                self.assertEqual((response.status, data["error"]["code"]), (413, "payload_too_large"))
+
+
 if __name__ == "__main__":
     unittest.main()

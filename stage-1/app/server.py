@@ -8,8 +8,19 @@ from .app import App
 from .wire import encode_json
 
 MAX_BODY_BYTES = 16 * 1024 * 1024  # RL20: bodies above this are 413 payload_too_large
+DRAIN_BYTES = 2 * MAX_BODY_BYTES  # RL28: most of an over-cap body read after the 413, then close
 REQUEST_QUEUE_SIZE = 128
 _JSON_TYPE = "application/json; charset=utf-8"
+
+
+class _TooLarge(Exception):
+    def __init__(self, unread: int | None) -> None:
+        super().__init__("body exceeds the cap")
+        self.unread = unread
+
+
+class _BadFraming(Exception):
+    pass
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -27,22 +38,77 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _serve(self) -> None:
         try:
-            length = int(self.headers.get("Content-Length") or 0)
-        except ValueError:
-            length = -1
-        if length < 0:
-            self._send_error_envelope(400, "malformed_request", "invalid Content-Length")
+            body = self._read_request_body()
+        except _TooLarge as too_large:
+            self._reject_too_large(too_large.unread)
+            return
+        except _BadFraming as bad:
+            self._send_error_envelope(400, "malformed_request", str(bad))
             self.close_connection = True
             return
-        if length > MAX_BODY_BYTES:
-            # The body is not read; answer the envelope and close so the connection is not reused.
-            self._send_error_envelope(413, "payload_too_large", "request body exceeds 16 MiB")
-            self.close_connection = True
-            return
-        body = self.rfile.read(length) if length else b""
         headers = {name.lower(): value for name, value in self.headers.items()}
         reply = self.app.handle(self.command, self.path, headers, body)
         self._send(reply.status, reply.body)
+
+    def _read_request_body(self) -> bytes:
+        """The body under the 16 MiB cap; raises _TooLarge as soon as the cap is passed (RL20, RL28)."""
+        if "chunked" in (self.headers.get("Transfer-Encoding") or "").lower():
+            return self._read_chunked()
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            raise _BadFraming("invalid Content-Length") from None
+        if length < 0:
+            raise _BadFraming("invalid Content-Length")
+        if length > MAX_BODY_BYTES:
+            raise _TooLarge(unread=length)
+        return self.rfile.read(length) if length else b""
+
+    def _read_chunked(self) -> bytes:
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            line = self.rfile.readline(65537)
+            if not line:
+                raise _BadFraming("truncated chunked body")
+            try:
+                size = int(line.split(b";", 1)[0].strip(), 16)
+            except ValueError:
+                raise _BadFraming("invalid chunk size") from None
+            if size < 0:
+                raise _BadFraming("invalid chunk size")
+            if size == 0:
+                while True:  # trailers, then the blank line that ends the body
+                    trailer = self.rfile.readline(65537)
+                    if trailer in (b"\r\n", b"\n", b""):
+                        return b"".join(chunks)
+            total += size
+            if total > MAX_BODY_BYTES:
+                raise _TooLarge(unread=None)  # the rest of the stream is drained, bounded, after the 413
+            data = self.rfile.read(size)
+            if len(data) != size:
+                raise _BadFraming("truncated chunk")
+            chunks.append(data)
+            self.rfile.readline(65537)  # the CRLF that ends each chunk
+
+    def _reject_too_large(self, unread: int | None) -> None:
+        """Answer 413 first, then drain a bounded amount of the body still in flight, then close.
+
+        Answering before draining lets the client read the envelope; draining avoids a TCP reset
+        while the client is still sending (RL28). Anything beyond the drain bound is abandoned.
+        """
+        self.close_connection = True
+        self._send_error_envelope(413, "payload_too_large", "request body exceeds 16 MiB")
+        try:
+            self.connection.settimeout(5)
+            remaining = min(unread, DRAIN_BYTES) if unread is not None else DRAIN_BYTES
+            while remaining > 0:
+                chunk = self.rfile.read(min(65536, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+        except OSError:
+            pass  # the client went away; nothing more to send
 
     def _send(self, status: int, body: bytes | None) -> None:
         self.send_response(status)
