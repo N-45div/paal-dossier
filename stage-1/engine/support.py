@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from decimal import Decimal
+from fractions import Fraction
 from functools import lru_cache
 from typing import Optional
 
@@ -261,8 +261,9 @@ def _suffix_end(text: str, start: int) -> Optional[int]:
 
 # ------------------------------------------------------------------- numbers
 
-_NUMBER_TOKEN = re.compile(r"\d[\d,.]*\d|\d")
-_NUMBER_SHAPE = re.compile(r"\d+(?:,\d{3})*(?:\.\d+)?")
+_NUMBER_TOKEN = re.compile(r"[0-9][0-9,.]*[0-9]|[0-9]")
+_NUMBER_SHAPE = re.compile(r"[0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?")
+_YEAR_SHAPE = re.compile(r"[0-9]{4}")
 _AMOUNT_PREFIX = re.compile(r"(?<![^\W_])(?:US\$|USD|\$)\ ?$", re.IGNORECASE)
 _AMOUNT_SCALE = re.compile(
     r"(?:mn|m|bn|k)(?![^\W_])|\ (?:thousand|million|billion)(?![^\W_])",
@@ -281,8 +282,8 @@ class _Number:
     text: str
 
     @property
-    def value(self) -> Decimal:
-        return Decimal(self.text.replace(",", ""))
+    def value(self) -> Fraction:
+        return Fraction(self.text.replace(",", ""))
 
     @property
     def has_decimal(self) -> bool:
@@ -294,6 +295,10 @@ class _Amount:
     start: int
     end: int
     value: Optional[int]  # whole US dollars, or None when not a whole number of dollars
+
+
+def _whole_dollars(total: Fraction) -> Optional[int]:
+    return total.numerator if total.denominator == 1 else None
 
 
 def _scale_of(matched: str) -> int:
@@ -319,14 +324,14 @@ def _amounts(sentence: str, numbers: list[_Number]) -> list[_Amount]:
     """Amounts (A.4): '$'/'US$'/'USD' forms, or a number followed by 'dollars'."""
     amounts = []
     for number in numbers:
-        scale = Decimal(1)
+        scale = 1
         prefix = _AMOUNT_PREFIX.search(sentence[: number.start])
         if prefix:
             start, end = prefix.start(), number.end
             scale_match = _AMOUNT_SCALE.match(sentence, number.end)
             if scale_match:
                 end = scale_match.end()
-                scale = Decimal(_scale_of(scale_match.group()))
+                scale = _scale_of(scale_match.group())
         else:
             dollars = _AMOUNT_DOLLARS.match(sentence, number.end)
             if not dollars:
@@ -334,10 +339,10 @@ def _amounts(sentence: str, numbers: list[_Number]) -> list[_Amount]:
             start, end = number.start, dollars.end()
             scale_word = re.search(r"(thousand|million|billion)", dollars.group(), re.IGNORECASE)
             if scale_word:
-                scale = Decimal(_scale_of(scale_word.group()))
-        total = number.value * scale
-        whole = total == total.to_integral_value()
-        amounts.append(_Amount(start, end, int(total) if whole else None))
+                scale = _scale_of(scale_word.group())
+        if _is_alnum_at(sentence, end):  # an amount has no letter or digit directly after it
+            continue
+        amounts.append(_Amount(start, end, _whole_dollars(number.value * scale)))
     return amounts
 
 
@@ -454,7 +459,7 @@ def _ceo_values(sentence: str, domain: str) -> set[str]:
 def _founded_year_values(sentence: str) -> set[int]:
     values = set()
     for number in _plain_numbers(sentence):
-        if number.text.isdigit() and len(number.text) == 4:
+        if _YEAR_SHAPE.fullmatch(number.text):
             year = int(number.text)
             if 1800 <= year <= 2099:
                 values.add(year)
@@ -466,7 +471,7 @@ def _headcount_values(sentence: str) -> set[str]:
     for number in _plain_numbers(sentence):
         if number.has_decimal:
             continue
-        count = int(number.value)
+        count = number.value.numerator
         if count >= 1:
             values.add(headcount_range_for(count))
     return values

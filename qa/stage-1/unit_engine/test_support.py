@@ -1,4 +1,35 @@
-"""Unit tests for engine/support.py (Appendix A of the stage-1 specification)."""
+"""Unit tests for engine/support.py (Appendix A of the stage-1 specification).
+
+Index of claimed ledger ids -> tests (each id is named in at least one test name below):
+  R1.39            test_r1_39_*            value as written; headcount range containing a number
+  R1.44            test_r1_44_*            supports(): the Appendix A rule, not the API text
+  R1.47            test_r1_47_*            header lines end at the first empty line
+  R1.130           test_r1_130_*           only the Appendix A rules decide support
+  R1.131           test_r1_131_*           sentence splitting (A.1)
+  R1.132           test_r1_132_*           single-sentence test
+  R1.133           test_r1_133_*           the five conditions of support (A.2)
+  R1.134           test_r1_134_*           case-insensitive whole-word matching
+  R1.135-R1.140    test_r1_135_140_*       the A.2 example table, row by row
+  R1.141-R1.146    test_r1_141_146_*       statement phrases per field (A.3)
+  R1.147           test_r1_147_*           negating phrases (A.3)
+  R1.148           test_r1_148_*           capitalised and uppercase words (A.4)
+  R1.149           test_r1_149_*           number grammar (A.4), including defect probes
+  R1.150           test_r1_150_*           legal_name format
+  R1.151           test_r1_151_*           hq_city format
+  R1.152           test_r1_152_*           ceo format
+  R1.153           test_r1_153_*           founded_year format
+  R1.154           test_r1_154_*           headcount_range format
+  R1.155           test_r1_155_*           funding_total format
+  R1.156           test_r1_156_*           legal-form suffixes
+  R1.157           test_r1_157_*           amount boundaries (no letter or digit next to it)
+  R1.158           test_r1_158_*           amount forms with $/US$/USD and scales
+  R1.159           test_r1_159_*           amount forms with dollars / US dollars
+  R1.160           test_r1_160_*           other currencies are not amounts
+  R1.161           test_r1_161_*           text fields normalise to the text as written
+  R1.162           test_r1_162_*           founded_year normalises to an integer
+  R1.163           test_r1_163_*           headcount normalises to the containing range
+  R1.164           test_r1_164_*           funding normalises exactly; non-whole is no value
+"""
 
 import sys
 import unittest
@@ -7,6 +38,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "stage-1"))
 
 from engine.support import (  # noqa: E402
+    NEGATING_PHRASES,
     candidate_values,
     headcount_range_for,
     is_single_sentence,
@@ -413,6 +445,193 @@ class SpecTableTests(unittest.TestCase):
         self.assertIsNone(
             supports("Acme Robotics opened a sales office in Porto.", D, "hq_city")
         )
+
+
+class ClaimedLedgerIdTests(unittest.TestCase):
+    """Named tests for the claimed ledger ids; see the index in the module docstring."""
+
+    def test_r1_39_value_as_written_and_containing_headcount_range(self):
+        self.assertEqual(
+            supports("Dana Ruiz is the chief executive of Acme Robotics.", D, "ceo"), "Dana Ruiz"
+        )
+        self.assertEqual(
+            supports("Acme Robotics employs about 120 people.", D, "headcount_range"), "51-200"
+        )
+
+    def test_r1_44_supports_follows_appendix_rule_not_api_text(self):
+        self.assertEqual(
+            supports("Acme Robotics has raised $12M.", D, "funding_total"), 12_000_000
+        )
+        self.assertEqual(
+            supports("Acme Robotics has raised 12 million dollars.", D, "funding_total"), 12_000_000
+        )
+        self.assertIsNone(supports("Acme Robotics raised 12 cents.", D, "funding_total"))
+
+    def test_r1_47_header_lines_end_at_first_empty_line(self):
+        header, prose = parse_page("Title: A\nKind: news\n\nBody. More.")
+        self.assertEqual(header, {"Title": "A", "Kind": "news"})
+        self.assertEqual(prose, "Body. More.")
+        self.assertEqual(parse_page("plain text")[0], {})
+
+    def test_r1_130_only_appendix_rules_decide(self):
+        self.assertIsNone(supports("Revenue grew sharply in 2014.", D, "founded_year"))
+        self.assertEqual(supports("Acme Robotics was founded in 2014.", D, "founded_year"), 2014)
+
+    def test_r1_131_sentence_split_rules(self):
+        self.assertEqual(split_sentences("A is B. C is D!"), ["A is B.", "C is D!"])
+        self.assertEqual(split_sentences("Acme Inc. X"), ["Acme Inc. X"])
+        self.assertEqual(split_sentences("Acme Ltd. X"), ["Acme Ltd.", "X"])
+
+    def test_r1_132_single_sentence_test(self):
+        self.assertTrue(is_single_sentence("Acme Robotics was founded in 2014."))
+        self.assertFalse(is_single_sentence("One. Two."))
+
+    def test_r1_133_all_five_conditions_are_required(self):
+        self.assertIsNone(supports("Founded in 2014.", D, "founded_year"))  # no company name
+        self.assertIsNone(supports("Acme Robotics was 2014.", D, "founded_year"))  # no phrase
+        self.assertIsNone(supports("Acme Robotics was not founded in 2014.", D, "founded_year"))
+        self.assertIsNone(supports("Acme Robotics was founded in 2014 or 2015.", D, "founded_year"))
+        self.assertEqual(supports("Acme Robotics was founded in 2014.", D, "founded_year"), 2014)
+
+    def test_r1_134_case_insensitive_whole_word(self):
+        self.assertEqual(supports("ACME ROBOTICS WAS FOUNDED IN 2014.", D, "founded_year"), 2014)
+        self.assertIsNone(supports("Superacme Robotics was founded in 2014.", D, "founded_year"))
+
+    def test_r1_135_140_example_table_rows(self):
+        cases = [
+            ("Dana Ruiz has led Acme Robotics as chief executive since 2021.", "ceo", "Dana Ruiz"),
+            ("Acme Robotics CEO: Sam Ortiz.", "ceo", "Sam Ortiz"),
+            ("Acme Robotics was founded in 2014.", "founded_year", 2014),
+            ("Acme Robotics employs about 120 people.", "headcount_range", "51-200"),
+            ("Acme Robotics is reportedly in talks to raise $40M.", "funding_total", None),
+            ("Acme Robotics opened a sales office in Porto.", "hq_city", None),
+        ]
+        for text, field, expected in cases:
+            with self.subTest(text=text):
+                self.assertEqual(supports(text, D, field), expected)
+
+    def test_r1_141_146_statement_phrases_per_field(self):
+        examples = {
+            "legal_name": "Acme Robotics, Inc. is registered as a company.",
+            "hq_city": "Acme Robotics is based in Lisbon.",
+            "ceo": "Sam Ortiz is Acme Robotics CEO.",
+            "founded_year": "Acme Robotics was founded in 2014.",
+            "headcount_range": "Acme Robotics employs 120 people.",
+            "funding_total": "Acme Robotics has raised $12M.",
+        }
+        for field, text in examples.items():
+            with self.subTest(field=field):
+                self.assertIsNotNone(supports(text, D, field))
+        self.assertIsNone(supports("Acme Robotics is based in Lisbon.", D, "ceo"))
+
+    def test_r1_147_each_negating_phrase_rejects(self):
+        for word in NEGATING_PHRASES:
+            with self.subTest(word=word):
+                self.assertIsNone(
+                    supports(f"Acme Robotics {word} was founded in 2014.", D, "founded_year")
+                )
+
+    def test_r1_148_capitalised_and_uppercase_words(self):
+        self.assertEqual(supports("Acme Robotics is based in Zürich.", D, "hq_city"), "Zürich")
+        self.assertEqual(supports("Acme Robotics is based in Müller.", D, "hq_city"), "Müller")
+        self.assertIsNone(supports("Acme Robotics is based in McLean.", D, "hq_city"))
+
+    def test_r1_149_number_grammar_and_defect_probes(self):
+        self.assertIsNone(supports("Acme Robotics raised $12xyz.", D, "funding_total"))
+        self.assertIsNone(supports("Acme Robotics was founded in 2014xyz.", D, "founded_year"))
+        self.assertIsNone(supports("Acme Robotics was founded in 12,345.5.6 years.", D, "founded_year"))
+        self.assertIsNone(supports("Acme Robotics employs 1,20 people.", D, "headcount_range"))
+        self.assertIsNone(supports("Acme Robotics employs 1,2000 people.", D, "headcount_range"))
+        self.assertIsNone(supports("Acme Robotics raised $12.5.1.", D, "funding_total"))
+        self.assertIsNone(supports("Acme Robotics employs 120xyz people.", D, "headcount_range"))
+        # Unicode digits are not the digits of the grammar.
+        self.assertIsNone(supports("Acme Robotics employs \u0663\u0662\u0660 people.", D, "headcount_range"))
+        self.assertIsNone(supports("Acme Robotics was founded in \u0662\u0660\u0661\u0664.", D, "founded_year"))
+        # A trailing dot ends the sentence, so the number is still 12.
+        self.assertEqual(supports("Acme Robotics raised $12.", D, "funding_total"), 12)
+
+    def test_r1_150_legal_name_format(self):
+        self.assertEqual(
+            supports("Acme Robotics, Inc. is the legal name.", D, "legal_name"), "Acme Robotics, Inc."
+        )
+
+    def test_r1_151_hq_city_format(self):
+        self.assertEqual(
+            supports("Acme Robotics is headquartered in New-York City.", D, "hq_city"),
+            "New-York City",
+        )
+
+    def test_r1_152_ceo_format(self):
+        self.assertEqual(
+            supports("Acme Robotics CEO: Maria Jose Silva.", D, "ceo"), "Maria Jose Silva"
+        )
+        self.assertIsNone(supports("Acme Robotics CEO: Sam.", D, "ceo"))
+
+    def test_r1_153_founded_year_format(self):
+        self.assertEqual(supports("Acme Robotics was founded in 1800.", D, "founded_year"), 1800)
+        self.assertIsNone(supports("Acme Robotics was founded in 1799.", D, "founded_year"))
+        self.assertIsNone(supports("Acme Robotics was founded in $2014.", D, "founded_year"))
+
+    def test_r1_154_headcount_range_format(self):
+        self.assertEqual(supports("Acme Robotics has 5 employees.", D, "headcount_range"), "1-10")
+        self.assertIsNone(supports("Acme Robotics has 0 employees.", D, "headcount_range"))
+
+    def test_r1_155_funding_total_format(self):
+        self.assertEqual(supports("Acme Robotics raised $12.5k.", D, "funding_total"), 12_500)
+
+    def test_r1_156_legal_suffixes(self):
+        for suffix in ("Inc.", "GmbH", "Pty Ltd", "S.A.S.", "K.K."):
+            with self.subTest(suffix=suffix):
+                self.assertEqual(
+                    supports(f"Acme Robotics {suffix} is the legal name.", D, "legal_name"),
+                    f"Acme Robotics {suffix}",
+                )
+
+    def test_r1_157_amount_boundaries(self):
+        self.assertIsNone(supports("Acme Robotics raised A$12M.", D, "funding_total"))
+        self.assertIsNone(supports("Acme Robotics raised $12Mx.", D, "funding_total"))
+        self.assertIsNone(supports("Acme Robotics raised 12xyz dollars.", D, "funding_total"))
+
+    def test_r1_158_amount_forms_and_scales(self):
+        self.assertEqual(supports("Acme Robotics raised $12mn.", D, "funding_total"), 12_000_000)
+        self.assertEqual(supports("Acme Robotics raised $3bn.", D, "funding_total"), 3_000_000_000)
+        self.assertEqual(supports("Acme Robotics raised US$2 billion.", D, "funding_total"), 2_000_000_000)
+        self.assertEqual(supports("Acme Robotics raised USD 4 thousand.", D, "funding_total"), 4_000)
+
+    def test_r1_159_dollars_forms(self):
+        self.assertEqual(
+            supports("Acme Robotics raised 12,000,000 US dollars.", D, "funding_total"), 12_000_000
+        )
+        self.assertEqual(
+            supports("Acme Robotics raised 2 billion dollars.", D, "funding_total"), 2_000_000_000
+        )
+
+    def test_r1_160_other_currencies_are_not_amounts(self):
+        self.assertIsNone(supports("Acme Robotics raised €12 million.", D, "funding_total"))
+        self.assertIsNone(supports("Acme Robotics raised 12 euros.", D, "funding_total"))
+
+    def test_r1_161_text_fields_as_written(self):
+        self.assertEqual(
+            candidate_values("Dana Ruiz is CEO of Acme Robotics.", D, "ceo"), {"Dana Ruiz"}
+        )
+
+    def test_r1_162_founded_year_is_integer(self):
+        self.assertIsInstance(supports("Acme Robotics was founded in 2014.", D, "founded_year"), int)
+
+    def test_r1_163_headcount_is_containing_range(self):
+        self.assertEqual(headcount_range_for(10001), "10001+")
+        self.assertEqual(headcount_range_for(200), "51-200")
+
+    def test_r1_164_exact_funding_arithmetic(self):
+        self.assertEqual(
+            supports("Acme Robotics raised $12345678901234567890123456789.", D, "funding_total"),
+            12345678901234567890123456789,
+        )
+        self.assertIsNone(
+            supports("Acme Robotics raised $10000000000000000000000000000.1 dollars.", D, "funding_total")
+        )
+        self.assertIsNone(supports("Acme Robotics raised $0.0000005 million.", D, "funding_total"))
+        self.assertEqual(supports("Acme Robotics raised $0.5 million.", D, "funding_total"), 500_000)
 
 
 if __name__ == "__main__":
