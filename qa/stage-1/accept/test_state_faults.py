@@ -70,7 +70,7 @@ def test_R1_87_delay_under_one_second(api, mock, seeded):
     assert time.monotonic() - started <= 10
 
 
-def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, deployment):
+def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, direct_api):
     'R1.84 R1.102'
     token, domain = seeded[0], 'ashgrove-solar.test'
     assert create(api, token, domain, 'initial').status_code == 202
@@ -79,7 +79,7 @@ def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, deployment
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=6)
     fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=6)
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
         def one(i):
             barrier.wait(timeout=5)
             started = time.monotonic()

@@ -218,11 +218,11 @@ def test_R1_59_R1_60_R1_78_key_boundaries_and_failed_refresh_reuse(api, seeded):
     assert replay.status_code == 200 and replay.json() == refreshed.json()
 
 
-def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(deployment, seeded):
+def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(direct_api, seeded):
     'R1.2 R1.16 R1.17 R1.62 R1.80 R1.93 R1.129'
     token = seeded[0]
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
         def one(_):
             barrier.wait(timeout=5)
             start = time.monotonic()
@@ -234,12 +234,14 @@ def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(deployme
     assert [status for status, _, _ in results].count(200) == 49
     assert all(body == results[0][1] for _, body, _ in results)
     assert max(duration for _, _, duration in results) < 5
+    print(f'MEASURE 50_identical_writes_max={max(duration for _, _, duration in results):.3f}s')
 
 
 def test_R1_14_container_memory_limit(deployment, seeded):
     'R1.14'
     reading = docker('stats', '--no-stream', '--format', '{{.MemUsage}}', deployment['container'], timeout=10).stdout.strip()
     used = reading.split('/')[0].strip()
+    print(f'MEASURE container_memory={used}')
     units = {'B': 1, 'KiB': 1024, 'MiB': 1024**2, 'GiB': 1024**3}
     for suffix in sorted(units, key=len, reverse=True):
         if used.endswith(suffix):
@@ -249,10 +251,10 @@ def test_R1_14_container_memory_limit(deployment, seeded):
         pytest.fail(f'Unrecognized Docker memory usage: {used}')
 
 
-def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(deployment, seeded):
+def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(direct_api, seeded):
     'R1.16 R1.55 R1.62 R1.77 R1.80 R1.129'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
         def one(i):
             barrier.wait(timeout=5)
             start = time.monotonic()
@@ -270,10 +272,10 @@ def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(deployment,
     assert max(row[3] for row in rows) < 5
 
 
-def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(deployment, seeded):
+def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(direct_api, seeded):
     'R1.16 R1.17 R1.62 R1.65 R1.69 R1.129'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
         def one(_):
             barrier.wait(timeout=5)
             start = time.monotonic()
@@ -287,10 +289,10 @@ def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(deployment, seed
     assert max(duration for _, _, duration in rows) < 5
 
 
-def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(deployment, seeded):
+def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(direct_api, seeded):
     'R1.16 R1.17 R1.62 R1.69'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
         def one(_):
             barrier.wait(timeout=5)
             start = time.monotonic()
@@ -300,12 +302,13 @@ def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(deployment, seeded):
             rows = list(pool.map(one, range(50)))
     assert all(status == 200 and body['user_id'] == 'u_ada' and body['token'] for status, body, _ in rows)
     assert max(duration for _, _, duration in rows) < 5
+    print(f'MEASURE 50_logins_max={max(duration for _, _, duration in rows):.3f}s')
 
 
-def test_R1_16_R1_62_R1_93_R1_129_concurrent_different_keys(deployment, seeded):
+def test_R1_16_R1_62_R1_93_R1_129_concurrent_different_keys(direct_api, seeded):
     'R1.16 R1.62 R1.93 R1.129'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
         def one(i):
             barrier.wait(timeout=5)
             start = time.monotonic()

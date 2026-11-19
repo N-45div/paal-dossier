@@ -118,6 +118,7 @@ def test_R1_17_R1_23_R1_48_500_seeded_users(api, seeded):
     elapsed = time.monotonic() - start
     assert result.status_code == 204
     assert elapsed <= 5, f'500-user reset took {elapsed:.3f}s'
+    print(f'MEASURE reset_500_users={elapsed:.3f}s')
     for user in (users[0], users[249], users[-1]):
         response = api.post('/auth/login', json={'email':user['email'],'password':user['password']})
         assert response.status_code == 200 and response.json()['user_id'] == user['id']
