@@ -48,3 +48,25 @@ def test_R1_44_R1_155_R1_158_R1_164_mn_is_one_million(synthetic):
         assert any(call['provider'] == citation['provider'] and
                    any(page['url'] == citation['url'] and excerpt in re.sub(r'\s+', ' ', page['text'])
                        for page in call.get('served', [])) for call in log)
+
+
+@pytest.mark.parametrize('domain', ['adjacency-labs.test', 'fraction-ledger.test'])
+def test_R1_44_R1_149_R1_157_R1_164_invalid_amount_is_unknown(synthetic, domain):
+    """R1.44 R1.149 R1.157 R1.164: adjacent letters and non-whole dollars yield no value."""
+    api, mock, token = synthetic
+    assert create(api, token, domain, 'invalid-amount').status_code == 202
+    dossier = done(api, token, domain)
+    assert dossier['state'] == 'ready'
+    assert dossier['fields']['funding_total'] == {'value':None, 'status':'unknown', 'citations':[]}
+
+
+def test_R1_44_R1_155_R1_164_large_amount_exact(synthetic):
+    """R1.44 R1.155 R1.164: whole-dollar amounts are not rounded."""
+    api, mock, token = synthetic
+    assert create(api, token, 'exact-ledger.test', 'large-amount').status_code == 202
+    dossier = done(api, token, 'exact-ledger.test')
+    assert dossier['state'] == 'ready'
+    field = dossier['fields']['funding_total']
+    assert field['status'] == 'known' and type(field['value']) is int
+    assert field['value'] == 987654321098765432109876543210987654321
+    assert field['citations']

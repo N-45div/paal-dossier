@@ -167,6 +167,9 @@ def adversarial_deployment(request, tmp_path_factory):
     for domain, sentence in (
         ('rumor-press.test', 'Rumor Press is rumoured to have raised $17M.'),
         ('scale-probe.test', 'Scale Probe has raised $23mn.'),
+        ('adjacency-labs.test', 'Adjacency Labs raised $73widgets.'),
+        ('exact-ledger.test', 'Exact Ledger raised $987654321098765432109876543210987654321.'),
+        ('fraction-ledger.test', 'Fraction Ledger raised $0.00000007 million.'),
     ):
         page = {'url':f'https://{domain}/about', 'kind':'own', 'epochs':[0],
                 'searchable':True, 'published_at':None, 'true_from':None,

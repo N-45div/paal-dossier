@@ -10,4 +10,4 @@ Change `--service-root` to the worktree whose `stage-1/Dockerfile` is being test
 
 The mock and oracle default to the sample corpus. To run against a different mock corpus directory, add `--corpus /absolute/path/to/corpus`; both the provider mount and the oracle use that directory. Company cases and the evidence set are generated from its JSON files at epoch 0, not from sample-specific expected facts.
 
-The two controlled-corpus cases start a separate deployment with synthetic company pages. Run just those cases with `-q qa/stage-1/accept/test_synthetic.py --service-root /home/ndivij/buildathon/band-work/paal-dossier`, under the same factory lock.
+The controlled-corpus cases start a separate deployment with synthetic company pages. Run just those cases with `-q qa/stage-1/accept/test_synthetic.py --service-root /home/ndivij/buildathon/band-work/paal-dossier`, under the same factory lock.
