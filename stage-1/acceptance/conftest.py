@@ -115,7 +115,8 @@ def system():
         for fixture in Path(__file__).parent.glob("*.test.json"):
             shutil.copyfile(fixture, Path(corpus_copy.name) / fixture.name)
         for image, path in ((mock_image, WEB), (api_image, STAGE)):
-            subprocess.run(["flock", "/tmp/factory-heavy.lock", "docker", "build", "-t", image, str(path)],
+            lock = [] if os.environ.get("DOSSIER_LOCK_HELD") == "1" else ["flock", "/tmp/factory-heavy.lock"]
+            subprocess.run([*lock, "docker", "build", "-t", image, str(path)],
                            check=True, timeout=900)
         docker("network", "create", "--internal", network)
         docker("network", "create", ingress)
