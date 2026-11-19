@@ -2,12 +2,12 @@
 
 Budget (R1.127-R1.131): a call reserves its table cost before it is sent. When the provider
 answers with an error status, the reserve is given back. A call that gets no answer (timeout,
-connection failure, unreadable answer) keeps its reserve. An extract URL that is answered with
-no page (404) costs its unit: only other error statuses refuse a URL.
+connection failure, unreadable answer) keeps its reserve. An extract URL answered with no page
+(404) costs its unit: only other error statuses refuse a URL.
 
 Calls are synchronous. Reserving, refunding and the counters are under one lock, so several
 threads may call the gateway at once. Every call has a timeout of at least 30 s and never sets
-`render`. The search cap is 10 results.
+`render`. Search results are capped at 10.
 """
 
 from __future__ import annotations
@@ -15,23 +15,14 @@ from __future__ import annotations
 import os
 import threading
 import time
-from dataclasses import dataclass
 from typing import Any
 
 from web_router import ResearchTimeoutError, WebRouter
 
+from .providers import ERROR, OK, SKIPPED, TIMEOUT, Answer, Claim, Page
+
 FIELD_NAMES = ("legal_name", "hq_city", "ceo", "founded_year", "headcount_range", "funding_total")
-FIELD_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "legal_name": {"type": "string"},
-        "hq_city": {"type": "string"},
-        "ceo": {"type": "string"},
-        "founded_year": {"type": "integer"},
-        "headcount_range": {"type": "string"},
-        "funding_total": {"type": "integer"},
-    },
-}
+_FIELD_TYPES = {"founded_year": "integer", "funding_total": "integer"}
 
 # Cost table, spec section 9 (units).
 SEARCH_COST = {
@@ -42,49 +33,14 @@ SEARCH_COST = {
     ("tavily", "fast"): 16,
     ("tavily", "deep"): 16,
 }
-EXTRACT_COST = {"nimble": 1, "tavily": 2}  # per URL requested
-RESEARCH_COST = 25  # nimble, when the run is started
+EXTRACT_UNIT = 1  # nimble, per URL requested
+RESEARCH_UNITS = 25  # nimble, when the run is started
 
 MAX_RESULTS = 10
 CALL_TIMEOUT_S = 30.0  # per call, the least the live providers are allowed
 SEARCH_ADMIT_S = 30.0  # time left needed before a search or extract may start
 RESEARCH_ADMIT_S = 60.0  # time left needed before a research run may start
 DEFAULT_DEADLINE_S = 280.0  # hard cap per build (RL1.12)
-
-OK = "ok"  # the provider answered without an error status
-ERROR = "error"  # the provider refused with an error status; the reserve was returned
-UNANSWERED = "unanswered"  # no answer (timeout, connection): the cost stands
-REFUSED = "refused"  # not sent: budget, deadline, cancel, or no such provider or depth
-
-
-@dataclass(frozen=True)
-class Page:
-    """A page as one provider call served it. `text` is exactly the text the call returned."""
-
-    url: str
-    title: str
-    text: str
-    provider: str
-
-
-@dataclass(frozen=True)
-class Claim:
-    """A value a research run claimed for `field`, with the excerpt it cited."""
-
-    field: str
-    value: Any
-    url: str
-    excerpt: str
-    provider: str
-
-
-@dataclass(frozen=True)
-class Reply:
-    """The outcome of one call. `items`: list[Page] for search, dict[url, Page | None] for
-    extract, list[Claim] for research. Empty when the call did not answer."""
-
-    status: str
-    items: Any
 
 
 class Gateway:
@@ -117,107 +73,100 @@ class Gateway:
         if close is not None:
             close()
 
-    def search(self, query: str, depth: str = "lite", provider: str = "nimble", max_results: int = MAX_RESULTS) -> Reply:
+    def can_call(self, units: int) -> bool:
+        """Advisory: would a call of `units` be admitted now? The call itself reserves."""
+        with self._lock:
+            return self._fits(units, SEARCH_ADMIT_S)
+
+    def search(self, query: str, provider: str, depth: str) -> Answer:
         cost = SEARCH_COST.get((provider, depth))
         if cost is None or not self._admit(cost, SEARCH_ADMIT_S):
-            return Reply(REFUSED, [])
+            return Answer(status=SKIPPED)
         try:
             response = self._router.search(
-                query,
-                provider=provider,
-                search_depth=depth,
-                max_results=min(max_results, MAX_RESULTS),
+                query, provider=provider, search_depth=depth, max_results=MAX_RESULTS
             )
         except Exception as error:
-            return self._failed(error, cost, [])
-        pages = [
+            return self._failed(error, cost)
+        pages = tuple(
             Page(result.url, result.title, result.content or result.description, provider)
             for result in response.results[:MAX_RESULTS]
-        ]
+        )
         return self._answered(pages)
 
-    def extract(self, urls: list[str], provider: str = "nimble") -> Reply:
-        unit = EXTRACT_COST.get(provider)
+    def extract(self, urls: list[str]) -> Answer:
         urls = list(dict.fromkeys(urls))
-        if unit is None or not urls or not self._admit(unit * len(urls), CALL_TIMEOUT_S):
-            return Reply(REFUSED, {})
-        missing: dict[str, Page | None] = {url: None for url in urls}
+        cost = EXTRACT_UNIT * len(urls)
+        if not urls or not self._admit(cost, SEARCH_ADMIT_S):
+            return Answer(status=SKIPPED)
         try:
-            response = self._router.extract(urls, provider=provider)
+            response = self._router.extract(urls, provider="nimble")
         except Exception as error:
             failures = getattr(error, "url_failures", None)
             if failures is None:
-                return self._failed(error, unit * len(urls), missing)
-            refused = {f.url for f in failures if _is_refusal(f.status_code, extract=True)}
-            return self._extract_answered(missing, refused, unit, provider, urls)
-        documents = {document.url: document for document in response.documents}
-        items: dict[str, Page | None] = {}
-        for url in urls:
-            document = documents.get(url)
-            items[url] = Page(url, document.title, document.content, provider) if document else None
-        refused = {f.url for f in response.failures if _is_refusal(f.status_code, extract=True)}
-        return self._extract_answered(items, refused - set(documents), unit, provider, urls)
+                return self._failed(error, cost)
+            return self._extracted((), {f.url for f in failures if _is_refusal(f.status_code, True)}, urls)
+        refused = {f.url for f in response.failures if _is_refusal(f.status_code, True)}
+        pages = tuple(
+            Page(document.url, document.title, document.content, "nimble") for document in response.documents
+        )
+        return self._extracted(pages, refused - {page.url for page in pages}, urls)
 
-    def research(self, domain: str) -> Reply:
-        if not self._admit(RESEARCH_COST, RESEARCH_ADMIT_S):
-            return Reply(REFUSED, [])
-        timeout = self.deadline_s - self._elapsed()
+    def research(self, domain: str, fields: list[str]) -> Answer:
+        if not self._admit(RESEARCH_UNITS, RESEARCH_ADMIT_S):
+            return Answer(status=SKIPPED)
         try:
             response = self._router.research(
                 _research_query(domain),
                 provider="nimble",
-                output_schema=FIELD_SCHEMA,
-                timeout=timeout,
+                output_schema=_schema(fields),
+                timeout=self.deadline_s - self._elapsed(),
             )
         except ResearchTimeoutError:
-            return Reply(UNANSWERED, [])  # the run keeps going and its cost stands
+            return Answer(status=TIMEOUT)  # the run keeps going, so its cost stands
         except Exception as error:
-            return self._failed(error, RESEARCH_COST, [])
-        return self._answered(_claims(response))
+            return self._failed(error, RESEARCH_UNITS)
+        return self._answered(_claims(response, fields))
 
-    def _admit(self, cost: int, needed_s: float) -> bool:
+    def _fits(self, units: int, needed_s: float) -> bool:
+        if self.cancel is not None and self.cancel.is_set():
+            return False
+        if self._elapsed() + needed_s > self.deadline_s:
+            return False
+        return self.spent + units <= self.budget
+
+    def _admit(self, units: int, needed_s: float) -> bool:
         with self._lock:
-            if self.cancel is not None and self.cancel.is_set():
+            if not self._fits(units, needed_s):
                 return False
-            if self._elapsed() + needed_s > self.deadline_s:
-                return False
-            if self.spent + cost > self.budget:
-                return False
-            self.spent += cost
+            self.spent += units
             return True
 
-    def _refund(self, cost: int) -> None:
+    def _refund(self, units: int) -> None:
         with self._lock:
-            self.spent -= cost
+            self.spent -= units
 
     def _elapsed(self) -> float:
         return time.monotonic() - self._started
 
-    def _answered(self, items: Any) -> Reply:
+    def _answered(self, items: tuple) -> Answer:
         with self._lock:
             self.any_success = True
-        return Reply(OK, items)
+        return Answer(status=OK, items=items)
 
-    def _failed(self, error: BaseException, cost: int, empty: Any) -> Reply:
+    def _failed(self, error: BaseException, units: int) -> Answer:
         if _is_refusal(_status_of(error), extract=False):
-            self._refund(cost)
-            return Reply(ERROR, empty)
-        return Reply(UNANSWERED, empty)
+            self._refund(units)
+            return Answer(status=ERROR)
+        return Answer(status=TIMEOUT)
 
-    def _extract_answered(
-        self,
-        items: dict[str, Page | None],
-        refused: set[str],
-        unit: int,
-        provider: str,
-        urls: list[str],
-    ) -> Reply:
-        refunded = [url for url in urls if url in refused and items.get(url) is None]
+    def _extracted(self, pages: tuple, refused: set[str], urls: list[str]) -> Answer:
+        refunded = [url for url in urls if url in refused]
         if refunded:
-            self._refund(unit * len(refunded))
+            self._refund(EXTRACT_UNIT * len(refunded))
         if len(refunded) == len(urls):
-            return Reply(ERROR, items)
-        return self._answered(items)
+            return Answer(status=ERROR)
+        return self._answered(pages)
 
 
 def _is_refusal(status: int | None, extract: bool) -> bool:
@@ -240,6 +189,14 @@ def _status_of(error: BaseException) -> int | None:
     return None
 
 
+def _schema(fields: list[str]) -> dict:
+    names = [name for name in FIELD_NAMES if name in fields]
+    return {
+        "type": "object",
+        "properties": {name: {"type": _FIELD_TYPES.get(name, "string")} for name in names},
+    }
+
+
 def _research_query(domain: str) -> str:
     return (
         f"Research the company whose web domain is {domain}: its registered legal name, "
@@ -248,16 +205,15 @@ def _research_query(domain: str) -> str:
     )
 
 
-def _claims(response: Any) -> list[Claim]:
+def _claims(response: Any, fields: list[str]) -> tuple[Claim, ...]:
     structured = response.structured if isinstance(response.structured, dict) else {}
     claims = []
     for citation in response.citations:
         name = _field_name(citation.field)
         value = structured.get(name) if name else None
-        if value is None or not citation.snippet:
-            continue
-        claims.append(Claim(name, value, citation.url, citation.snippet, "nimble"))
-    return claims
+        if name in fields and value is not None and citation.snippet:
+            claims.append(Claim(name, value, citation.url, citation.snippet, "nimble"))
+    return tuple(claims)
 
 
 def _field_name(path: str | None) -> str | None:
