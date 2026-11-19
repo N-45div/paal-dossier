@@ -207,6 +207,30 @@ def test_R1_32_R1_34_R1_105_R1_107_R1_108_R1_109_order_and_pagination(api, seede
     assert api.get('/dossiers', headers=auth(bob), params={'limit':'001', 'offset':'000'}).status_code == 200
 
 
+@pytest.mark.parametrize('offset,expected', [('0'*5000, 'first.test'), ('9'*5000, None)])
+def test_R1_58_R1_61_R1_62_extreme_decimal_offset(api, seeded, offset, expected):
+    """R1.58 R1.61 R1.62: arbitrarily large decimal offsets remain valid."""
+    token = seeded[0]
+    assert create(api, token, 'first.test', 'offset').status_code == 202
+    response = api.get('/dossiers', headers=auth(token), params={'offset':offset})
+    assert response.status_code == 200
+    domains = [item['domain'] for item in response.json()['dossiers']]
+    assert domains == ([] if expected is None else [expected])
+
+
+@pytest.mark.parametrize('limit,valid', [
+    ('0'*5000 + '1', True), ('0'*5000 + '200', True),
+    ('0'*5000 + '201', False), ('9'*5000, False),
+])
+def test_R1_58_R1_61_R1_62_extreme_decimal_limit(api, seeded, limit, valid):
+    """R1.58 R1.61 R1.62: arbitrarily long limits honor numeric bounds."""
+    response = api.get('/dossiers', headers=auth(seeded[0]), params={'limit':limit})
+    if valid:
+        assert response.status_code == 200
+    else:
+        error(response, 422, 'validation_failed')
+
+
 def test_R1_59_R1_60_R1_78_key_boundaries_and_failed_refresh_reuse(api, seeded):
     'R1.59 R1.60 R1.78'
     token = seeded[0]

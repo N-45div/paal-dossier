@@ -179,6 +179,10 @@ def adversarial_deployment(request, tmp_path_factory):
         ('long-witness.test', 'Long Witness was incorporated in 2012 ' + 'and ' * 200 + 'today.'),
         ('late-negation.test', 'Late Negation raised $19M ' + 'filler ' * 90 + 'not later.'),
         ('late-conflict.test', 'Late Conflict raised $19M ' + 'filler ' * 90 + 'or $23M.'),
+        ('shape-probe.test', 'Shape Probe Inc. is the legal name of Shape Probe.\n'
+         'Shape Probe is based in Lisbon.\nShape Probe CEO Mira Santos.\n'
+         'Shape Probe was founded in 2014.\nShape Probe employs 120 people.\n'
+         'Shape Probe has raised $23mn.'),
     ):
         page = {'url':f'https://{domain}/about', 'kind':'own', 'epochs':[0],
                 'searchable':True, 'published_at':None, 'true_from':None,

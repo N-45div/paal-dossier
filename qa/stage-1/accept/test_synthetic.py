@@ -199,7 +199,7 @@ def test_R1_43_R1_44_R1_86_long_sentence_full_context(synthetic, domain):
     assert dossier['fields']['funding_total'] == {'value':None, 'status':'unknown', 'citations':[]}
 
 
-@pytest.mark.parametrize('corruption', ['missing_field', 'known_without_citations', 'unknown_with_citations'])
+@pytest.mark.parametrize('corruption', ['missing_field', 'known_without_citations', 'unknown_with_citations', 'wrong_value_type', 'empty_excerpt'])
 def test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic(synthetic, corruption):
     """R1.40 R1.126 R1.127: reject incomplete or inconsistent dossier fields atomically."""
     api, mock, token = synthetic
@@ -215,11 +215,57 @@ def test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic(synthetic, corru
         del fields['legal_name']
     elif corruption == 'known_without_citations':
         fields['funding_total']['citations'] = []
-    else:
+    elif corruption == 'unknown_with_citations':
         citation = copy.deepcopy(fields['funding_total']['citations'][0])
         assert fields['legal_name']['value'] is None
         fields['legal_name']['citations'] = [citation]
+    elif corruption == 'wrong_value_type':
+        fields['funding_total']['value'] = 'not-an-integer'
+    else:
+        fields['funding_total']['citations'][0]['excerpt'] = ''
     from test_api import error
+    error(api.post('/_test/import', json=snapshot, timeout=10), 422, 'validation_failed')
+    response = api.get('/dossiers/' + domain, headers=auth(token))
+    assert response.status_code == 200 and response.json() == original
+
+
+@pytest.mark.parametrize('field,bad_value', [
+    ('founded_year', True), ('founded_year', 1799), ('founded_year', 2100),
+    ('funding_total', True), ('funding_total', 0), ('funding_total', -1), ('funding_total', 1.5),
+    ('headcount_range', '10-50'),
+    ('legal_name', ''), ('legal_name', ' Shape Probe Inc.'),
+    ('hq_city', ''), ('hq_city', 'Lisbon '),
+    ('ceo', ''), ('ceo', ' Mira Santos'),
+])
+def test_R1_38_R1_40_R1_126_invalid_import_field_values(synthetic, field, bad_value):
+    """R1.38 R1.40 R1.126: reject invalid field types, ranges and whitespace atomically."""
+    from test_api import error
+    api, mock, token = synthetic
+    domain = 'shape-probe.test'
+    assert create(api, token, domain, 'invalid-field').status_code == 202
+    original = done(api, token, domain)
+    assert original['state'] == 'ready' and original['fields'][field]['status'] == 'known'
+    snapshot = api.get('/_test/export', timeout=10).json()
+    snapshot['state']['dossiers'][0]['fields'][field]['value'] = bad_value
+    error(api.post('/_test/import', json=snapshot, timeout=10), 422, 'validation_failed')
+    response = api.get('/dossiers/' + domain, headers=auth(token))
+    assert response.status_code == 200 and response.json() == original
+
+
+@pytest.mark.parametrize('key,bad_value', [
+    ('url', ''), ('url', None), ('excerpt', ''), ('excerpt', 'x'*501),
+    ('excerpt', None), ('provider', 'other'), ('provider', None),
+])
+def test_R1_40_R1_43_R1_126_invalid_import_citation(synthetic, key, bad_value):
+    """R1.40 R1.43 R1.126: reject invalid citation shape and bounds atomically."""
+    from test_api import error
+    api, mock, token = synthetic
+    domain = 'shape-probe.test'
+    assert create(api, token, domain, 'invalid-citation').status_code == 202
+    original = done(api, token, domain)
+    assert original['state'] == 'ready' and original['fields']['funding_total']['citations']
+    snapshot = api.get('/_test/export', timeout=10).json()
+    snapshot['state']['dossiers'][0]['fields']['funding_total']['citations'][0][key] = bad_value
     error(api.post('/_test/import', json=snapshot, timeout=10), 422, 'validation_failed')
     response = api.get('/dossiers/' + domain, headers=auth(token))
     assert response.status_code == 200 and response.json() == original

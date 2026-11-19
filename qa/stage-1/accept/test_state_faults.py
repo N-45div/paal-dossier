@@ -114,6 +114,34 @@ def test_R1_85_failed_refresh_preserves_ready_fields(api, mock, seeded):
     assert failed['spent_units'] == initial['spent_units']
 
 
+def test_R1_85_R1_125_R1_126_R1_128_snapshot_failed_and_running_refresh(api, mock, seeded):
+    """R1.85 R1.125 R1.126 R1.128: retain a failed outcome and prior fields in snapshots."""
+    token, domain = seeded[0], 'ashgrove-solar.test'
+    assert create(api, token, domain, 'first').status_code == 202
+    ready = done(api, token, domain)
+    assert ready['state'] == 'ready'
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'error')
+    fault(mock, 'tavily', ['search', 'extract'], 'error')
+    assert api.post('/dossiers/' + domain + '/refresh', headers=auth(token, 'failed')).status_code == 202
+    failed = done(api, token, domain)
+    assert failed['state'] == 'failed' and failed['fields'] == ready['fields']
+    assert failed['researched_at'] == ready['researched_at']
+    saved = api.get('/_test/export', timeout=10).json()
+    assert api.post('/_test/import', json=saved, timeout=10).status_code == 204
+    assert api.get('/dossiers/' + domain, headers=auth(token)).json() == failed
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
+    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
+    assert api.post('/dossiers/' + domain + '/refresh', headers=auth(token, 'running')).status_code == 202
+    assert api.get('/dossiers/' + domain, headers=auth(token)).json()['state'] == 'building'
+    during = api.get('/_test/export', timeout=10).json()
+    assert api.post('/_test/import', json=during, timeout=10).status_code == 204
+    restored = api.get('/dossiers/' + domain, headers=auth(token)).json()
+    assert restored['state'] == 'failed' and restored['fields'] == failed['fields']
+    assert restored['researched_at'] == failed['researched_at']
+    time.sleep(10.2)
+    assert api.get('/dossiers/' + domain, headers=auth(token)).json() == restored
+
+
 def test_R1_23_R1_84_R1_128_reset_during_build(api, mock, seeded):
     'R1.23 R1.84 R1.128'
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
@@ -128,6 +156,35 @@ def test_R1_23_R1_84_R1_128_reset_during_build(api, mock, seeded):
     assert api.post('/auth/signup', json={'email':'new@example.com','password':'correct horse','display_name':'New'}).status_code == 201
     new_token = api.post('/auth/login', json={'email':'new@example.com','password':'correct horse'}).json()['token']
     assert api.get('/dossiers', headers=auth(new_token)).json()['dossiers'] == []
+
+
+def test_R1_23_R1_67_R1_93_R1_129_reset_races_authenticated_opens(api, mock, seeded, direct_api):
+    """R1.23 R1.67 R1.93 R1.129: reset and old-token writes must be serializable."""
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'error')
+    fault(mock, 'tavily', ['search', 'extract'], 'error')
+    for iteration in range(5):
+        fixture = {'now':'2026-03-01T09:00:00+00:00', 'users':[
+            {'id':'race-user', 'email':'race@example.com', 'password':'correct horse', 'display_name':'Race'}]}
+        assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+        login = api.post('/auth/login', json={'email':'race@example.com','password':'correct horse'})
+        assert login.status_code == 200
+        token = login.json()['token']
+        barrier = threading.Barrier(50)
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
+            def request(i):
+                barrier.wait(timeout=5)
+                if i == 0:
+                    return client.post('/_test/reset', json={'now':'2026-03-01T09:00:00+00:00','users':[]}, timeout=10).status_code
+                return client.post('/dossiers', headers=auth(token, f'race-{iteration}-{i}'),
+                                   json={'domain':f'race-{iteration}-{i}.test'}).status_code
+            with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+                statuses = list(pool.map(request, range(50)))
+        assert statuses[0] == 204 and all(code in (202, 401) for code in statuses[1:])
+        error(api.get('/dossiers', headers=auth(token)), 401, 'unauthenticated')
+        signup = api.post('/auth/signup', json={'email':'after-reset@example.com', 'password':'correct horse', 'display_name':'After'})
+        assert signup.status_code == 201
+        response = api.get('/dossiers', headers=auth(signup.json()['token']))
+        assert response.status_code == 200 and response.json()['dossiers'] == []
 
 
 def test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip(api, mock, seeded):
