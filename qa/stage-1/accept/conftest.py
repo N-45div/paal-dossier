@@ -1,0 +1,153 @@
+"""Black-box Docker harness. Never imports the service under test."""
+import os
+import socket
+import subprocess
+import time
+import uuid
+from pathlib import Path
+
+import httpx
+import pytest
+
+WEB = Path('/home/ndivij/buildathon/sf-buildathon-2026/challenges/dossier/web')
+CORPUS = WEB / 'corpus/sample'
+ADMIN = {'X-Mock-Admin': 'prover-local-admin'}
+RELAY = r'''
+import select, socket, socketserver, threading
+class Handler(socketserver.BaseRequestHandler):
+    def handle(self):
+        try:
+            with socket.create_connection((self.server.destination, 8080), timeout=5) as upstream:
+                upstream.settimeout(None)
+                sockets = [self.request, upstream]
+                while True:
+                    ready, _, _ = select.select(sockets, [], [], 30)
+                    if not ready: return
+                    for src in ready:
+                        data = src.recv(65536)
+                        if not data: return
+                        (upstream if src is self.request else self.request).sendall(data)
+        except (OSError, TimeoutError):
+            return
+class Server(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+servers = []
+for port, destination in [(18200, 'mock'), (18201, 'app')]:
+    server = Server(('0.0.0.0', port), Handler)
+    server.destination = destination
+    servers.append(server)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+threading.Event().wait()
+'''
+
+
+def pytest_addoption(parser):
+    parser.addoption('--service-root', default=os.environ.get('DOSSIER_ROOT'),
+                     help='worktree containing stage-1/')
+
+
+def docker(*args, timeout=300, check=True):
+    return subprocess.run(['docker', *map(str, args)], check=check, timeout=timeout,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
+def unused_ports(count):
+    sockets = []
+    try:
+        for port in range(18200, 18300):
+            sock = socket.socket()
+            try:
+                sock.bind(('127.0.0.1', port))
+            except OSError:
+                sock.close()
+                continue
+            sockets.append(sock)
+            if len(sockets) == count:
+                return [s.getsockname()[1] for s in sockets]
+        raise RuntimeError('Not enough free ports in 18200–18299')
+    finally:
+        for sock in sockets:
+            sock.close()
+
+
+def healthy(url, seconds=60):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            if httpx.get(url, timeout=1, trust_env=False).status_code == 200:
+                return
+        except httpx.HTTPError:
+            pass
+        time.sleep(.1)
+    raise AssertionError(f'health endpoint did not become ready in {seconds}s: {url}')
+
+
+@pytest.fixture(scope='session')
+def deployment(request):
+    root = request.config.getoption('--service-root')
+    if not root:
+        pytest.fail('Set DOSSIER_ROOT or pass --service-root to a worktree containing stage-1')
+    service = Path(root).resolve() / 'stage-1'
+    if not (service / 'Dockerfile').is_file():
+        pytest.fail(f'No Dockerfile in {service}')
+    tag = 'prover-' + uuid.uuid4().hex[:12]
+    network, front, relay, mock, app = tag + '-net', tag + '-front', tag + '-relay', tag + '-mock', tag + '-app'
+    web_image, app_image = tag + '-web', tag + '-service'
+    mock_port, app_port = unused_ports(2)
+    try:
+        docker('build', '-t', web_image, WEB, timeout=600)
+        docker('build', '-t', app_image, service, timeout=600)
+        docker('network', 'create', '--internal', network)
+        docker('network', 'create', front)
+        docker('run', '-d', '--name', relay, '--network', front,
+               '-p', f'127.0.0.1:{mock_port}:18200', '-p', f'127.0.0.1:{app_port}:18201',
+               '--entrypoint', 'python', web_image, '-u', '-c', RELAY)
+        docker('network', 'connect', network, relay)
+        docker('run', '-d', '--name', mock, '--network', network, '--network-alias', 'mock',
+               '-e', 'MOCK_ADMIN_TOKEN=prover-local-admin',
+               '-v', f'{CORPUS}:/data/corpus:ro', web_image)
+        healthy(f'http://127.0.0.1:{mock_port}/_mock/health')
+        docker('run', '-d', '--name', app, '--network', network, '--network-alias', 'app',
+               '--cpus', '2', '--memory', '3g',
+               '-e', 'PORT=8080', '-e', 'NIMBLE_API_KEY=local',
+               '-e', f'NIMBLE_BASE_URL=http://{mock}:8080/nimble',
+               '-e', 'TAVILY_API_KEY=local',
+               '-e', f'TAVILY_BASE_URL=http://{mock}:8080/tavily', app_image)
+        healthy(f'http://127.0.0.1:{app_port}/health')
+        yield {'app': f'http://127.0.0.1:{app_port}', 'mock': f'http://127.0.0.1:{mock_port}',
+               'container': app}
+    finally:
+        for name in (app, mock, relay):
+            docker('rm', '-f', name, timeout=20, check=False)
+        docker('network', 'rm', network, timeout=20, check=False)
+        docker('network', 'rm', front, timeout=20, check=False)
+        for image in (app_image, web_image):
+            docker('image', 'rm', '-f', image, timeout=20, check=False)
+
+
+@pytest.fixture
+def api(deployment):
+    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+        yield client
+
+
+@pytest.fixture
+def mock(deployment):
+    with httpx.Client(base_url=deployment['mock'], headers=ADMIN, timeout=10, trust_env=False) as client:
+        assert client.post('/_mock/reset', json={'epoch': 0}).status_code == 204
+        yield client
+
+
+@pytest.fixture
+def seeded(api, mock):
+    fixture = {'now': '2026-03-01T09:00:00+00:00', 'users': [
+        {'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse', 'display_name': 'Ada'},
+        {'id': 'u_bob', 'email': 'bob@example.com', 'password': 'correct horse', 'display_name': 'Bob'}]}
+    assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+    tokens = []
+    for user in fixture['users']:
+        response = api.post('/auth/login', json={'email': user['email'], 'password': user['password']})
+        assert response.status_code == 200, response.text
+        tokens.append(response.json()['token'])
+    return tokens
