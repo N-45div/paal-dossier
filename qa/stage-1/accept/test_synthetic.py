@@ -182,6 +182,7 @@ def test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix(synthetic):
         assert 1 <= len(citation['excerpt']) <= 500
         assert candidates('long-witness.test', 'founded_year', citation['excerpt']) == {2012}
         excerpt = re.sub(r'\s+', ' ', citation['excerpt']).strip()
+        assert excerpt == 'Long Witness was incorporated in 2012'
         assert any(call['provider'] == citation['provider'] and
                    any(page['url'] == citation['url'] and excerpt in re.sub(r'\s+', ' ', prose(page['text']))
                        for page in call.get('served', [])) for call in calls)
