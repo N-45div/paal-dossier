@@ -138,9 +138,9 @@ def _founded_year_values(sentence: str, domain: str) -> list[int]:
     numbers = find_numbers(sentence)
     in_amount = {a.number.start for a in find_amounts(sentence)}
     return [
-        int(n.text)
+        int(n.value)
         for n in numbers
-        if n.start not in in_amount and re.fullmatch(r"[0-9]{4}", n.text) and 1800 <= int(n.text) <= 2099
+        if n.start not in in_amount and re.fullmatch(r"[0-9]{4}", n.text.replace(",", "")) and 1800 <= int(n.value) <= 2099
     ]
 
 

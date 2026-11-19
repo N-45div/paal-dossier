@@ -226,3 +226,13 @@ def test_legal_suffix_is_case_sensitive():
 
 def test_amount_prefix_must_not_follow_a_letter():
     assert "funding_total" not in supported_values("Acme Robotics has raised xUSD12M.", D)
+
+
+def test_four_digit_year_written_with_a_thousands_comma_counts():
+    assert supports("Acme Robotics was founded in 2,014.", D, "founded_year", 2014)
+    assert supported_values("Acme Robotics founded 1800 and 2,014.", D) == {}
+
+
+def test_legal_name_shortest_text_wins_even_when_the_suffix_word_repeats():
+    sentence = "THE REGISTER RECORDS ACME ROBOTICS AS AS THE REGISTERED NAME OF THE COMPANY TRADING AS ACME ROBOTICS."
+    assert supported_values(sentence, D)["legal_name"] == "ACME ROBOTICS AS"
