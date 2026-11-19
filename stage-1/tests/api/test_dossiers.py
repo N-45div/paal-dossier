@@ -187,3 +187,13 @@ def test_huge_offset_is_empty_page_and_zero_offset_is_first(client, ada):
     assert client.get("/dossiers?offset=" + "9" * 5000, headers=ada).json() == {"dossiers": [], "has_more": False}
     assert len(client.get("/dossiers?offset=" + "0" * 19, headers=ada).json()["dossiers"]) == 1
     assert client.get("/dossiers?limit=" + "0" * 19 + "1", headers=ada).status_code == 200
+
+
+def test_r1_57_idempotency_key_length_boundary(client, ada):
+    """R1.57: Idempotency-Key is 1 to 255 characters, else 422 validation_failed."""
+    body = {"domain": "acme-robotics.test"}
+    too_long = client.post("/dossiers", json=body, headers={**ada, "Idempotency-Key": "k" * 256})
+    assert too_long.status_code == 422 and too_long.json()["error"]["code"] == "validation_failed"
+    assert client.get("/dossiers/acme-robotics.test", headers=ada).status_code == 404  # no dossier, no build
+    longest = client.post("/dossiers", json=body, headers={**ada, "Idempotency-Key": "k" * 255})
+    assert longest.status_code == 202
