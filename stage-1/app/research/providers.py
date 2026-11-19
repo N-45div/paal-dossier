@@ -65,6 +65,7 @@ class Gathered:
     texts: list[ServedText] = field(default_factory=list)
     claims: list[Claim] = field(default_factory=list)
     search_urls: list[str] = field(default_factory=list)
+    url_hits: dict[str, int] = field(default_factory=dict)
     extract_tried: set[str] = field(default_factory=set)
     successes: int = 0
     domain_searched: bool = False
