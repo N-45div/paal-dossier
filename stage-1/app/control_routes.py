@@ -5,7 +5,7 @@ from datetime import datetime
 from .errors import malformed, validation
 from .state import FORMAT_VERSION, TRACK
 from .store import Fixture, SeededUser
-from .validation import is_valid_display_name, is_valid_email, is_valid_user_id
+from .validation import is_valid_user_id
 from .wire import parse_json, parse_rfc3339, require_object, required_string
 
 
@@ -77,14 +77,10 @@ def parse_fixture(raw) -> Fixture:
         email = required_string(entry, "email")
         password = required_string(entry, "password")
         display_name = required_string(entry, "display_name")
+        # RL16: fixture users are not held to the signup rules (email form, password length,
+        # display_name length); only the id bounds and the types apply.
         if not is_valid_user_id(user_id):
-            raise validation("user id must be 1 to 64 characters without whitespace")
-        if not is_valid_email(email):
-            raise validation("user email must be of the form local@domain")
-        if password == "":
-            raise validation("user password must not be empty")
-        if not is_valid_display_name(display_name):
-            raise validation("user display_name must be 1 to 100 characters")
+            raise validation("user id must be 1 to 64 characters")
         if user_id in seen_ids or email.lower() in seen_emails:
             raise validation("fixture holds a duplicate user id or email")
         seen_ids.add(user_id)

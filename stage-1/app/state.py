@@ -7,7 +7,7 @@ from .dossiers import dossier_from_json, export_dossier
 from .errors import validation
 from .idempotency import idempotency_from_json
 from .passwords import is_valid_encoding
-from .validation import is_valid_display_name, is_valid_email, is_valid_user_id
+from .validation import is_valid_user_id
 
 TRACK = "dossier"
 FORMAT_VERSION = 1
@@ -64,9 +64,8 @@ def state_from_json(obj: Any) -> State:
         email = _str(entry, "email")
         display_name = _str(entry, "display_name")
         password_hash = _str(entry, "password_hash")
-        if not is_valid_user_id(user_id) or not is_valid_email(email):
-            raise validation("state holds an invalid user")
-        if not is_valid_display_name(display_name) or not is_valid_encoding(password_hash):
+        # RL16: exported users may be fixture users, so only the id bounds and the encoded hash are checked.
+        if not is_valid_user_id(user_id) or not is_valid_encoding(password_hash):
             raise validation("state holds an invalid user")
         if user_id in state.users or email.lower() in state.emails:
             raise validation("state holds a duplicate user")

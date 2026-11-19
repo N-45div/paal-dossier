@@ -12,8 +12,8 @@ def is_valid_email(value: str) -> bool:
 
 
 def is_valid_user_id(value: str) -> bool:
-    """Opaque id: 1 to 64 characters without whitespace."""
-    return 1 <= len(value) <= 64 and not _WHITESPACE.search(value)
+    """Opaque id: 1 to 64 characters."""
+    return 1 <= len(value) <= 64
 
 
 def is_valid_display_name(value: str) -> bool:

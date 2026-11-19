@@ -136,5 +136,66 @@ class FoundationTests(unittest.TestCase):
         self.assertEqual(call(self.app, "POST", "/_test/import", exported)[0], 422)
 
 
+class Ruling16FixtureTests(unittest.TestCase):
+    """RL16: fixture users are not held to the signup rules."""
+
+    def setUp(self):
+        self.app = App(Clock())
+
+    def user(self, **overrides):
+        base = {"id": "u_x", "email": "x@example.com", "password": "correct horse", "display_name": "X"}
+        base.update(overrides)
+        return base
+
+    def test_empty_and_short_passwords_log_in_after_reset(self):
+        fixture = {"now": "2026-03-01T09:00:00+00:00", "users": [
+            self.user(id="u_empty", email="e@example.com", password=""),
+            self.user(id="u_short", email="s@example.com", password="pw"),
+        ]}
+        self.assertEqual(reset(self.app, fixture), 204)
+        self.assertEqual(call(self.app, "POST", "/auth/login", {"email": "e@example.com", "password": ""})[0], 200)
+        self.assertEqual(call(self.app, "POST", "/auth/login", {"email": "s@example.com", "password": "pw"})[0], 200)
+        self.assertEqual(call(self.app, "POST", "/auth/login", {"email": "s@example.com", "password": "pwx"})[0], 401)
+
+    def test_fixture_email_form_and_display_name_length_are_not_checked(self):
+        fixture = {"now": "2026-03-01T09:00:00+00:00", "users": [
+            self.user(id="u_odd", email="not-an-email", display_name="", password="pw"),
+        ]}
+        self.assertEqual(reset(self.app, fixture), 204)
+        self.assertEqual(call(self.app, "POST", "/auth/login", {"email": "not-an-email", "password": "pw"})[0], 200)
+
+    def test_empty_password_survives_export_and_import(self):
+        reset(self.app, {"now": "2026-03-01T09:00:00+00:00", "users": [self.user(id="u_e", email="e@example.com", password="")]})
+        exported = call(self.app, "GET", "/_test/export")[1]
+        reset(self.app, {"now": "2026-03-01T09:00:00+00:00", "users": []})
+        self.assertEqual(call(self.app, "POST", "/_test/import", exported)[0], 204)
+        self.assertEqual(call(self.app, "POST", "/auth/login", {"email": "e@example.com", "password": ""})[0], 200)
+
+    def test_fixture_user_field_rules(self):
+        base_fixture = {"now": "2026-03-01T09:00:00+00:00", "users": [self.user()]}
+        cases = [
+            (self.user(id=""), 422),
+            (self.user(id="x" * 65), 422),
+            (self.user(password=5), 400),
+            (self.user(display_name=None), 400),
+            ({k: v for k, v in self.user().items() if k != "display_name"}, 422),
+            ({k: v for k, v in self.user().items() if k != "email"}, 422),
+        ]
+        for user, expected in cases:
+            with self.subTest(user=str(user)[:60]):
+                self.assertEqual(reset(self.app, {"now": "2026-03-01T09:00:00+00:00", "users": [user]}), expected)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", {"now": "2026-03-01T09:00:00+00:00", "users": "nope"})[0], 400)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", b"[1]")[0], 400)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", {"users": []})[0], 422)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", {"now": 5})[0], 400)
+        self.assertEqual(reset(self.app, {"now": "2026-03-01T09:00:00+00:00", "users": [self.user(), self.user(id="u_2", email="X@example.com")]}), 422)
+
+    def test_reset_may_move_the_clock_backwards(self):
+        self.assertEqual(reset(self.app, {"now": "2026-03-01T00:00:00+00:00", "users": []}), 204)
+        self.assertEqual(call(self.app, "POST", "/_test/clock", {"now": "2026-06-01T00:00:00+00:00"})[0], 204)
+        self.assertEqual(reset(self.app, {"now": "2026-01-01T00:00:00+00:00", "users": []}), 204)
+        self.assertEqual(call(self.app, "POST", "/_test/clock", {"now": "2026-01-15T00:00:00+00:00"})[0], 204)
+
+
 if __name__ == "__main__":
     unittest.main()
