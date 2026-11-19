@@ -1,5 +1,7 @@
 """Foundation checks that do not require the later dossier routes."""
 import time
+import copy
+import json
 
 import pytest
 
@@ -107,3 +109,62 @@ def test_R1_27_fractional_clock_precision(api, seeded):
     assert api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.123456789+00:00'}).status_code == 204
     error(api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.123456788+00:00'}), 422, 'validation_failed')
     assert api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.123456790+00:00'}).status_code == 204
+
+
+@pytest.mark.parametrize('timestamp', [
+    '2027-01-01T00:00:00+00:60', '2027-01-01T00:00:00+24:00',
+    '2027-01-01T00:00:00-05:99', '2027-02-30T00:00:00+00:00'])
+def test_R1_27_invalid_rfc3339_offsets(api, seeded, timestamp):
+    error(api.post('/_test/clock', json={'now':timestamp}), 422, 'validation_failed')
+
+
+def test_R1_25_R1_27_long_fractional_timestamp(api, seeded):
+    assert api.post('/_test/reset', json={'now':'2026-03-01T10:00:00.12345678901+00:00','users':[]}, timeout=10).status_code == 204
+    error(api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.12345678900+00:00'}), 422, 'validation_failed')
+
+
+def test_R1_17_R1_23_R1_31_body_size_boundary(api, seeded):
+    limit = 16 * 1024 * 1024
+    prefix = b'{"now":"2026-03-01T09:00:00+00:00","ignored":"'
+    suffix = b'","users":[]}'
+    payload = prefix + b'x' * (limit - len(prefix) - len(suffix)) + suffix
+    assert len(payload) == limit
+    accepted = api.post('/_test/reset', content=payload, headers={'Content-Type':'application/json'}, timeout=10)
+    assert accepted.status_code == 204
+    assert api.post('/auth/signup', json={'email':'after@example.com', 'password':'correct horse',
+                                        'display_name':'After'}).status_code == 201
+    rejected = api.post('/_test/reset', content=payload[:-len(suffix)] + b'x' + suffix,
+                        headers={'Content-Type':'application/json'}, timeout=10)
+    error(rejected, 413, 'payload_too_large')
+    assert api.post('/auth/login', json={'email':'after@example.com','password':'correct horse'}).status_code == 200
+
+
+def test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip(api, seeded):
+    display = '\ud800'
+    body = json.dumps({'email':'surrogate@example.com','password':'correct horse','display_name':display}, ensure_ascii=True).encode('ascii')
+    response = api.post('/auth/signup', content=body, headers={'Content-Type':'application/json'})
+    assert response.status_code == 201 and response.json()['display_name'] == display
+    snapshot = api.get('/_test/export', timeout=10).json()
+    assert api.post('/_test/reset', json={'now':'2026-03-02T00:00:00+00:00','users':[]}, timeout=10).status_code == 204
+    assert api.post('/_test/import', json=snapshot, timeout=10).status_code == 204
+    login = api.post('/auth/login', json={'email':'surrogate@example.com','password':'correct horse'})
+    assert login.status_code == 200 and login.json()['display_name'] == display
+
+
+def test_R1_62_R1_107_surrogate_query_does_not_fail(api, seeded):
+    response = api.get('/dossiers?q=%ED%A0%80', headers=auth(seeded[0]))
+    assert response.status_code == 200 and isinstance(response.json()['dossiers'], list)
+
+
+def test_R1_126_missing_export_sections_rejected_atomically(api, seeded):
+    exported = api.get('/_test/export', timeout=10).json()
+    assert isinstance(exported['state'], dict) and exported['state']
+    for section in exported['state']:
+        modified = copy.deepcopy(exported)
+        del modified['state'][section]
+        response = api.post('/_test/import', json=modified, timeout=10)
+        assert response.status_code == 422, f'missing state section {section!r}: {response.status_code}'
+        error(response, 422, 'validation_failed')
+        login = api.post('/auth/login', json={'email':'ada@example.com','password':'correct horse'})
+        assert login.status_code == 200 and login.json()['user_id'] == 'u_ada'
+    error(api.post('/_test/import', json=[]), 400, 'malformed_request')
