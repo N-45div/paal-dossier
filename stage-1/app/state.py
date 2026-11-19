@@ -1,5 +1,11 @@
-"""The service state and its export/import format (§10, format_version 1)."""
+"""The service state and its export/import format (§10, format_version 1).
 
+Import is structural (RL17): every section must be present with its type, every entry
+must have exactly the keys this service writes, ids are unique, counters cover the ids
+already issued, and each dossier, token and idempotency record is checked for shape.
+"""
+
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -11,6 +17,21 @@ from .validation import is_valid_user_id
 
 TRACK = "dossier"
 FORMAT_VERSION = 1
+SECTIONS = ("counters", "dossiers", "idempotency", "tokens", "users")
+USER_KEYS = frozenset({"id", "email", "display_name", "password_hash"})
+TOKEN_KEYS = frozenset({"token", "user_id"})
+COUNTER_PREFIXES = {"user": "u_", "dossier": "d_"}
+MAX_COUNTER = 10**12
+_CANONICAL = re.compile(r"[1-9][0-9]{0,11}")
+
+
+def canonical_number(kind: str, identifier: str) -> int | None:
+    """The number an id was issued with, for ids of the form prefix + canonical decimal."""
+    prefix = COUNTER_PREFIXES[kind]
+    if not identifier.startswith(prefix):
+        return None
+    rest = identifier[len(prefix):]
+    return int(rest) if _CANONICAL.fullmatch(rest) else None
 
 
 @dataclass
@@ -22,8 +43,9 @@ class State:
     idempotency: dict[str, dict[str, Any]] = field(default_factory=dict)  # record key -> record
     counters: dict[str, int] = field(default_factory=dict)
 
-    def next_id(self, kind: str, prefix: str, taken) -> str:
+    def next_id(self, kind: str, taken) -> str:
         number = self.counters.get(kind, 0)
+        prefix = COUNTER_PREFIXES[kind]
         while True:
             number += 1
             candidate = f"{prefix}{number}"
@@ -31,7 +53,13 @@ class State:
                 self.counters[kind] = number
                 return candidate
 
-    def add_user(self, user_id: str, email: str, display_name: str, password_hash: str) -> None:
+    def reserve(self, kind: str, identifier: str) -> None:
+        """Raise the counter to cover an id that was not issued by the counter (a fixture id)."""
+        number = canonical_number(kind, identifier)
+        if number is not None and number > self.counters.get(kind, 0):
+            self.counters[kind] = number
+
+    def add_user(self, user_id: str, email: str, display_name: str, password_hash: str, *, reserve: bool = True) -> None:
         self.users[user_id] = {
             "id": user_id,
             "email": email,
@@ -39,6 +67,8 @@ class State:
             "password_hash": password_hash,
         }
         self.emails[email.lower()] = user_id
+        if reserve:
+            self.reserve("user", user_id)
 
     def dossier_ids(self) -> set[str]:
         return {record["dossier_id"] for record in self.dossiers.values()}
@@ -55,58 +85,84 @@ class State:
 
 
 def state_from_json(obj: Any) -> State:
-    """Validate an exported state; anything malformed is 422 and builds nothing."""
+    """Validate an exported state structurally; anything malformed is 422 and builds nothing."""
     if not isinstance(obj, dict):
         raise validation("state must be an object")
+    if set(obj) != set(SECTIONS):
+        raise validation("state must hold exactly the sections counters, dossiers, idempotency, tokens and users")
+    counters = _counters(obj["counters"])
+    users_raw = _entries(obj["users"], USER_KEYS)
+    tokens_raw = _entries(obj["tokens"], TOKEN_KEYS)
+    dossiers_raw = _entries(obj["dossiers"], None)
+    idempotency_raw = _entries(obj["idempotency"], None)
+
     state = State()
-    for entry in _list(obj, "users"):
-        user_id = _str(entry, "id")
-        email = _str(entry, "email")
-        display_name = _str(entry, "display_name")
-        password_hash = _str(entry, "password_hash")
-        # RL16: exported users may be fixture users, so only the id bounds and the encoded hash are checked.
+    state.counters = counters
+    for entry in users_raw:
+        user_id = _text(entry, "id")
+        email = _text(entry, "email")
+        display_name = _text(entry, "display_name")
+        password_hash = _text(entry, "password_hash")
         if not is_valid_user_id(user_id) or not is_valid_encoding(password_hash):
             raise validation("state holds an invalid user")
         if user_id in state.users or email.lower() in state.emails:
             raise validation("state holds a duplicate user")
-        state.add_user(user_id, email, display_name, password_hash)
-    for entry in _list(obj, "tokens"):
-        token = _str(entry, "token")
-        user_id = _str(entry, "user_id")
+        state.add_user(user_id, email, display_name, password_hash, reserve=False)
+    for entry in tokens_raw:
+        token = _text(entry, "token")
+        user_id = _text(entry, "user_id")
         if not token or user_id not in state.users or token in state.tokens:
             raise validation("state holds an invalid token")
         state.tokens[token] = user_id
-    counters = obj.get("counters", {})
-    if not isinstance(counters, dict):
-        raise validation("state counters must be an object")
-    for name, value in counters.items():
-        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise validation("state counters must be non-negative integers")
-        state.counters[str(name)] = value
-    for entry in _list(obj, "dossiers"):
+    for entry in dossiers_raw:
         record = dossier_from_json(entry)
         if record["domain"] in state.dossiers or record["dossier_id"] in state.dossier_ids():
             raise validation("state holds a duplicate dossier")
         state.dossiers[record["domain"]] = record
-    for entry in _list(obj, "idempotency"):
+    for entry in idempotency_raw:
         key, record = idempotency_from_json(entry, state.users)
         if key in state.idempotency:
             raise validation("state holds a duplicate idempotency record")
         state.idempotency[key] = record
+    _check_issued(state)
     return state
 
 
-def _list(obj: dict, key: str) -> list:
-    value = obj.get(key, [])
+def _counters(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict) or not set(value) <= set(COUNTER_PREFIXES):
+        raise validation("state counters must be an object with user and dossier counts")
+    counters: dict[str, int] = {}
+    for name, number in value.items():
+        if not isinstance(number, int) or isinstance(number, bool) or not 0 <= number <= MAX_COUNTER:
+            raise validation("state counters must be integers from 0 to 10^12")
+        counters[name] = number
+    return counters
+
+
+def _check_issued(state: State) -> None:
+    """Every id the counters could have issued must be covered by its counter (RL17)."""
+    for user_id in state.users:
+        number = canonical_number("user", user_id)
+        if number is not None and number > state.counters.get("user", 0):
+            raise validation("state user counter is below an issued id")
+    for dossier_id in state.dossier_ids():
+        number = canonical_number("dossier", dossier_id)
+        if number is not None and number > state.counters.get("dossier", 0):
+            raise validation("state dossier counter is below an issued id")
+
+
+def _entries(value: Any, keys: frozenset | None) -> list[dict]:
     if not isinstance(value, list):
-        raise validation(f"state {key} must be a list")
-    for item in value:
-        if not isinstance(item, dict):
-            raise validation(f"state {key} entries must be objects")
+        raise validation("state sections must be lists")
+    for entry in value:
+        if not isinstance(entry, dict):
+            raise validation("state entries must be objects")
+        if keys is not None and set(entry) != keys:
+            raise validation("state entries must have exactly the expected keys")
     return value
 
 
-def _str(entry: dict, key: str) -> str:
+def _text(entry: dict, key: str) -> str:
     value = entry.get(key)
     if not isinstance(value, str):
         raise validation(f"state field {key} must be a string")

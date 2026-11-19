@@ -1,12 +1,10 @@
 """Health and the unauthenticated /_test control endpoints (§3.2–§3.4, §10)."""
 
-from datetime import datetime
-
 from .errors import malformed, validation
 from .state import FORMAT_VERSION, TRACK
 from .store import Fixture, SeededUser
 from .validation import is_valid_user_id
-from .wire import parse_json, parse_rfc3339, require_object, required_string
+from .wire import Moment, parse_json, parse_rfc3339, require_object, required_string
 
 
 def register(router) -> None:
@@ -53,7 +51,7 @@ def import_state(app, request):
     return 204, None
 
 
-def parse_timestamp(body: dict) -> datetime:
+def parse_timestamp(body: dict) -> Moment:
     text = required_string(body, "now")
     moment = parse_rfc3339(text)
     if moment is None:

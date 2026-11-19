@@ -32,7 +32,7 @@ def open_dossier(app, request):
             status = 200
         else:
             moment = app.clock.now()
-            dossier_id = state.next_id("dossier", "d_", state.dossier_ids())
+            dossier_id = state.next_id("dossier", state.dossier_ids())
             record = dossiers.new_record(dossier_id, domain)
             state.dossiers[domain] = record
             app.runner.start(dossier_id, domain, moment, generation)

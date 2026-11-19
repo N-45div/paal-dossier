@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .app import App
 from .wire import encode_json
 
-MAX_BODY_BYTES = 1024 * 1024
+MAX_BODY_BYTES = 16 * 1024 * 1024
 REQUEST_QUEUE_SIZE = 128
 _JSON_TYPE = "application/json; charset=utf-8"
 

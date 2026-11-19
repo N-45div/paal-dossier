@@ -10,16 +10,15 @@ import secrets
 import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, Iterator
 
 from .clock import Clock
 from .dossiers import fields_from_engine
 from .errors import email_taken, unauthenticated, validation
-from .passwords import hash_password, verify_password
+from .passwords import hash_fixture_passwords, hash_password, verify_password
 from .state import State, state_from_json
 from .validation import is_valid_display_name, is_valid_email, is_valid_password
-from .wire import format_ts
+from .wire import Moment, format_ts
 
 _TOKEN_BYTES = 32
 
@@ -34,7 +33,7 @@ class SeededUser:
 
 @dataclass(frozen=True)
 class Fixture:
-    now: datetime
+    now: Moment
     users: list[SeededUser]
 
 
@@ -76,7 +75,7 @@ class Store:
         with self._lock:
             if email.lower() in self._state.emails:
                 raise email_taken()
-            user_id = self._state.next_id("user", "u_", self._state.users)
+            user_id = self._state.next_id("user", self._state.users)
             self._state.add_user(user_id, email, display_name, encoded)
             token = self._issue_token(user_id)
         return Account(user_id, display_name, token)
@@ -123,7 +122,7 @@ class Store:
             if record is not None:
                 record["spent_units"] += units
 
-    def finish_build(self, dossier_id: str, generation: int, requested_at: datetime, result: Any, reported: int) -> None:
+    def finish_build(self, dossier_id: str, generation: int, requested_at: Moment, result: Any, reported: int) -> None:
         """Apply a finished build (RL3): ready with its fields, or failed and fields unchanged."""
         with self._lock:
             if generation != self._generation:
@@ -152,8 +151,9 @@ class Store:
     def reset(self, fixture: Fixture) -> None:
         """Replace all state with the fixture and set the clock to its `now`."""
         fresh = State()
-        for seeded in fixture.users:
-            fresh.add_user(seeded.id, seeded.email, seeded.display_name, hash_password(seeded.password))
+        digests = hash_fixture_passwords([seeded.password for seeded in fixture.users])
+        for seeded, digest in zip(fixture.users, digests):
+            fresh.add_user(seeded.id, seeded.email, seeded.display_name, digest)
         with self._lock:
             self._state = fresh
             self._generation += 1
