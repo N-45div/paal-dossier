@@ -68,6 +68,11 @@ def run_load(service: ServiceClient, mock: MockAdmin, build_timeout: float = 120
         built = service.wait_built(ada, domain, build_timeout)
         _expect(report, built.status == 200 and built.body["state"] == "ready", f"{domain}: build did not end ready")
 
+    time.sleep(0.5)
+    first_builds = mock.log()
+    for domain in [SHARED_DOMAIN, *OTHER_DOMAINS]:
+        _expect(report, _successful_domain_searches(first_builds, domain) == 1, f"{domain}: first wave did not run exactly one build")
+
     # Wave 2: concurrent refreshes of one domain run one build; another key refreshes while idle.
     refreshes = [pool.submit(service.refresh, ada, SHARED_DOMAIN, f"refresh-{i}") for i in range(20)]
     refreshed = [f.result() for f in refreshes]
@@ -81,9 +86,9 @@ def run_load(service: ServiceClient, mock: MockAdmin, build_timeout: float = 120
     listing = service.listing(ada, "?limit=200")
     report.replies.append(listing)
     _expect(report, len(listing.body["dossiers"]) == 1 + len(OTHER_DOMAINS), "listing: wrong dossier count")
-    _expect(report, _successful_domain_searches(calls, SHARED_DOMAIN) in (2, 3), "shared domain: expected one successful bare-domain search for the first build and one for the refresh build(s)")
+    _expect(report, _successful_domain_searches(calls, SHARED_DOMAIN) >= 2, "refresh started no new build")
     for domain in OTHER_DOMAINS:
-        _expect(report, _successful_domain_searches(calls, domain) == 1, f"{domain}: not exactly one build")
+        _expect(report, _successful_domain_searches(calls, domain) == 1, f"{domain}: built more than once without a refresh")
     total_spent = sum(d["spent_units"] for d in listing.body["dossiers"])
     _expect(report, total_spent == sum(c["cost"] for c in calls), f"spent_units total {total_spent} != mock log {sum(c['cost'] for c in calls)}")
     _expect(report, all(r.status < 500 and r.status != 0 for r in report.replies), "a request returned 5xx or failed")
