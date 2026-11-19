@@ -1,6 +1,7 @@
 """Provider faults must never surface as 5xx (R1.58, ruling L1.23)."""
 from __future__ import annotations
 
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -18,6 +19,39 @@ CASES = [
 
 FAULTED_METHODS = ("search", "extract", "research")
 FAULT_STATUS = {"error": 500, "rate_limit": 429}  # a delay fault answers 200, late
+
+
+class LogWatcher:
+    """Polls the mock log while a build runs and notes when each entry first appeared.
+
+    The mock logs a call when it answers, so a delayed call appears no sooner than its delay after it was issued,
+    and no call is issued before the watch starts: an entry first seen at t >= seconds waited at least `seconds`.
+    """
+
+    def __init__(self, mock: MockAdmin) -> None:
+        self._mock = mock
+        self.first_seen: dict[int, float] = {}
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._poll, daemon=True)
+
+    def __enter__(self) -> "LogWatcher":
+        self._started = time.monotonic()
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._stop.set()
+        self._thread.join()
+        self._note()
+
+    def _note(self) -> None:
+        now = time.monotonic() - self._started
+        for call in self._mock.log():
+            self.first_seen.setdefault(call["seq"], now)
+
+    def _poll(self) -> None:
+        while not self._stop.wait(0.05):
+            self._note()
 
 
 @dataclass
@@ -49,11 +83,12 @@ def run_case(service: ServiceClient, mock: MockAdmin, provider: str, mode: str, 
     service.reset({"now": config.FIXTURE_NOW, "users": config.USERS})
     ada = service.login("ada@example.com")
     started = time.monotonic()
-    statuses = [service.create(ada, DOMAIN, "fault-run").status]
-    with ThreadPoolExecutor(10) as pool:
-        probes = [pool.submit(service.read, ada, DOMAIN) for _ in range(10)] + [pool.submit(service.listing, ada) for _ in range(5)]
-        statuses += [p.result().status for p in probes]
-    final = service.wait_built(ada, DOMAIN, timeout)
+    with LogWatcher(mock) as watcher:
+        statuses = [service.create(ada, DOMAIN, "fault-run").status]
+        with ThreadPoolExecutor(10) as pool:
+            probes = [pool.submit(service.read, ada, DOMAIN) for _ in range(10)] + [pool.submit(service.listing, ada) for _ in range(5)]
+            statuses += [p.result().status for p in probes]
+        final = service.wait_built(ada, DOMAIN, timeout)
     statuses.append(final.status)
     calls = mock.log()
     label = f"{provider} {mode}{'' if seconds is None else f' {seconds}s'}"
@@ -74,7 +109,10 @@ def run_case(service: ServiceClient, mock: MockAdmin, provider: str, mode: str, 
     faulted = [c for c in calls if c["provider"] in targets and c["method"] in FAULTED_METHODS]
     if mode in FAULT_STATUS:
         faulted = [c for c in faulted if c["status"] == FAULT_STATUS[mode]]
-    # evidence must be attributable to the faulted provider: a logged call to it, with the fault status unless it is a delay
+    # evidence must be attributable to the faulted provider and method: a logged call to it, answered with the fault
+    # status, or for a delay one that first appeared in the log no sooner than the configured delay
+    if mode == "delay":
+        faulted = [c for c in faulted if watcher.first_seen.get(c["seq"], 0.0) >= (seconds or 0)]
     result.exercised = bool(faulted)
     result.optional = provider == "tavily"
     # rate_limit is not permanent in the mock: a call refused three times is answered normally (README), so only `error` forces failure
