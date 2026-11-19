@@ -48,12 +48,23 @@ def parse_rfc3339(value: Any) -> Moment | None:
             return None
         offset = timedelta(hours=off_h_i, minutes=off_m_i) * (1 if sign == "+" else -1)
     try:
-        instant = datetime(
-            int(year), int(month), int(day), int(hour), int(minute), int(second), tzinfo=timezone(offset)
-        )
+        if second == "60":
+            # RL26: a leap second is valid only where the UTC instant is 23:59:60; it orders as the
+            # instant one second after 23:59:59 UTC.
+            wall = datetime(
+                int(year), int(month), int(day), int(hour), int(minute), 59, tzinfo=timezone(offset)
+            )
+            utc = wall.astimezone(timezone.utc)
+            if (utc.hour, utc.minute) != (23, 59):
+                return None
+            whole = (utc - _EPOCH) // timedelta(seconds=1) + 1
+        else:
+            instant = datetime(
+                int(year), int(month), int(day), int(hour), int(minute), int(second), tzinfo=timezone(offset)
+            )
+            whole = (instant - _EPOCH) // timedelta(seconds=1)
     except ValueError:
         return None
-    whole = (instant - _EPOCH) // timedelta(seconds=1)
     digits = fraction or ""
     exact = Fraction(whole) + (Fraction(Decimal("0." + digits)) if digits else Fraction(0))
     return Moment(exact, digits.rstrip("0"), offset)

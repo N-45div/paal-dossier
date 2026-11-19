@@ -133,6 +133,16 @@ class PrecisionTests(unittest.TestCase):
         self.assertEqual(status, 201)
         self.assertLessEqual(len(body["user_id"]), 64)
 
+    def test_RL26_leap_second_is_valid_only_at_utc_2359_60_and_orders_as_the_next_second(self):
+        """Covers R1.25, R1.27: a leap second is valid only where UTC is 23:59:60 (RL26)."""
+        self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="2016-12-31T23:59:59Z"))[0], 204)
+        self.assertEqual(call(self.app, "POST", "/_test/clock", {"now": "2016-12-31T23:59:60Z"})[0], 204)
+        self.assertEqual(call(self.app, "POST", "/_test/clock", {"now": "2017-01-01T00:00:00Z"})[0], 204)
+        self.assertEqual(call(self.app, "POST", "/_test/clock", {"now": "2016-12-31T23:59:59.5Z"})[0], 422)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="2016-12-31T18:59:60-05:00"))[0], 204)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="2016-12-31T12:00:60Z"))[0], 422)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="2016-12-31T23:59:61Z"))[0], 422)
+
 
 if __name__ == "__main__":
     unittest.main()
