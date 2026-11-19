@@ -29,6 +29,12 @@ def _path_domain(raw: str) -> str:
         raise invalid("domain is not a valid host name") from exc
 
 
+def raw_path(request: Request) -> str:
+    """The path exactly as sent, percent-encoding kept: replay identity is per raw path (ruling L1.03)."""
+    raw = request.scope.get("raw_path")
+    return raw.decode("latin-1") if raw else request.url.path
+
+
 def _handle(dossier: Dossier) -> dict[str, Any]:
     return {"dossier_id": dossier.dossier_id, "domain": dossier.domain, "state": dossier.state}
 
@@ -39,7 +45,8 @@ def _integer_param(request: Request, name: str, default: int, low: int, high: in
         return default
     if _DIGITS.fullmatch(raw) is None:
         raise invalid(f"{name} must be plain decimal digits")
-    value = int(raw) if len(raw) <= _MAX_DIGITS else _HUGE  # avoids Python's integer-conversion limit
+    digits = raw.lstrip("0") or "0"  # leading zeros do not change the value
+    value = int(digits) if len(digits) <= _MAX_DIGITS else _HUGE  # avoids Python's integer-conversion limit
     if value < low or (high is not None and value > high):
         raise invalid(f"{name} out of range")
     return value
@@ -57,7 +64,7 @@ class DossierHandlers:
         body = object_body(raw)
         key = read_key(request)
         compared = {"domain": body["domain"]} if "domain" in body else {}
-        path = request.url.path
+        path = raw_path(request)
         stored = replay(store, user_id, "POST", path, key, compared)
         if stored is not None:
             return json_response(stored, 200)
@@ -82,7 +89,7 @@ class DossierHandlers:
         store = service.store
         user_id = authenticate(request, store)
         key = read_key(request)
-        path = request.url.path
+        path = raw_path(request)
         stored = replay(store, user_id, "POST", path, key, None)
         if stored is not None:
             return json_response(stored, 200)

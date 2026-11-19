@@ -162,3 +162,19 @@ def test_build_without_successful_call_fails():
         h = login(c)
         post(c, h, {"domain": "acme.test"})
         assert wait_ready(c, h)["state"] == "failed"
+
+
+def test_leading_zeros_in_integer_parameters(client, ada):
+    post(client, ada, {"domain": "a.test"})
+    assert client.get("/dossiers?limit=" + "0" * 19 + "1", headers=ada).status_code == 200
+    page = client.get("/dossiers?offset=" + "0" * 19, headers=ada).json()
+    assert len(page["dossiers"]) == 1
+
+
+def test_replay_identity_uses_raw_path(client, ada):
+    post(client, ada, {"domain": "one.test"}, key="c")
+    first = client.post("/dossiers/%6fne.test/refresh", headers={**ada, "Idempotency-Key": "K"})
+    second = client.post("/dossiers/one.test/refresh", headers={**ada, "Idempotency-Key": "K"})
+    assert (first.status_code, second.status_code) == (202, 202)
+    again = client.post("/dossiers/one.test/refresh", headers={**ada, "Idempotency-Key": "K"})
+    assert again.status_code == 200
