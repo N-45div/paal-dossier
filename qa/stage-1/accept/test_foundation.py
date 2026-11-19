@@ -135,19 +135,19 @@ def test_R1_25_R1_27_long_fractional_timestamp(api, seeded):
     error(api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.12345678900+00:00'}), 422, 'validation_failed')
 
 
-def test_R1_17_R1_23_R1_31_body_size_boundary(api, seeded):
+def test_R1_17_R1_23_R1_31_body_size_boundary(api, direct_api, seeded):
     'R1.17 R1.23 R1.31'
     limit = 16 * 1024 * 1024
     prefix = b'{"now":"2026-03-01T09:00:00+00:00","ignored":"'
     suffix = b'","users":[]}'
     payload = prefix + b'x' * (limit - len(prefix) - len(suffix)) + suffix
     assert len(payload) == limit
-    accepted = api.post('/_test/reset', content=payload, headers={'Content-Type':'application/json'}, timeout=10)
+    accepted = direct_api.post('/_test/reset', content=payload, headers={'Content-Type':'application/json'}, timeout=10)
     assert accepted.status_code == 204
     assert api.post('/auth/signup', json={'email':'after@example.com', 'password':'correct horse',
                                         'display_name':'After'}).status_code == 201
-    rejected = api.post('/_test/reset', content=payload[:-len(suffix)] + b'x' + suffix,
-                        headers={'Content-Type':'application/json'}, timeout=10)
+    rejected = direct_api.post('/_test/reset', content=payload[:-len(suffix)] + b'x' + suffix,
+                               headers={'Content-Type':'application/json'}, timeout=10)
     error(rejected, 413, 'payload_too_large')
     assert api.post('/auth/login', json={'email':'after@example.com','password':'correct horse'}).status_code == 200
 
@@ -160,7 +160,8 @@ def test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip(api, seeded):
     assert response.status_code == 201 and response.json()['display_name'] == display
     snapshot = api.get('/_test/export', timeout=10).json()
     assert api.post('/_test/reset', json={'now':'2026-03-02T00:00:00+00:00','users':[]}, timeout=10).status_code == 204
-    assert api.post('/_test/import', json=snapshot, timeout=10).status_code == 204
+    encoded = json.dumps(snapshot, ensure_ascii=True).encode('ascii')
+    assert api.post('/_test/import', content=encoded, headers={'Content-Type':'application/json'}, timeout=10).status_code == 204
     login = api.post('/auth/login', json={'email':'surrogate@example.com','password':'correct horse'})
     assert login.status_code == 200 and login.json()['display_name'] == display
 

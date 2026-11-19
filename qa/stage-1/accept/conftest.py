@@ -188,6 +188,16 @@ def api(deployment):
 
 
 @pytest.fixture
+def direct_api(deployment):
+    # A server can reject Content-Length before consuming the upload. A direct
+    # connection observes that response without the relay closing mid-upload.
+    address = docker('inspect', '--format', '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
+                     deployment['container'], timeout=10).stdout.strip()
+    with httpx.Client(base_url=f'http://{address}:8080', timeout=10, trust_env=False) as client:
+        yield client
+
+
+@pytest.fixture
 def mock(deployment):
     with httpx.Client(base_url=deployment['mock'], headers=ADMIN, timeout=10, trust_env=False) as client:
         assert client.post('/_mock/reset', json={'epoch': 0}).status_code == 204
