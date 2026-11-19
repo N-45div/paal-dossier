@@ -13,7 +13,17 @@ CASES = {
     'evidenceeta.test': ('Evidenceeta was founded in 20140.\nEvidenceeta employs 12.5 people.\nEvidenceeta raised $0.001.\nEvidenceeta has funding of 20 euros.', {}),
     'evidencetheta.test': ('Evidencetheta registered as Evidencetheta S.A.S.\nEvidencetheta is based in São-Paulo.\nEvidencetheta workforce: 10001 people.\nEvidencetheta has raised $1.5bn.', {'legal_name':'Evidencetheta S.A.S.','hq_city':'São-Paulo','headcount_range':'10001+','funding_total':1500000000}),
     'evidenceiota.test': ('Evidenceiota plans to be founded in 2014.\nEvidenceiota wants to employ 100 people.\nEvidenceiota could raise $12M.\nEvidenceiota will become headquartered in Lisbon.\nEvidenceiota is rumoured to have CEO Dana Ruiz.', {}),
+    'evidencekappa.test': ('\n'.join('Evidencekappa ' + phrase + ' was founded in 2014.' for phrase in ('in talks to', 'plans to', 'planning to', 'wants to', 'expects to', 'hopes to', 'aims to', 'seeking', 'could', 'would', 'might', 'reportedly', 'rumoured', 'former', 'formerly', 'will become', 'not')), {}),
+    'evidencelambda.test': ('Evidencelambda was refounded in 2014.\nEvidencelambda has funding of $1,23.\nEvidencelambda opened offices in Berlin.', {}),
+    'evidencemu.test': ('Evidencemu was founded in 2014, a note states.', {'founded_year':2014}),
 }
+
+for n, count, expected in [('one', '1-10', '1-10'), ('two', '11-50', '11-50'),
+                           ('three', '51-200', '51-200'), ('four', '201-500', '201-500'),
+                           ('five', '501-1000', '501-1000'), ('six', '1001-5000', '1001-5000'),
+                           ('seven', '5001-10000', '5001-10000'), ('eight', '10001', '10001+')]:
+    domain = 'edge' + n + '.test'
+    CASES[domain] = ('Edge' + n + ' employs ' + count + ' people.', {'headcount_range': expected})
 
 if __name__ == '__main__':
     root = Path(sys.argv[1])

@@ -219,6 +219,10 @@ class Acceptance(unittest.TestCase):
         self.assertEqual(refresh[0], 202, 'R1.106')
         retry = app('POST', '/dossiers/example.test/refresh', token=self.token, key='same', body={'anything': 1})
         self.assertEqual(retry[:2], (200, refresh[1]), 'R1.75')
+        path_key = app('POST', '/dossiers/example.test/refresh', token=self.token, key='key')
+        self.assertEqual(path_key[0], 202, 'R1.72 same key on a different path')
+        alternate = app('POST', '/dossiers/EXAMPLE.TEST/refresh', token=self.token, key='key')
+        self.assertEqual(alternate[0], 202, 'R1.72 raw path identity')
         self.assertEqual(self.create(' WWW.Example.TEST. ', 'key')[:2], (200, first[1]), 'R1.77')
         poll('example.test', self.token)
 
@@ -291,6 +295,22 @@ class Acceptance(unittest.TestCase):
         self.assertEqual(failed['researched_at'], before['researched_at'], 'R1.93')
         self.assertEqual(failed['spent_units'], before['spent_units'], 'R1.143')
         self.assertTrue(mock('GET', '/_mock/log')[1]['calls'], 'Provider fault must actually be exercised')
+
+    def test_provider_rate_limit_R1_58_R1_81_R1_83_R1_143(self):
+        domain = 'halvorsen-robotics.test'
+        self.assertEqual(mock('POST', '/_mock/faults', body={'provider':'nimble','methods':['search','extract','research'],'mode':'rate_limit'})[0], 204)
+        started = time.monotonic()
+        self.assertEqual(self.create(domain, 'throttle')[0], 202, 'R1.58')
+        item = poll(domain, self.token, bound=10)
+        self.assertLessEqual(time.monotonic() - started, 10, 'R1.83')
+        calls = mock('GET', '/_mock/log')[1]['calls']
+        self.assertTrue(any(c['status'] == 429 for c in calls), 'Rate-limit fault must be exercised')
+        self.assertTrue(all(c['cost'] == 0 for c in calls if c['status'] == 429), 'R1.143')
+        self.assertEqual(item['spent_units'], sum(c['cost'] for c in calls), 'R1.143')
+        if any(200 <= c['status'] < 300 for c in calls):
+            self.assertEqual(item['state'], 'ready', 'R1.81')
+        elif all(c['status'] == 429 for c in calls):
+            self.assertEqual(item['state'], 'failed', 'R1.81')
 
     def test_export_import_R1_114_R1_115_R1_116_R1_117_R1_118_R1_119(self):
         original = self.create('snapshot.test', 'snapshot')
