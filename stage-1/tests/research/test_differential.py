@@ -3,9 +3,7 @@
 Skipped unless the oracle is found: set DOSSIER_SUPPORT_ORACLE to its ``support_oracle.py``, or have it at
 ``<repo root>/acceptance/stage-1/support_oracle.py``.
 
-One known oracle defect is tolerated: for ``legal_name`` its suffix match is greedy where A.4 says "the shortest
-counts", so a sentence with a legal-form suffix word repeated later (``... AS AS THE REGISTERED NAME ... AS``) gets
-a longer value from the oracle. That case is checked here against A.4 directly instead.
+The oracle must include the L1.31 fix (shortest legal name per start). No disagreement is tolerated.
 """
 
 import importlib.util
@@ -49,7 +47,7 @@ def disagreements(oracle, cases):
         mine, theirs = supported_values(sentence, domain), oracle_values(oracle, domain, sentence)
         for field in FIELDS:
             a, b = mine.get(field), theirs.get(field)
-            if a != b and not (field == "legal_name" and a and b and b.startswith(a)):
+            if a != b:
                 bad.append((sentence, field, domain, a, b))
     return bad
 
