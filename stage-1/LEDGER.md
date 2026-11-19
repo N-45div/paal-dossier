@@ -35,7 +35,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > Build from the supplied requirements. Source code, API documentation and schemas from existing products in this domain must not be used. WebRouter's own documentation may be used.
 
 ### §1 Scope
-- **R1.01** §1 — P2/P4 — open
+- **R1.01** §1 — P2/P4 — built (464c685+7653221)
   > A caller asks for a company by its web domain. The service researches the company on the web and keeps a **dossier**: a profile of six fields, each with the value the web supports and the excerpts it came from. A dossier is built in the background, read any number of times, and refreshed on request. Only the HTTP API is required.
 - **R1.01a** §1.1 — P3/P4 — built (7653221)
   > Every value the service asserts cites at least one excerpt that a provider endpoint served to this service, and that excerpt supports the value. No citation is invented, reworded, or attached to a value it does not support.
@@ -117,7 +117,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > The normalised domain must then be a valid host name: two or more labels separated by `.`, each label 1 to 63 characters of `a-z`, `0-9` and `-`, not starting or ending with `-`, and 253 characters or fewer in total. Anything else, including a URL with a scheme or a path, is 422 `validation_failed`.
 - **R1.37** §4 Domains — P2 — built (464c685)
   > `Acme-Robotics.TEST.`, `www.acme-robotics.test` and `acme-robotics.test` name the same company and the same dossier. Responses always carry the normalised domain.
-- **R1.38** §4 Fields — P2/P4 — open
+- **R1.38** §4 Fields — P2/P4 — built (464c685+7653221)
   > A dossier has exactly these six fields: `legal_name` String; `hq_city` String (city, without region or country); `ceo` String (full name); `founded_year` Integer; `headcount_range` String: one of `1-10`, `11-50`, `51-200`, `201-500`, `501-1000`, `1001-5000`, `5001-10000`, `10001+`; `funding_total` Integer: total equity funding raised, in whole US dollars
 - **R1.39** §4 Fields — P3 — built (5a24923)
   > A string value is written as the supporting excerpt writes it, without surrounding whitespace. A headcount the web states as a number, or as a range that fits inside one of the ranges above, has the range that contains it as its value.
