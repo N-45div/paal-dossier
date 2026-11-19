@@ -171,7 +171,7 @@ class Acceptance(unittest.TestCase):
     def test_default_port_R1_18(self):
         self.assertEqual(request(DEFAULT, 'GET', '/health')[:2], (200, {'status':'ok'}), 'R1.18')
 
-    def test_single_image_offline_R1_04_R1_05_R1_11_R1_16_R1_17(self):
+    def test_single_image_offline_R1_04_R1_05_R1_09_R1_10_R1_11_R1_16_R1_17(self):
         # The runner builds only the Dockerfile, starts the service without Compose,
         # applies the resource caps and runs this client on an internal network.
         self.assertEqual(app('GET', '/health')[:2], (200, {'status': 'ok'}), 'R1.04 R1.05 R1.11')
@@ -181,6 +181,7 @@ class Acceptance(unittest.TestCase):
         self.assertEqual(item['state'], 'ready', 'R1.16 R1.17 provider-only network')
         calls = mock('GET', '/_mock/log')[1]['calls']
         self.assertTrue(any(c['provider'] == 'nimble' and 200 <= c['status'] < 300 for c in calls), 'R1.16 R1.17 requires a successful provider call')
+        self.assertTrue(all(c['provider'] == 'nimble' for c in calls), 'R1.09 R1.10 Nimble-only deployment')
 
     def test_clock_validation_R1_25_R1_26_R1_27_R1_28_R1_29_R1_30(self):
         for payload, status, code in [({}, 422, 'validation_failed'), ({'now': 42}, 400, 'malformed_request'),
@@ -428,7 +429,7 @@ class Acceptance(unittest.TestCase):
         login = app('POST', '/auth/login', body={'email': 'ada@example.test', 'password': 'correct horse'})
         self.assertEqual(login[0], 200, 'R1.117')
 
-    def test_refresh_replaces_state_and_snapshot_R1_79_R1_90_R1_91_R1_93_R1_94_R1_107_R1_110_R1_120(self):
+    def test_refresh_replaces_state_and_snapshot_R1_01_R1_79_R1_90_R1_91_R1_93_R1_94_R1_107_R1_110_R1_120(self):
         self.assertEqual(self.create('halvorsen-robotics.test', 'initial')[0], 202)
         before = poll('halvorsen-robotics.test', self.token)
         self.assertEqual(before['state'], 'ready')
@@ -548,7 +549,7 @@ class Acceptance(unittest.TestCase):
                             self.assertEqual(citation['url'], 'https://' + domain + '/about')
                             self.assertIn(' '.join(citation['excerpt'].split()), ' '.join(prose.split()))
 
-    def test_majority_distinct_urls_R1_48_L1_12(self):
+    def test_majority_distinct_urls_R1_43_R1_48_L1_12(self):
         domain = 'multiproof.test'
         self.assertEqual(self.create(domain, 'majority')[0], 202)
         item = poll(domain, self.token)
