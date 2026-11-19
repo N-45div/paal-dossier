@@ -44,6 +44,16 @@ class Account:
     token: str
 
 
+def authenticate_in(state: State, token: str | None) -> str:
+    """Resolve a bearer token against a state; callers hold the lock so the answer is current."""
+    if not token:
+        raise unauthenticated()
+    user_id = state.tokens.get(token)
+    if user_id is None or user_id not in state.users:
+        raise unauthenticated("unknown bearer token")
+    return user_id
+
+
 class Store:
     def __init__(self, clock: Clock) -> None:
         self._clock = clock
@@ -99,13 +109,8 @@ class Store:
 
     def authenticate(self, token: str | None) -> str:
         """The user id behind a bearer token; 401 for a missing or unknown token."""
-        if not token:
-            raise unauthenticated()
         with self._lock:
-            user_id = self._state.tokens.get(token)
-            if user_id is None or user_id not in self._state.users:
-                raise unauthenticated("unknown bearer token")
-            return user_id
+            return authenticate_in(self._state, token)
 
     def _issue_token(self, user_id: str) -> str:
         token = secrets.token_urlsafe(_TOKEN_BYTES)
@@ -132,6 +137,7 @@ class Store:
                 return
             if result is None or not getattr(result, "ok", False):
                 record["state"] = "failed"
+                record["last_state"] = "failed"
                 if result is not None:
                     record["spent_units"] += max(0, int(result.spent) - reported)
                 return
@@ -139,6 +145,7 @@ class Store:
             record["fields"] = fields_from_engine(result.fields)
             record["researched_at"] = format_ts(requested_at)
             record["state"] = "ready"
+            record["last_state"] = "ready"
 
     def _record_by_id(self, dossier_id: str) -> dict | None:
         for record in self._state.dossiers.values():

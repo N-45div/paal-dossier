@@ -8,7 +8,7 @@ docker smoke run recorded in the handoff; "gap:" entries are declared gaps with 
 import importlib
 import unittest
 
-MODULES = ["test_foundation", "test_domain", "test_dossiers", "test_precision_and_limits", "test_import_validation", "test_server_limits", "test_declared_gaps"]
+MODULES = ["test_foundation", "test_domain", "test_dossiers", "test_precision_and_limits", "test_import_validation", "test_server_limits", "test_declared_gaps", "test_review_findings"]
 
 P1_IDS = [6, 7, 8, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
           48, 49, 50, 51, 53, 54, 56, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 70, 124, 125, 126, 127, 128]
@@ -121,6 +121,14 @@ COVERAGE = {
     109: ["DossierTests.test_list_filters_orders_and_pages"],
 }
 
+# Review findings on c2c42b65 (test_review_findings): added to the same ids.
+COVERAGE[23].append("ReviewFindingTests.test_r1_23_token_removed_by_reset_is_refused")
+COVERAGE[40].append("ReviewFindingTests.test_r1_40_invalid_stored_values_are_refused_on_import")
+COVERAGE[61].append("ReviewFindingTests.test_r1_61_very_long_digit_offsets_answer_without_5xx")
+COVERAGE[125].append("ReviewFindingTests.test_r1_125_export_during_failed_refresh_shows_the_last_completed_build")
+COVERAGE[126].append("ReviewFindingTests.test_r1_126_export_during_failed_refresh_round_trips_unchanged")
+COVERAGE[128].append("ReviewFindingTests.test_r1_125_export_during_failed_refresh_shows_the_last_completed_build")
+
 _CLASSES = {
     "FoundationTests": "test_foundation",
     "Ruling16FixtureTests": "test_foundation",
@@ -130,6 +138,7 @@ _CLASSES = {
     "ImportValidationTests": "test_import_validation",
     "ServerLimitTests": "test_server_limits",
     "DeclaredGapTests": "test_declared_gaps",
+    "ReviewFindingTests": "test_review_findings",
 }
 
 

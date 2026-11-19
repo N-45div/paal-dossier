@@ -12,7 +12,7 @@ from .clock import Clock
 from .engine_adapter import run_build
 from .errors import ApiError, unauthenticated
 from .router import Router
-from .store import Store
+from .store import Store, authenticate_in
 from .wire import encode_json
 
 log = logging.getLogger("dossier")
@@ -69,9 +69,14 @@ class App:
             body=body,
             params=params,
         )
-        if not route.public:
-            request.user_id = self.store.authenticate(_bearer_token(headers))
-        status, payload = route.handler(self, request)
+        # Protected routes: authentication and the handler run under one hold of the state lock
+        # (RL9, reset race), so a token a reset removed is refused by the state the handler sees.
+        if route.public:
+            status, payload = route.handler(self, request)  # signup and login hash outside the lock
+        else:
+            with self.store.transact() as (state, _generation):
+                request.user_id = authenticate_in(state, _bearer_token(headers))
+                status, payload = route.handler(self, request)
         if payload is None:
             return Reply(status, None)
         return Reply(status, encode_json(payload))

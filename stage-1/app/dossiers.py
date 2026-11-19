@@ -29,6 +29,7 @@ def new_record(dossier_id: str, domain: str) -> dict[str, Any]:
         "dossier_id": dossier_id,
         "domain": domain,
         "state": "building",
+        "last_state": None,  # outcome of the last completed build: ready, failed, or None if none yet
         "researched_at": None,
         "spent_units": 0,
         "fields": unknown_fields(),
@@ -80,7 +81,7 @@ def export_dossier(record: dict[str, Any]) -> dict[str, Any]:
     """The exported form: a building dossier is exported as its last completed build (RL10)."""
     state = record["state"]
     if state == "building":
-        state = "ready" if record["researched_at"] else "failed"
+        state = record["last_state"] or "failed"
     return {
         "dossier_id": record["dossier_id"],
         "domain": record["domain"],
@@ -127,6 +128,7 @@ def dossier_from_json(entry: Any) -> dict[str, Any]:
         "dossier_id": dossier_id,
         "domain": raw_domain,
         "state": state,
+        "last_state": state,
         "researched_at": researched_at,
         "spent_units": spent,
         "fields": fields,
@@ -166,6 +168,8 @@ def _is_value(name: str, value: Any) -> bool:
         return False
     if not isinstance(value, FIELD_TYPES[name]):
         return False
+    if name == "founded_year":
+        return 1800 <= value <= 2099
     if name == "headcount_range":
         return value in HEADCOUNT_RANGES
     if isinstance(value, str):

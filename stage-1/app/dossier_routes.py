@@ -104,7 +104,8 @@ def _integer(query: dict, name: str, *, default: int, low: int, high: int | None
         return default
     if _DIGITS.fullmatch(raw) is None:
         raise validation(f"{name} must be a plain decimal integer")
-    value = int(raw)
+    digits = raw.lstrip("0") or "0"
+    value = int(digits) if len(digits) <= 18 else 10**18  # beyond any page size: out of range
     if value < low or (high is not None and value > high):
         raise validation(f"{name} is out of range")
     return value
