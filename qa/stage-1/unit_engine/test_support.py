@@ -13,7 +13,7 @@ Index of claimed ledger ids -> tests (each id is named in at least one test name
   R1.141-R1.146    test_r1_141_146_*       statement phrases per field (A.3)
   R1.147           test_r1_147_*           negating phrases (A.3)
   R1.148           test_r1_148_*           capitalised and uppercase words (A.4)
-  R1.149           test_r1_149_*           number grammar (A.4), including defect probes
+  R1.149           test_r1_149_*           number grammar (A.4), including defect probes; ASCII-only (RL28)
   R1.150           test_r1_150_*           legal_name format
   R1.151           test_r1_151_*           hq_city format
   R1.152           test_r1_152_*           ceo format
@@ -21,7 +21,7 @@ Index of claimed ledger ids -> tests (each id is named in at least one test name
   R1.154           test_r1_154_*           headcount_range format
   R1.155           test_r1_155_*           funding_total format
   R1.156           test_r1_156_*           legal-form suffixes
-  R1.157           test_r1_157_*           amount boundaries (no letter or digit next to it)
+  R1.157           test_r1_157_*           amount boundaries (no letter or digit next to it; Unicode digits too, RL28)
   R1.158           test_r1_158_*           amount forms with $/US$/USD and scales
   R1.159           test_r1_159_*           amount forms with dollars / US dollars
   R1.160           test_r1_160_*           other currencies are not amounts
@@ -561,6 +561,20 @@ class ClaimedLedgerIdTests(unittest.TestCase):
         self.assertIsNone(supports("Acme Robotics was founded in \u0662\u0660\u0661\u0664.", D, "founded_year"))
         # A trailing dot ends the sentence, so the number is still 12.
         self.assertEqual(supports("Acme Robotics raised $12.", D, "funding_total"), 12)
+
+    def test_r1_149_ascii_only_values_unicode_digits_are_not_numbers(self):
+        # RL28: only ASCII digits 0-9 form numbers, for every field that reads numbers.
+        self.assertIsNone(supports("Acme Robotics employs \u0661\u0662\u0660 people.", D, "headcount_range"))
+        self.assertIsNone(supports("Acme Robotics was founded in \u0662\u0660\u0661\u0664.", D, "founded_year"))
+        self.assertIsNone(supports("Acme Robotics raised \u0663\u0662 million dollars.", D, "funding_total"))
+        self.assertEqual(supports("Acme Robotics employs 120 people.", D, "headcount_range"), "51-200")
+
+    def test_r1_157_unicode_digit_directly_next_to_a_number_blocks_it(self):
+        # RL28: any decimal digit or letter next to a number blocks it, for amounts, years, headcounts.
+        self.assertIsNone(supports("Acme Robotics employs 12\u0663 people.", D, "headcount_range"))
+        self.assertIsNone(supports("Acme Robotics raised $12\u0663.", D, "funding_total"))
+        self.assertIsNone(supports("Acme Robotics was founded in 2014\u0663.", D, "founded_year"))
+        self.assertEqual(supports("Acme Robotics was founded in 2014.", D, "founded_year"), 2014)
 
     def test_r1_150_legal_name_format(self):
         self.assertEqual(
