@@ -268,7 +268,7 @@ class Acceptance(unittest.TestCase):
                 response = app('GET', '/dossiers?' + query, token=self.token)
                 self.assertEqual(response[0], 200, f'L1.28 {query[:24]}: {response[:2]}')
                 self.assertEqual(len(response[1]['dossiers']), 1, 'L1.28')
-        for query in ('limit=0', 'limit=201', 'limit=' + zeros + '201', 'limit=%2B4', 'limit=-1', 'limit=4.0', 'limit=1e9', 'limit=%204', 'limit=%D9%A1'):
+        for query in ('limit=0', 'limit=' + '0'*19, 'limit=201', 'limit=' + zeros + '201', 'limit=%2B4', 'limit=-1', 'limit=4.0', 'limit=1e9', 'limit=%204', 'limit=%D9%A1'):
             with self.subTest(query=query[:24]):
                 self.error(app('GET', '/dossiers?' + query, token=self.token), 422, 'validation_failed', 'L1.28')
         for offset in ('0', '0000', '0'*19, zeros):
