@@ -47,7 +47,7 @@ def sentences(text):
         for match in re.finditer(r'[.!?]["”’)]*(?=\s)', line):
             end = match.end()
             prefix = line[start:end]
-            if line[match.start()] == '.' and any(re.search(BOUNDARY_L + re.escape(s) + r'$' , prefix) for s in SUFFIXES if s.endswith('.')):
+            if line[match.start()] == '.' and any(re.search(BOUNDARY_L + re.escape(s) + r'$' , prefix.rstrip('"”’' + ')')) for s in SUFFIXES if s.endswith('.')):
                 continue
             value = prefix.strip()
             if value:

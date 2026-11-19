@@ -21,5 +21,5 @@ if __name__ == '__main__':
         name = domain.split('.')[0].capitalize()
         page = {'url': 'https://' + domain + '/about', 'kind': 'own', 'epochs': [0, 1], 'searchable': True,
                 'published_at': None, 'true_from': None, 'title': name, 'text': prose,
-                'facts': {}, 'lineage': {'canonical': None, 'first_published_by': None, 'registrant': domain}}
+                'facts': {'ceo': 'Misleading Person', 'funding_total': '$999M'}, 'lineage': {'canonical': None, 'first_published_by': None, 'registrant': domain}}
         (root / (domain + '.json')).write_text(json.dumps({'domain': domain, 'names': [name], 'pages': [page], 'research': {'nimble': {'0': [], '1': []}}}))
