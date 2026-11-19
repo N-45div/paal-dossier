@@ -111,13 +111,12 @@ def healthy(url, seconds=60):
     raise AssertionError(f'health endpoint did not become ready in {seconds}s: {url}')
 
 
-@pytest.fixture(scope='session')
-def deployment(request):
+def launch_deployment(request, corpus):
     root = request.config.getoption('--service-root')
     if not root:
         pytest.fail('Set DOSSIER_ROOT or pass --service-root to a worktree containing stage-1')
     service = Path(root).resolve() / 'stage-1'
-    corpus = Path(request.config.getoption('--corpus')).resolve()
+    corpus = Path(corpus).resolve()
     if not corpus.is_dir():
         pytest.fail(f'Corpus directory does not exist: {corpus}')
     if not (service / 'Dockerfile').is_file():
@@ -155,6 +154,28 @@ def deployment(request):
         docker('network', 'rm', front, timeout=20, check=False)
         for image in (app_image, web_image):
             docker('image', 'rm', '-f', image, timeout=20, check=False)
+
+
+@pytest.fixture(scope='session')
+def deployment(request):
+    yield from launch_deployment(request, request.config.getoption('--corpus'))
+
+
+@pytest.fixture(scope='session')
+def adversarial_deployment(request, tmp_path_factory):
+    corpus = tmp_path_factory.mktemp('prover-corpus')
+    for domain, sentence in (
+        ('rumor-press.test', 'Rumor Press is rumoured to have raised $17M.'),
+        ('scale-probe.test', 'Scale Probe has raised $23mn.'),
+    ):
+        page = {'url':f'https://{domain}/about', 'kind':'own', 'epochs':[0],
+                'searchable':True, 'published_at':None, 'true_from':None,
+                'title':domain, 'text':sentence, 'facts':{},
+                'lineage':{'canonical':None, 'first_published_by':None, 'registrant':domain}}
+        company = {'domain':domain, 'names':[domain.split('.')[0].replace('-', ' ')],
+                   'pages':[page], 'research':{}}
+        (corpus / (domain + '.json')).write_text(json.dumps(company))
+    yield from launch_deployment(request, corpus)
 
 
 @pytest.fixture
