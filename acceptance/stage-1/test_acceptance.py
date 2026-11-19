@@ -171,6 +171,17 @@ class Acceptance(unittest.TestCase):
     def test_default_port_R1_18(self):
         self.assertEqual(request(DEFAULT, 'GET', '/health')[:2], (200, {'status':'ok'}), 'R1.18')
 
+    def test_single_image_offline_R1_04_R1_05_R1_11_R1_16_R1_17(self):
+        # The runner builds only the Dockerfile, starts the service without Compose,
+        # applies the resource caps and runs this client on an internal network.
+        self.assertEqual(app('GET', '/health')[:2], (200, {'status': 'ok'}), 'R1.04 R1.05 R1.11')
+        self.assertEqual(request(DEFAULT, 'GET', '/health')[:2], (200, {'status': 'ok'}), 'R1.05')
+        self.assertEqual(self.create('halvorsen-robotics.test', 'offline')[0], 202)
+        item = poll('halvorsen-robotics.test', self.token)
+        self.assertEqual(item['state'], 'ready', 'R1.16 R1.17 provider-only network')
+        calls = mock('GET', '/_mock/log')[1]['calls']
+        self.assertTrue(any(c['provider'] == 'nimble' and 200 <= c['status'] < 300 for c in calls), 'R1.16 R1.17 requires a successful provider call')
+
     def test_clock_validation_R1_25_R1_26_R1_27_R1_28_R1_29_R1_30(self):
         for payload, status, code in [({}, 422, 'validation_failed'), ({'now': 42}, 400, 'malformed_request'),
                                       ({'now': '2026-03-01T09:00:00'}, 422, 'validation_failed'),
@@ -559,7 +570,7 @@ class Acceptance(unittest.TestCase):
                 item = poll(domain, self.token)
                 self.assertEqual(item['state'], 'ready', 'R1.06')
                 self.assertEqual(item['domain'], domain)
-                self.assertEqual(set(item['fields']), set(FIELDS), 'R1.02a R1.38 R1.92')
+                self.assertEqual(set(item['fields']), set(FIELDS), 'R1.38 R1.90 R1.92')
                 calls = mock('GET', '/_mock/log')[1]['calls']
                 cost = sum(call['cost'] for call in calls)
                 all_costs.append(cost)
