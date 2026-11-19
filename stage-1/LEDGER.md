@@ -374,6 +374,8 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 
 - **L1.29 Scope statements.** R1.69 ("Email verification, password reset, refresh tokens and role-management endpoints are out of scope.") and R1.02a ("Contact data, people search, and fields other than the six in §4 are out of scope.") impose no absence requirement; they are non-acceptance (informative) entries, checked only by gatekeeper review that nothing in scope depends on them. R1.02a's positive half — a dossier has exactly the six fields — is tested under R1.38/R1.90.
 
+- **L1.30 Proxy criteria for R1.68 and R1.143.** R1.68 proxy: the export (and every response) contains no user's plaintext password anywhere; differing hash material for equal passwords is NOT required (not observable through the opaque §10 state; withdrawn). R1.143 proxy: with the mock web unreachable (container stopped or network detached) a `POST /dossiers` returns 202, never 5xx, and the build ends `failed` with fields unchanged and 0 < `spent_units` ≤ 80 (connection failures are charged, refused calls are not). The 30 s timeout path itself is a gatekeeper review item (L1.25).
+
 ## Rejections (stage 1)
 
 | # | Commit | Package | Ledger ids | Reason | Change |
