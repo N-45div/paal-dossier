@@ -376,6 +376,8 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 
 - **L1.30 Proxy criteria for R1.68 and R1.143.** R1.68 proxy: the export (and every response) contains no user's plaintext password anywhere; differing hash material for equal passwords is NOT required (not observable through the opaque §10 state; withdrawn). R1.143 proxy: with the mock web unreachable (container stopped or network detached) a `POST /dossiers` returns 202, never 5xx, and the build ends `failed` with fields unchanged and 0 < `spent_units` ≤ 80 (connection failures are charged, refused calls are not). The 30 s timeout path itself is a gatekeeper review item (L1.25).
 
+- **L1.31 Comma-grouped years; shortest legal name.** (A.4) A number written with grouping commas, such as `2,014`, has exactly four digits and therefore is a `founded_year`-format value (value 2014) when it is from 1800 to 2099 and not part of an amount; "exactly four digits" counts digits, not characters. For `legal_name`, "the shortest counts" applies across every candidate text starting at the same place, including different lengths of capitalised/uppercase word runs before the same suffix: the shortest one wins (e.g. `HALVORSEN ROBOTICS AS AS THE REGISTERED NAME …` gives `HALVORSEN ROBOTICS AS`).
+
 ## Rejections (stage 1)
 
 | # | Commit | Package | Ledger ids | Reason | Change |
