@@ -155,9 +155,23 @@ def corpus_candidates(domain, pages):
     answer = {field: set() for field in FIELDS}
     for page in pages:
         for sentence in sentences(page['text']):
-            if len(sentence) <= 500:
-                for field in FIELDS:
-                    answer[field].update(candidates(domain, field, sentence))
+            for field in FIELDS:
+                supported = candidates(domain, field, sentence)
+                if not supported:
+                    continue
+                if len(sentence) <= 500:
+                    answer[field].update(supported)
+                    continue
+                # RL21 permits a prefix only when both it and the entire
+                # overlong sentence support the same value.
+                normalized = re.sub(r'\s+', ' ', sentence).strip()
+                for word in re.finditer(r'\S+', normalized):
+                    if word.end() > 500:
+                        break
+                    match = supported & candidates(domain, field, normalized[:word.end()])
+                    if match:
+                        answer[field].update(match)
+                        break
     return answer
 
 

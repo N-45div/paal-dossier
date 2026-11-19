@@ -1,4 +1,6 @@
 """Foundation checks that do not require the later dossier routes."""
+import time
+
 import pytest
 
 from test_api import auth, error
@@ -86,3 +88,22 @@ def test_R1_23_R1_25_reset_can_move_clock_backwards(api, seeded):
     assert api.post('/_test/clock', json={'now':'2026-04-01T00:00:00+00:00'}).status_code == 204
     assert api.post('/_test/reset', json={'now':'2020-01-01T00:00:00+00:00'}, timeout=10).status_code == 204
     assert api.post('/_test/clock', json={'now':'2020-01-02T00:00:00+00:00'}).status_code == 204
+
+
+def test_R1_17_R1_23_R1_48_500_seeded_users(api, seeded):
+    users = [{'id':f'u{i}', 'email':f'user{i}@fixture.test', 'password':'fixture password',
+              'display_name':f'User {i}'} for i in range(500)]
+    start = time.monotonic()
+    result = api.post('/_test/reset', json={'now':'2026-03-01T00:00:00+00:00','users':users}, timeout=10)
+    elapsed = time.monotonic() - start
+    assert result.status_code == 204
+    assert elapsed <= 5, f'500-user reset took {elapsed:.3f}s'
+    for user in (users[0], users[249], users[-1]):
+        response = api.post('/auth/login', json={'email':user['email'],'password':user['password']})
+        assert response.status_code == 200 and response.json()['user_id'] == user['id']
+
+
+def test_R1_27_fractional_clock_precision(api, seeded):
+    assert api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.123456789+00:00'}).status_code == 204
+    error(api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.123456788+00:00'}), 422, 'validation_failed')
+    assert api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.123456790+00:00'}).status_code == 204

@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from oracle import FIELDS, candidates, evidence_candidates, prose, sentences
+from oracle import FIELDS, candidates, corpus_candidates, evidence_candidates, prose, sentences
 from test_api import auth, create, done
 
 
@@ -85,6 +85,14 @@ def test_R1_41_R1_45_R1_86_cross_company_and_research_evidence():
     assert result['funding_total'] == set()
 
 
+def test_R1_43_R1_44_R1_133_long_sentence_full_support():
+    prefix = 'Acme Robotics raised $25M ' + ('quiet detail ' * 50)
+    domain = 'acme-robotics.test'
+    assert corpus_candidates(domain, [{'text': prefix + 'for growth.'}])['funding_total'] == {25000000}
+    assert corpus_candidates(domain, [{'text': prefix + 'not for growth.'}])['funding_total'] == set()
+    assert corpus_candidates(domain, [{'text': prefix + 'or $30M.'}])['funding_total'] == set()
+
+
 def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost(api, mock, seeded, company_path, all_pages, all_companies):
     """R1.111 R1.112 R1.113 R1.114 R1.115 R1.116 R1.117 R1.118 R1.119 R1.120:
     verify each applicable price and depth for provider calls observed, without requiring optional calls.
@@ -135,6 +143,11 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
             assert citation['provider'] in ('nimble', 'tavily')
             assert any(page['url'] == citation['url'] and normalized(excerpt) in normalized(page['text'])
                        for page in all_pages), citation
+            assert any((len(sentence) <= 500 or
+                        (value in candidates(domain, field, sentence) and normalized(sentence).startswith(normalized(excerpt))))
+                       and normalized(excerpt) in normalized(sentence)
+                       for page in all_pages if page['url'] == citation['url']
+                       for sentence in sentences(page['text'])), citation
             assert any(normalized(excerpt) in normalized(prose(served['text']))
                        for call in calls if call['provider'] == citation['provider']
                        for served in call.get('served', []) if served['url'] == citation['url']), citation
