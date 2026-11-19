@@ -62,7 +62,11 @@ def run_case(service: ServiceClient, mock: MockAdmin, provider: str, mode: str, 
         result.problems.append(f"bad statuses {sorted(set(statuses))}")
     if result.state not in ("ready", "failed"):
         result.problems.append(f"build ended {result.state}")
-    if result.log_units != result.spent_units:
+    if mode == "delay":
+        # a call that times out costs its units though the mock may not log it (§9), so spent may exceed the log
+        if result.spent_units < result.log_units:
+            result.problems.append(f"spent_units {result.spent_units} < mock log {result.log_units}: calls were made but not counted")
+    elif result.log_units != result.spent_units:
         result.problems.append(f"spent_units {result.spent_units} != mock log {result.log_units}")
     if result.log_units > 80:
         result.problems.append(f"{result.log_units} units over budget")
@@ -72,8 +76,10 @@ def run_case(service: ServiceClient, mock: MockAdmin, provider: str, mode: str, 
         faulted = [c for c in faulted if c["status"] == FAULT_STATUS[mode]]
     result.exercised = bool(faulted)
     result.optional = provider == "tavily"
-    if provider == "both" and result.state != "failed":
-        result.problems.append("every call failed but the build did not end failed")
-    if provider == "both" and any(c["status"] == 200 for c in calls):
-        result.problems.append("a call succeeded despite faults on both providers")
+    # rate_limit is not permanent in the mock: a call refused three times is answered normally (README), so only `error` forces failure
+    if provider == "both" and mode == "error":
+        if result.state != "failed":
+            result.problems.append("every call failed but the build did not end failed")
+        if any(c["status"] == 200 for c in calls):
+            result.problems.append("a call succeeded despite faults on both providers")
     return result

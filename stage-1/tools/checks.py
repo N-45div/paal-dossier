@@ -35,9 +35,10 @@ def check_faults(service, mock) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("which", nargs="*", choices=["startup", "load", "faults"], default=["startup", "load", "faults"])
+    parser.add_argument("which", nargs="*", choices=["startup", "load", "faults"])
     parser.add_argument("--no-build", action="store_true")
     args = parser.parse_args()
+    args.which = args.which or ["startup", "load", "faults"]
     ok = True
     with stack.running(build=not args.no_build) as (service, mock):
         stack.stop_service()
