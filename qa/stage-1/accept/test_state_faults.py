@@ -69,8 +69,8 @@ def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, deployment
     assert create(api, token, domain, 'initial').status_code == 202
     initial = done(api, token, domain)
     before = mock.get('/_mock/log').json()['calls']
-    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.3)
-    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=.3)
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=6)
+    fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=6)
     barrier = threading.Barrier(50)
     with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
         def one(i):
@@ -83,7 +83,9 @@ def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, deployment
     assert all(code == 202 and body['state'] == 'building' for code, body, _ in responses)
     assert len({body['dossier_id'] for _, body, _ in responses}) == 1
     assert max(elapsed for _, _, elapsed in responses) < 5
-    final = done(api, token, domain)
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'none')
+    fault(mock, 'tavily', ['search', 'extract'], 'none')
+    final = done(api, token, domain, timeout=20)
     calls = mock.get('/_mock/log').json()['calls'][len(before):]
     assert sum(c['method'] == 'search' and c['query'] == domain and c['status'] == 200 for c in calls) == 1
     assert final['spent_units'] == initial['spent_units'] + sum(c['cost'] for c in calls)
@@ -184,3 +186,5 @@ def test_R1_97_R1_128_export_refresh_in_progress(api, mock, seeded):
     restored = api.get('/dossiers/ashgrove-solar.test', headers=auth(token)).json()
     assert restored['state'] == original['state']
     assert restored['fields'] == original['fields'] and restored['researched_at'] == original['researched_at']
+    time.sleep(10.2)
+    assert api.get('/dossiers/ashgrove-solar.test', headers=auth(token)).json() == restored
