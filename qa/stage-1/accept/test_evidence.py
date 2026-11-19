@@ -23,6 +23,10 @@ def normalized(text):
     ('funding_total', 'Acme Robotics has raised 12 million dollars.', {12000000}),
     ('funding_total', 'Acme Robotics raised $1.2.3 million.', set()),
     ('funding_total', 'Acme Robotics raised $0.001.', set()),
+    ('funding_total', 'Acme Robotics raised $0.001 million.', {1000}),
+    ('funding_total', 'Acme Robotics raised $987654321098765432109876543210987654321.', {987654321098765432109876543210987654321}),
+    ('funding_total', 'Acme Robotics raised $987654321098765432109876543210987654321.5.', set()),
+    ('funding_total', 'Acme Robotics raised $63widgets.', set()),
     ('funding_total', 'Acme Robotics raised US$12.5 million.', {12500000}),
     ('funding_total', 'Acme Robotics raised 1,200 US dollars.', {1200}),
     ('funding_total', 'Acme Robotics raised €1200.', set()),
@@ -118,6 +122,8 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
         value = result['value']
         if supported[field]:
             assert result['status'] == 'known' and value in supported[field], (domain, field, value, supported[field])
+            expected_type = int if field in ('founded_year', 'funding_total') else str
+            assert type(value) is expected_type
             assert result['citations']
         else:
             assert result['status'] == 'unknown' and value is None and result['citations'] == [], (domain, field, value)

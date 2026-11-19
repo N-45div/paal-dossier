@@ -1,6 +1,5 @@
 """Appendix A evaluator, derived from the specification rather than service code."""
 import re
-from decimal import Decimal
 
 FIELDS = ('legal_name', 'hq_city', 'ceo', 'founded_year', 'headcount_range', 'funding_total')
 PHRASES = {
@@ -73,11 +72,10 @@ def amounts(text):
     for match in AMOUNT.finditer(text):
         num = match.group(1) or match.group(4)
         suffix = (match.group(2) or match.group(3) or match.group(5) or '').lower()
-        amount = Decimal(num.replace(',', '')) * scale.get(suffix, 1)
-        if amount == amount.to_integral_value():
-            found.append((match.span(), int(amount)))
-        else:
-            found.append((match.span(), None))
+        whole, _, fraction = num.replace(',', '').partition('.')
+        numerator = int(whole + fraction) * scale.get(suffix, 1)
+        amount, remainder = divmod(numerator, 10 ** len(fraction))
+        found.append((match.span(), amount if remainder == 0 else None))
     return found
 
 
