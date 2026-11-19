@@ -28,8 +28,8 @@ def check_faults(service, mock) -> bool:
     ok = True
     for provider, mode, seconds in fault_run.CASES:
         r = fault_run.run_case(service, mock, provider, mode, seconds)
-        print(f"fault {r.case:18} state={r.state:7} wall={r.seconds:5.1f}s units={r.log_units:3d}/{r.spent_units:3d} problems: {r.problems or 'none'}")
-        ok = ok and not r.problems
+        print(f"fault {r.case:18} state={r.state:7} wall={r.seconds:5.1f}s units={r.log_units:3d}/{r.spent_units:3d} {r.verdict} {r.problems or ''}")
+        ok = ok and r.passed
     return ok
 
 

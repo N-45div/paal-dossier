@@ -18,6 +18,8 @@ from .state import Dossier
 _DIGITS = re.compile(r"[0-9]+")
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
+_MAX_DIGITS = 18
+_HUGE = 10**18
 
 
 def _path_domain(raw: str) -> str:
@@ -37,7 +39,7 @@ def _integer_param(request: Request, name: str, default: int, low: int, high: in
         return default
     if _DIGITS.fullmatch(raw) is None:
         raise invalid(f"{name} must be plain decimal digits")
-    value = int(raw)
+    value = int(raw) if len(raw) <= _MAX_DIGITS else _HUGE  # avoids Python's integer-conversion limit
     if value < low or (high is not None and value > high):
         raise invalid(f"{name} out of range")
     return value

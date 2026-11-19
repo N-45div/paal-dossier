@@ -44,3 +44,9 @@ def test_unknown_fields_and_query_ignored(client):
     r = client.post("/auth/login", json={"email": "ada@example.com", "password": "correct horse", "x": 1}, params={"y": "z"})
     assert r.status_code == 200
     assert r.json()["user_id"] == "u_ada"
+
+
+def test_reset_users_wrong_type(client):
+    r = client.post("/_test/reset", json={"now": FIXTURE["now"], "users": None})
+    assert r.status_code == 400 and r.json()["error"]["code"] == "malformed_request"
+    login(client)

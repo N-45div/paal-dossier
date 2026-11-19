@@ -16,6 +16,10 @@ CASES = [
 ]
 
 
+FAULTED_METHODS = ("search", "extract", "research")
+FAULT_STATUS = {"error": 500, "rate_limit": 429}  # a delay fault answers 200, late
+
+
 @dataclass
 class FaultResult:
     case: str
@@ -24,6 +28,18 @@ class FaultResult:
     log_units: int
     spent_units: int
     problems: list[str] = field(default_factory=list)
+    exercised: bool = True  # the faulted provider/method was really called during the build
+    optional: bool = False  # the faulted provider is one the service need not use (tavily)
+
+    @property
+    def passed(self) -> bool:
+        return not self.problems and (self.exercised or self.optional)
+
+    @property
+    def verdict(self) -> str:
+        if self.problems:
+            return "FAIL"
+        return "pass" if self.exercised else ("not exercised (optional provider unused)" if self.optional else "NOT EXERCISED (no faulted call reached the mock)")
 
 
 def run_case(service: ServiceClient, mock: MockAdmin, provider: str, mode: str, seconds: float | None, timeout: float = 300) -> FaultResult:
@@ -50,6 +66,12 @@ def run_case(service: ServiceClient, mock: MockAdmin, provider: str, mode: str, 
         result.problems.append(f"spent_units {result.spent_units} != mock log {result.log_units}")
     if result.log_units > 80:
         result.problems.append(f"{result.log_units} units over budget")
+    targets = ["nimble", "tavily"] if provider == "both" else [provider]
+    faulted = [c for c in calls if c["provider"] in targets and c["method"] in FAULTED_METHODS]
+    if mode in FAULT_STATUS:
+        faulted = [c for c in faulted if c["status"] == FAULT_STATUS[mode]]
+    result.exercised = bool(faulted)
+    result.optional = provider == "tavily"
     if provider == "both" and result.state != "failed":
         result.problems.append("every call failed but the build did not end failed")
     if provider == "both" and any(c["status"] == 200 for c in calls):

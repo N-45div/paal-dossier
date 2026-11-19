@@ -43,7 +43,8 @@ class BuildRunner:
             result = None
         if store is not self._service.store:
             return
-        succeeded = isinstance(result, dict) and result.get("ok") is True
+        # A successful provider call always costs units, so a build that spent nothing made no call that succeeded.
+        succeeded = isinstance(result, dict) and result.get("ok") is True and dossier.running_spent > 0
         if succeeded:
             dossier.fields = clean_fields(result.get("fields"))
             dossier.researched_at = build_time

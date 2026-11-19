@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from . import config
-from .api import MockAdmin, Reply, ServiceClient, call
+from .api import MockAdmin, Reply, ServiceClient
 
 IN_FLIGHT = 50
 LATENCY_LIMIT = 5.0
@@ -37,24 +37,23 @@ def run_load(service: ServiceClient, mock: MockAdmin, build_timeout: float = 120
     mock.reset()
     service.reset({"now": config.FIXTURE_NOW, "users": config.USERS})
     report = LoadReport()
+    service.log.clear()
     ada = service.login("ada@example.com")
     bob = service.login("bob@example.com")
     pool = ThreadPoolExecutor(IN_FLIGHT)
-    base = service.base
 
     # Wave 1: many keys for one domain, one key repeated, other domains, signups, logins, reads.
     shared_keys = [pool.submit(service.create, ada if i % 2 else bob, f" WWW.{SHARED_DOMAIN.upper()}. " if i % 3 == 0 else SHARED_DOMAIN, f"shared-{i}") for i in range(20)]
     same_key = [pool.submit(service.create, ada, OTHER_DOMAINS[0], "one-key") for _ in range(20)]
     others = [pool.submit(service.create, ada, d, f"other-{d}") for d in OTHER_DOMAINS[1:]]
-    signups = [pool.submit(call, "POST", f"{base}/auth/signup", {"email": f"load{i}@example.com", "password": "12345678", "display_name": f"L{i}"}) for i in range(15)]
+    signups = [pool.submit(service.signup, f"load{i}@example.com", "12345678", f"L{i}") for i in range(15)]
     logins = [pool.submit(service.login, "ada@example.com") for _ in range(10)]
     reads = [pool.submit(service.listing, ada) for _ in range(10)] + [pool.submit(service.read, ada, SHARED_DOMAIN) for _ in range(10)]
 
     shared = [f.result() for f in shared_keys]
     same = [f.result() for f in same_key]
     signed_up = [f.result() for f in signups]
-    report.replies += shared + same + signed_up + [f.result() for f in others + reads]
-    for f in logins:
+    for f in others + reads + logins:
         f.result()
 
     _expect(report, sorted(r.status for r in shared).count(202) == 1 and all(r.status in (200, 202) for r in shared), "shared domain: not exactly one 202 over different keys")
@@ -76,7 +75,6 @@ def run_load(service: ServiceClient, mock: MockAdmin, build_timeout: float = 120
     # Wave 2: concurrent refreshes of one domain run one build; another key refreshes while idle.
     refreshes = [pool.submit(service.refresh, ada, SHARED_DOMAIN, f"refresh-{i}") for i in range(20)]
     refreshed = [f.result() for f in refreshes]
-    report.replies += refreshed
     _expect(report, all(r.status == 202 for r in refreshed), "refresh: not all 202")
     _expect(report, len({r.body["dossier_id"] for r in refreshed}) == 1, "refresh: ids differ")
     service.wait_built(ada, SHARED_DOMAIN, build_timeout)
@@ -84,7 +82,7 @@ def run_load(service: ServiceClient, mock: MockAdmin, build_timeout: float = 120
 
     calls = mock.log()
     listing = service.listing(ada, "?limit=200")
-    report.replies.append(listing)
+    report.replies = list(service.log)  # every request of the run: seeding logins, polls and all
     _expect(report, len(listing.body["dossiers"]) == 1 + len(OTHER_DOMAINS), "listing: wrong dossier count")
     _expect(report, _successful_domain_searches(calls, SHARED_DOMAIN) >= 2, "refresh started no new build")
     for domain in OTHER_DOMAINS:

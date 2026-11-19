@@ -11,5 +11,5 @@ try:
 except ImportError:  # the research engine has not landed yet
 
     async def run_build(domain: str, spend: Callable[[int], None]) -> dict[str, Any]:
-        """Placeholder engine: researches nothing and finds nothing."""
-        return {"ok": True, "fields": {}}
+        """Placeholder engine: makes no provider call, so the build fails."""
+        return {"ok": False, "fields": {}}

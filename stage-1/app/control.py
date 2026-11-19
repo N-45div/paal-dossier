@@ -26,9 +26,10 @@ def _moment(value: Any):
         raise invalid("now must be an RFC 3339 timestamp with an offset") from exc
 
 
-def _fixture_users(raw: Any) -> list[dict[str, str]]:
-    if raw is None:
+def _fixture_users(fixture: dict[str, Any]) -> list[dict[str, str]]:
+    if "users" not in fixture:
         return []
+    raw = fixture["users"]
     if not isinstance(raw, list):
         raise malformed("users must be a list")
     entries = []
@@ -58,7 +59,7 @@ class ControlHandlers:
         if "now" not in fixture:
             raise invalid("now is required")
         moment = _moment(fixture["now"])
-        entries = _fixture_users(fixture.get("users"))
+        entries = _fixture_users(fixture)
         hashes = await asyncio.gather(*(asyncio.to_thread(hash_password, u["password"]) for u in entries))
         store = Store()
         for entry, password_hash in zip(entries, hashes):

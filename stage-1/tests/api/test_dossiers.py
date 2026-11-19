@@ -148,3 +148,17 @@ def test_export_during_build_holds_prior_state():
         assert c.get("/dossiers/acme.test", headers=h).json()["state"] == "failed"
         time.sleep(0.5)  # the abandoned build must not touch the imported state
         assert c.get("/dossiers/acme.test", headers=h).json()["spent_units"] == 0
+
+
+def test_huge_integer_query_values(client, ada):
+    r = client.get("/dossiers?offset=" + "9" * 5000, headers=ada)
+    assert r.status_code == 200 and r.json() == {"dossiers": [], "has_more": False}
+    assert client.get("/dossiers?limit=" + "9" * 5000, headers=ada).status_code == 422
+
+
+def test_build_without_successful_call_fails():
+    with TestClient(create_app(make_engine(units=0))) as c:
+        c.post("/_test/reset", json=FIXTURE)
+        h = login(c)
+        post(c, h, {"domain": "acme.test"})
+        assert wait_ready(c, h)["state"] == "failed"

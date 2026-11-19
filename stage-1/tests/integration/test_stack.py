@@ -29,7 +29,7 @@ def test_load_with_50_in_flight(running):
 
 @pytest.mark.parametrize("case", fault_run.CASES, ids=lambda c: "-".join(map(str, c)))
 def test_provider_faults_never_5xx(running, case):
-    assert not fault_run.run_case(*running, *case).problems
+    assert fault_run.run_case(*running, *case).passed
 
 
 def test_corpus_matches_key(running):

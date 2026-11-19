@@ -61,6 +61,20 @@ def wait_healthy(url: str, timeout: float) -> None:
 
 
 @contextmanager
+def mock_only(build: bool = False) -> Iterator[MockAdmin]:
+    """Only the mock web (for probing providers directly); always cleaned up."""
+    remove_containers()
+    try:
+        if build:
+            run_heavy(["docker", "build", "-q", "-t", config.MOCK_IMAGE, str(config.MOCK_CONTEXT)], timeout=1200)
+        start_mock()
+        yield MockAdmin(f"http://127.0.0.1:{config.MOCK_PORT}", config.ADMIN_TOKEN)
+    finally:
+        remove_containers()
+        run(["docker", "network", "rm", config.NETWORK], timeout=30, check=False)
+
+
+@contextmanager
 def running(tavily: bool = True, build: bool = True) -> Iterator[tuple[ServiceClient, MockAdmin]]:
     """Build (optionally), start mock and service, yield clients, and always clean up."""
     remove_containers()

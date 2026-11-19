@@ -35,29 +35,38 @@ def call(method: str, url: str, body: Any = None, headers: dict[str, str] | None
 
 
 class ServiceClient:
-    """Calls the dossier service."""
+    """Calls the dossier service and records every reply, with its latency, in `log`."""
 
     def __init__(self, base: str) -> None:
         self.base = base
+        self.log: list[Reply] = []
+
+    def _send(self, method: str, path: str, body: Any = None, headers: dict[str, str] | None = None, timeout: float = 30.0) -> Reply:
+        reply = call(method, f"{self.base}{path}", body, headers, timeout)
+        self.log.append(reply)
+        return reply
 
     def reset(self, fixture: dict[str, Any]) -> Reply:
-        return call("POST", f"{self.base}/_test/reset", fixture, timeout=15)
+        return self._send("POST", "/_test/reset", fixture, timeout=15)
+
+    def signup(self, email: str, password: str, display_name: str) -> Reply:
+        return self._send("POST", "/auth/signup", {"email": email, "password": password, "display_name": display_name})
 
     def login(self, email: str, password: str = "correct horse") -> dict[str, str]:
-        reply = call("POST", f"{self.base}/auth/login", {"email": email, "password": password})
+        reply = self._send("POST", "/auth/login", {"email": email, "password": password})
         return {"Authorization": "Bearer " + reply.body["token"]}
 
     def create(self, headers: dict[str, str], domain: str, key: str) -> Reply:
-        return call("POST", f"{self.base}/dossiers", {"domain": domain}, {**headers, "Idempotency-Key": key})
+        return self._send("POST", "/dossiers", {"domain": domain}, {**headers, "Idempotency-Key": key})
 
     def refresh(self, headers: dict[str, str], domain: str, key: str) -> Reply:
-        return call("POST", f"{self.base}/dossiers/{domain}/refresh", None, {**headers, "Idempotency-Key": key})
+        return self._send("POST", f"/dossiers/{domain}/refresh", None, {**headers, "Idempotency-Key": key})
 
     def read(self, headers: dict[str, str], domain: str) -> Reply:
-        return call("GET", f"{self.base}/dossiers/{domain}", None, headers)
+        return self._send("GET", f"/dossiers/{domain}", None, headers)
 
     def listing(self, headers: dict[str, str], query: str = "") -> Reply:
-        return call("GET", f"{self.base}/dossiers{query}", None, headers)
+        return self._send("GET", f"/dossiers{query}", None, headers)
 
     def wait_built(self, headers: dict[str, str], domain: str, timeout: float) -> Reply:
         """Poll until the dossier leaves `building`; returns the last reply."""
