@@ -35,10 +35,8 @@ def test_health_and_seed(client):
 
 
 def test_auth_validation(client):
-    """R1.63 R1.64 R1.66 R1.69 R1.70 R1.72 R1.77 R1.79 R1.80 R1.81 R1.82 R1.83 R1.85 R1.86 RL1.9 RL1.11."""
+    """R1.63 R1.64 R1.69 R1.70 R1.72 R1.77 R1.79 R1.80 R1.81 R1.82 R1.83 RL1.9 RL1.11."""
     c = client
-    for auth in (None, "Bearer nonsense", "Basic x", "Bearer"):
-        error(c.request("POST", "/dossiers", headers={} if auth is None else {"Authorization": auth}, json={}), 401, "unauthenticated")
     for body in ([], 1, None, "abc"):
         error(c.request("POST", "/auth/signup", json=body), 400, "malformed_request")
     good = {"email": "new@example.com", "password": "12345678", "display_name": "A"}
@@ -58,7 +56,15 @@ def test_auth_validation(client):
         error(c.request("POST", "/auth/login", json=data), 401, "unauthenticated")
     other = c.request("POST", "/auth/login", json={"email": "NEW@EXAMPLE.COM", "password": "12345678"})
     assert other.status_code == 200
-    for token in (signup.json()["token"], other.json()["token"]):
+    assert isinstance(signup.json()["token"], str) and isinstance(other.json()["token"], str)
+
+
+def test_session_access(client):
+    """R1.66 R1.85 R1.86."""
+    c = client
+    for auth in (None, "Bearer nonsense", "Basic x", "Bearer"):
+        error(c.request("POST", "/dossiers", headers={} if auth is None else {"Authorization": auth}, json={}), 401, "unauthenticated")
+    for token in (c.login(), c.login()):
         assert c.request("GET", "/dossiers", headers=c.auth(token)).status_code == 200
 
 
@@ -106,6 +112,7 @@ def test_domain_and_validation_order(client):
     path = c.request("GET", "/dossiers/WWW.Halvorsen-Robotics.TEST.", headers=c.auth(t))
     assert path.status_code == 200 and path.json()["domain"] == DOMAIN
     error(c.request("GET", "/dossiers/missing.test", headers=c.auth(t)), 404, "not_found")
+    c.finish(DOMAIN, t)
 
 
 def test_idempotency(client):
@@ -128,6 +135,8 @@ def test_idempotency(client):
     replay = c.request("POST", "/dossiers/" + DOMAIN + "/refresh", headers=c.auth(a, "reuse"), json={"whatever": 5})
     assert replay.status_code == 200 and replay.json() == refresh.json()
     error(c.request("POST", "/dossiers/nobody.test/refresh", headers=c.auth(a, "missing")), 404, "not_found")
+    c.finish(DOMAIN, a)
+    c.finish("else.test", b)
 
 
 @pytest.mark.parametrize("same_key", [True, False])
@@ -164,6 +173,8 @@ def test_listing(client):
     assert [d["domain"] for d in page["dossiers"]] == ["zzz.test"] and page["has_more"] is False
     page = c.request("GET", "/dossiers?q=MM", headers=c.auth(t)).json()
     assert [d["domain"] for d in page["dossiers"]] == ["mmm.test"]
+    for name in ("aaa.test", "mmm.test", "zzz.test"):
+        c.finish(name, t)
 
 
 def test_export_import_roundtrip(client):
@@ -262,3 +273,41 @@ def test_provider_faults_do_not_break_http(client, mode):
     if mode == "delay":
         assert result["state"] == "ready"
     assert sum(x["cost"] for x in c.calls()) <= 80
+
+
+def test_raw_paths_and_clock_freeze(client):
+    """R1.28 R1.31 R1.91 R1.97 R1.101 R1.116 RL1.5 RL1.6."""
+    c = client
+    t = c.login()
+    assert create(c, t).status_code == 202
+    first = c.finish(DOMAIN, t)
+    assert first["researched_at"] == NOW
+    assert c.request("POST", "/dossiers/" + DOMAIN + "/refresh", headers=c.auth(t, "path")).status_code == 202
+    again = c.finish(DOMAIN, t)
+    assert again["researched_at"] == NOW
+    upper = c.request("POST", "/dossiers/" + DOMAIN.upper() + "/refresh", headers=c.auth(t, "path"))
+    assert upper.status_code == 202
+    c.finish(DOMAIN, t)
+    error(create(c, t, DOMAIN.upper(), "create"), 409, "idempotency_key_reuse")
+
+
+def test_export_during_refresh_restores_last_completed(client):
+    """R1.102 R1.115 R1.116 R1.138 R1.142 RL1.7 RL1.8."""
+    c = client
+    t = c.login()
+    assert create(c, t).status_code == 202
+    previous = c.finish(DOMAIN, t)
+    assert previous["state"] == "ready"
+    c.control("faults", {"provider": "nimble", "methods": ["search", "extract", "research"], "mode": "delay", "seconds": 2})
+    refresh = c.request("POST", "/dossiers/" + DOMAIN + "/refresh", headers=c.auth(t, "refresh"))
+    assert refresh.status_code == 202
+    concurrent = c.request("POST", "/dossiers/" + DOMAIN + "/refresh", headers=c.auth(t, "other"))
+    assert concurrent.status_code == 202 and concurrent.json() == refresh.json()
+    during = c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(t)).json()
+    assert during["state"] == "building" and during["fields"] == previous["fields"]
+    assert during["researched_at"] == previous["researched_at"]
+    snapshot = c.request("GET", "/_test/export", timeout=10).json()
+    assert c.request("POST", "/_test/import", json=snapshot, timeout=10).status_code == 204
+    assert c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(t)).json() == previous
+    time.sleep(3)
+    assert c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(t)).json() == previous

@@ -94,7 +94,8 @@ class System:
 def system():
     """R1.7 R1.8 R1.14 R1.15 R1.18 R1.20 R1.21 RL1.14."""
     tag = "prover-" + uuid.uuid4().hex[:10]
-    network, mock_name, api_name = tag + "-net", tag + "-web", tag + "-api"
+    network, ingress = tag + "-net", tag + "-ingress"
+    mock_name, api_name, proxy_name = tag + "-web", tag + "-api", tag + "-proxy"
     mock_image, api_image = tag + "-web-image", tag + "-api-image"
     api_port = free_port()
     mock_port = free_port((api_port,))
@@ -103,27 +104,60 @@ def system():
             subprocess.run(["flock", "/tmp/factory-heavy.lock", "docker", "build", "-t", image, str(path)],
                            check=True, timeout=900)
         docker("network", "create", "--internal", network)
+        docker("network", "create", ingress)
         docker("run", "-d", "--name", mock_name, "--network", network,
-               "-p", f"127.0.0.1:{mock_port}:8080", "-e", "MOCK_ADMIN_TOKEN=prover-local",
+               "-e", "MOCK_ADMIN_TOKEN=prover-local",
                "-v", f"{CORPUS}:/data/corpus:ro", mock_image)
+        # This relay accepts only two fixed destinations. The service stays on the
+        # internal network; only the relay has an ingress network and published ports.
+        relay = '''import select, socket, socketserver, threading
+class Handler(socketserver.BaseRequestHandler):
+ def handle(self):
+  try:
+   peer = socket.create_connection((self.server.destination, 8080), timeout=5)
+   sockets = [self.request, peer]
+   while True:
+    ready, _, _ = select.select(sockets, [], [], 60)
+    if not ready: break
+    for source in ready:
+     data = source.recv(65536)
+     if not data: return
+     (peer if source is self.request else self.request).sendall(data)
+  except OSError: pass
+  finally:
+   if 'peer' in locals(): peer.close()
+class Server(socketserver.ThreadingTCPServer):
+ allow_reuse_address = True
+ daemon_threads = True
+for port, dest in [(8081, %r), (8082, %r)]:
+ server = Server(('', port), Handler)
+ server.destination = dest
+ threading.Thread(target=server.serve_forever, daemon=True).start()
+threading.Event().wait()
+''' % (mock_name, api_name)
+        docker("run", "-d", "--name", proxy_name, "--network", ingress,
+               "-p", f"127.0.0.1:{mock_port}:8081", "-p", f"127.0.0.1:{api_port}:8082",
+               "--entrypoint", "python3", mock_image, "-u", "-c", relay)
+        docker("network", "connect", network, proxy_name)
         healthy(f"http://127.0.0.1:{mock_port}/_mock/health")
         docker("run", "-d", "--name", api_name, "--network", network,
-               "--cpus", "2", "--memory", "3g", "-p", f"127.0.0.1:{api_port}:8080",
+               "--cpus", "2", "--memory", "3g",
                "-e", "PORT=8080", "-e", "NIMBLE_API_KEY=local", "-e", f"NIMBLE_BASE_URL=http://{mock_name}:8080/nimble",
                api_image)
         healthy(f"http://127.0.0.1:{api_port}/health")
         yield System(f"http://127.0.0.1:{api_port}", f"http://127.0.0.1:{mock_port}")
     finally:
-        for name in (api_name, mock_name):
+        for name in (api_name, mock_name, proxy_name):
             docker("rm", "-f", name, check=False)
         docker("network", "rm", network, check=False)
+        docker("network", "rm", ingress, check=False)
         for image in (api_image, mock_image):
             docker("image", "rm", image, check=False)
 
 
 @pytest.fixture
 def client(system):
-    system.control("reset", {"epoch": 0})
     response = system.request("POST", "/_test/reset", json=SEED, timeout=10)
     assert response.status_code == 204, response.text
+    system.control("reset", {"epoch": 0})
     return system
