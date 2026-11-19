@@ -338,6 +338,32 @@ class ClaimedP4IdTests(unittest.TestCase):
         self.assertEqual(tuple(RESEARCH_SCHEMA["properties"]), FIELDS)
 
 
+class ZeroValueTests(unittest.TestCase):
+    """RL24 (amends RL22): $0 is a known funding_total of 0; only a null value is unknown."""
+
+    def test_rl24_r1_164_support_returns_zero_for_a_zero_amount(self):
+        self.assertEqual(supports("Acme Robotics raised $0.", D, "funding_total"), 0)
+        self.assertIsNotNone(supports("Acme Robotics raised $0.", D, "funding_total"))
+
+    def test_rl24_r1_86_r1_46_decision_keeps_a_zero_value_known_with_its_citation(self):
+        evidence = Evidence(D)
+        evidence.add_prose("https://acme-robotics.test/x", "Acme Robotics raised $0.", "nimble")
+        field = evidence.decide()["funding_total"]
+        self.assertEqual(field["value"], 0)
+        self.assertEqual(field["citations"][0]["excerpt"], "Acme Robotics raised $0.")
+
+    def test_rl24_r1_41_research_claim_of_zero_is_asserted_when_supported(self):
+        evidence = Evidence(D)
+        url = "https://acme-robotics.test/x"
+        evidence.add_prose(url, "Acme Robotics reportedly raised $0.", "nimble", searched=False)
+        evidence.add_research_claim(url, "funding_total", 0, "Acme Robotics raised $0.")
+        self.assertNotIn(0, evidence.support.get("funding_total", {}))  # the excerpt is not in the prose
+        evidence = Evidence(D)
+        evidence.add_prose(url, "X: y\n\nAcme Robotics raised $0.", "nimble", searched=False)
+        evidence.add_research_claim(url, "funding_total", 0, "Acme Robotics raised $0.")
+        self.assertEqual(evidence.decide()["funding_total"]["value"], 0)
+
+
 class ResearchOnlyPageTests(unittest.TestCase):
     """RL21 (R1.41, R1.45, R1.86): a page only a research claim cites adds just the claim."""
 
