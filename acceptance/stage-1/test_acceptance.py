@@ -559,7 +559,7 @@ class Acceptance(unittest.TestCase):
                 item = poll(domain, self.token)
                 self.assertEqual(item['state'], 'ready', 'R1.06')
                 self.assertEqual(item['domain'], domain)
-                self.assertEqual(set(item['fields']), set(FIELDS), 'R1.38 R1.92')
+                self.assertEqual(set(item['fields']), set(FIELDS), 'R1.02a R1.38 R1.92')
                 calls = mock('GET', '/_mock/log')[1]['calls']
                 cost = sum(call['cost'] for call in calls)
                 all_costs.append(cost)
@@ -591,6 +591,12 @@ class Acceptance(unittest.TestCase):
                     else:
                         self.assertEqual(field['status'], 'known', 'R1.41')
                         self.assertTrue(field['citations'], 'R1.41')
+                        if name in ('founded_year', 'funding_total'):
+                            self.assertIs(type(field['value']), int, 'R1.38 integer excludes bool')
+                        else:
+                            self.assertIsInstance(field['value'], str, 'R1.38')
+                        if name == 'headcount_range':
+                            self.assertIn(field['value'], ('1-10','11-50','51-200','201-500','501-1000','1001-5000','5001-10000','10001+'), 'R1.38')
                     self.assertLessEqual(len(field['citations']), 5, 'L1.12')
                     for citation in field['citations']:
                         self.assertIn(citation['provider'], ('nimble', 'tavily'), 'R1.42')
