@@ -8,7 +8,13 @@ from collections import defaultdict
 from .pages import collapse_whitespace, prose_of, sentences
 from .providers import Claim, Page
 from .result import FIELD_NAMES, FieldResult
-from .support import EXCERPT_MAX_CHARS, FIELDS, supporting_excerpts, supports
+from .support import (
+    EXCERPT_MAX_CHARS,
+    FIELDS,
+    FragmentBudget,
+    supporting_excerpts,
+    supports,
+)
 
 MAX_CITATIONS = 3
 _HEADCOUNT_RANGES = frozenset(
@@ -22,6 +28,7 @@ class Evidence:
 
     def __init__(self, domain: str) -> None:
         self._domain = domain
+        self._fragments = FragmentBudget()
         # field -> value -> ordered list of (url, excerpt, provider), without repeats
         self._support: dict[str, dict[object, list[tuple[str, str, str]]]] = {
             name: defaultdict(list) for name in FIELD_NAMES
@@ -30,7 +37,7 @@ class Evidence:
     def add_page(self, page: Page) -> None:
         """Record what the page's prose supports; header lines are never read (R1.54)."""
         for sentence in sentences(prose_of(page.text)):
-            for field, value, excerpt in supporting_excerpts(sentence, self._domain):
+            for field, value, excerpt in supporting_excerpts(sentence, self._domain, self._fragments):
                 self._record(field, value, page.url, excerpt, page.provider)
 
     def add_claim(self, claim: Claim) -> None:
