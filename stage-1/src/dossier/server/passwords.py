@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import secrets
 
-_N, _R, _P = 2**14, 8, 1
+_N, _R, _P = 2**12, 8, 1  # ~10 ms: the 50-in-flight budget (lead ruling); stored hashes carry their own n
 _DKLEN = 32
 
 

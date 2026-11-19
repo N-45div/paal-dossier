@@ -32,6 +32,7 @@ class Store:
         self.dossiers: dict[str, Dossier] = {}  # by normalised domain
         self.claims: dict[tuple[str, str, str, str], Claim] = {}
         self.running: set[Build] = set()
+        self.reservations: dict[str, object] = {}  # casefolded email -> signup in flight
 
     def replace_state(
         self,
@@ -55,4 +56,5 @@ class Store:
             self.tokens = dict(tokens)
             self.dossiers = {dossier.domain: dossier for dossier in dossiers}
             self.claims = dict(claims)
+            self.reservations = {}
             self.lock.notify_all()

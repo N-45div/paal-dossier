@@ -27,30 +27,39 @@ def new_token() -> str:
 
 
 def signup(store: Store, body: dict) -> Session:
+    """Reserve the email under the lock, hash outside it, then commit under the lock.
+
+    A duplicate that arrives while the first signup is in flight gets 409 at once, as in the
+    serial order where the first came first. If a reset or import lands while hashing, the
+    result is returned but nothing is stored, the serial order where the signup came before
+    the reset. The reservation is cleared by that reset.
+    """
     fields = read_fields(body, _SIGNUP_FIELDS)
     email, password, display_name = fields["email"], fields["password"], fields["display_name"]
     _check_email(email)
     _check_password(password)
     _check_display_name(display_name)
+    key = email.casefold()
     with store.lock:
-        if email.casefold() in store.user_by_email:
+        if key in store.user_by_email or key in store.reservations:
             raise email_taken()
         generation = store.generation
         user_id = _new_user_id(store)
-    password_hash = hash_password(password)  # slow, outside the lock
-    token = new_token()
-    with store.lock:
-        if store.generation != generation:
-            # A reset or import landed while hashing: this signup belongs to the old state,
-            # which that reset discarded. Nothing is stored, so neither the user nor the token
-            # survives into the new state (R1.25, R1.143).
-            return Session(user_id, display_name, token)
-        if email.casefold() in store.user_by_email:
-            raise email_taken()  # a concurrent signup took the address first
-        store.users[user_id] = User(user_id, email, display_name, password_hash)
-        store.user_by_email[email.casefold()] = user_id
-        store.tokens[token] = user_id
-    return Session(user_id, display_name, token)
+        marker = object()
+        store.reservations[key] = marker
+    try:
+        password_hash = hash_password(password)  # slow, outside the lock
+        token = new_token()
+        with store.lock:
+            if store.generation == generation:
+                store.users[user_id] = User(user_id, email, display_name, password_hash)
+                store.user_by_email[key] = user_id
+                store.tokens[token] = user_id
+        return Session(user_id, display_name, token)
+    finally:
+        with store.lock:
+            if store.reservations.get(key) is marker:
+                del store.reservations[key]
 
 
 def login(store: Store, body: dict) -> Session:
