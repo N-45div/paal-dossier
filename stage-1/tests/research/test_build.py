@@ -139,3 +139,16 @@ def test_a_failing_branch_leaves_no_call_unaccounted():
     router = FakeRouter(domain, fail={"extract": connection_error()})
     _, spent = build(domain, router)
     assert sum(spent) == issued_cost(router)
+
+
+def test_tavily_adds_searches_only_when_configured(monkeypatch):
+    domain = "halvorsen-robotics.test"
+    nimble_only = FakeRouter(domain)
+    build(domain, nimble_only)
+    assert not any(call[1] == "tavily" for call in nimble_only.calls)
+    monkeypatch.setenv("TAVILY_API_KEY", "t")
+    monkeypatch.setenv("TAVILY_BASE_URL", "http://mock.invalid/tavily")
+    with_tavily = FakeRouter(domain)
+    result, spent = build(domain, with_tavily)
+    assert [c[3] for c in with_tavily.calls if c[1] == "tavily"]
+    assert sum(spent) <= UNITS_PER_BUILD and result["ok"]

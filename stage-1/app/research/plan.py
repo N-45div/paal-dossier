@@ -4,10 +4,11 @@ Plan: one lite Nimble search for the bare domain, fourteen lite searches pairing
 field's statement phrases, and one Nimble research run for all six fields. Then Nimble extracts (full text, 1 unit each) of
 the URLs the searches returned, most-returned first, keeping CLAIM_EXTRACT_RESERVE units back for the pages the research
 run cites, which are extracted last.
-Worst case: 15 searches (15) + research (25) + at most MAX_EXTRACTS extracts (40) = 80 units; if Nimble's domain search
-keeps failing, a Tavily lite domain search (8) replaces it. The budget guard in ``ProviderCalls`` refuses any call that
+With Tavily configured, two Tavily lite searches (16) are added, so the guard trims the last extracts. Worst case: 15
+searches (15) + research (25) + at most MAX_EXTRACTS extracts (40) = 80 units; if Nimble's domain search keeps failing, a
+Tavily lite domain search (8) replaces it. The budget guard in ``ProviderCalls`` refuses any call that
 would pass 80. Over the sample corpus: 53 to 71 units. On variant corpora (other seed, noise 0.5, rate_limit 0.3, weather
-on, decoy pages, no own about page): at most 75 units.
+on, decoy pages, no own about page): at most 75 units (with Tavily).
 """
 
 from __future__ import annotations
@@ -37,6 +38,17 @@ FIELD_QUERY_TERMS = (
     "employees staff headcount",
     "raised funding investment",
 )
+
+
+def tavily_queries(calls: ProviderCalls, domain: str) -> list[str]:
+    """Two extra lite searches through Tavily, which ranks with its own noise and so surfaces other pages.
+
+    Only when Tavily is configured: Nimble alone must suffice (R1.06). Each costs 8 units; one that errors costs 0.
+    """
+    if not calls.tavily_enabled:
+        return []
+    name = display_name(domain)
+    return [name, f"{name} raised funding investment"]
 
 
 def discovery_queries(domain: str) -> list[str]:
@@ -71,10 +83,10 @@ def _record_results(gathered: Gathered, results: list, provider: str) -> None:
             gathered.texts.append(ServedText(result.url, provider, text, complete=False, title=result.title))
 
 
-async def _search(calls: ProviderCalls, query: str, gathered: Gathered) -> None:
-    results, _ = await calls.search(query, "nimble", "lite", attempts=CALL_ATTEMPTS)
+async def _search(calls: ProviderCalls, query: str, gathered: Gathered, provider: str = "nimble") -> None:
+    results, _ = await calls.search(query, provider, "lite", attempts=CALL_ATTEMPTS)
     if results is not None:
-        _record_results(gathered, results, "nimble")
+        _record_results(gathered, results, provider)
 
 
 async def _research(calls: ProviderCalls, domain: str, gathered: Gathered) -> None:
@@ -122,6 +134,7 @@ async def gather(calls: ProviderCalls, domain: str) -> Gathered:
     await _settled(
         _domain_search(calls, domain, gathered),
         *(_search(calls, query, gathered) for query in discovery_queries(domain)),
+        *(_search(calls, query, gathered, "tavily") for query in tavily_queries(calls, domain)),
     )
     by_yield = sorted(gathered.search_urls, key=lambda u: -gathered.url_hits[u])  # stable: first found wins ties
     room = UNITS_PER_BUILD - calls.committed - CLAIM_EXTRACT_RESERVE
