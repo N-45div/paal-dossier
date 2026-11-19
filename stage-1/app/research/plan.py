@@ -76,19 +76,27 @@ async def _extract(calls: ProviderCalls, url: str, gathered: Gathered, gate: asy
         gathered.texts.append(ServedText(url, "nimble", content, complete=True))
 
 
-def _urls_to_extract(gathered: Gathered) -> list[str]:
-    claimed = [c.url for c in gathered.claims]
-    ordered = list(dict.fromkeys(claimed + gathered.search_urls))
-    return [u for u in ordered if not gathered.has_full_text(u)][:MAX_EXTRACTS]
+def _urls_to_extract(gathered: Gathered, urls: list[str]) -> list[str]:
+    fresh = [u for u in dict.fromkeys(urls) if not gathered.has_full_text(u) and u not in gathered.extract_tried]
+    chosen = fresh[: max(0, MAX_EXTRACTS - len(gathered.extract_tried))]
+    gathered.extract_tried.update(chosen)
+    return chosen
+
+
+async def _extract_all(calls: ProviderCalls, gathered: Gathered, urls: list[str], gate: asyncio.Semaphore) -> None:
+    await asyncio.gather(*(_extract(calls, url, gathered, gate) for url in _urls_to_extract(gathered, urls)))
 
 
 async def gather(calls: ProviderCalls, domain: str) -> Gathered:
+    """Searches first, then extracts of what they found while the (slower) research run finishes."""
     gathered = Gathered()
+    gate = asyncio.Semaphore(EXTRACT_CONCURRENCY)
+    research = asyncio.create_task(_research(calls, domain, gathered))
     await asyncio.gather(
         _domain_search(calls, domain, gathered),
-        _research(calls, domain, gathered),
         *(_search(calls, query, gathered) for query in discovery_queries(domain)),
     )
-    gate = asyncio.Semaphore(EXTRACT_CONCURRENCY)
-    await asyncio.gather(*(_extract(calls, url, gathered, gate) for url in _urls_to_extract(gathered)))
+    await _extract_all(calls, gathered, gathered.search_urls, gate)
+    await research
+    await _extract_all(calls, gathered, [c.url for c in gathered.claims], gate)
     return gathered

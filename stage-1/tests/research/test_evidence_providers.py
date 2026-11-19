@@ -54,3 +54,48 @@ def test_timeouts_live_versus_mock():
     assert Timeouts.for_environment({"NIMBLE_BASE_URL": "https://sdk.nimbleway.com"}) == live
     mock = Timeouts.for_environment({"NIMBLE_BASE_URL": "http://web:8080/nimble"})
     assert mock.build_s < 10 and mock.search_s < 5
+
+
+# live-shape parsing and timing (R1.84)
+from types import SimpleNamespace
+
+from app.research.providers import ProviderCalls, claims_of
+from tests.research.fake_router import FakeRouter
+
+
+def research_response(structured, *citations):
+    return SimpleNamespace(structured=structured, citations=list(citations))
+
+
+def citation(field, snippet="", url="https://x.test/p", extra=None):
+    return SimpleNamespace(field=field, snippet=snippet, url=url, extra=extra or {})
+
+
+def test_claims_read_every_excerpt_and_field_path_form():
+    response = research_response(
+        {"ceo": "Dana Ruiz", "founded_year": "2014"},
+        citation("$.ceo", "first.", extra={"excerpts": ["first.", "second."]}),
+        citation("founded_year", "Acme was founded in 2014."),
+        citation("$.hq_city", "Based in Lisbon."),  # no value claimed for this field
+        citation(None, "unfielded source"),
+    )
+    claims = claims_of(response)
+    assert [(c.field, c.value, c.excerpt) for c in claims] == [
+        ("ceo", "Dana Ruiz", "first."),
+        ("ceo", "Dana Ruiz", "second."),
+        ("founded_year", 2014, "Acme was founded in 2014."),
+    ]
+
+
+def test_claims_ignore_a_list_answer():
+    assert claims_of(research_response([{"ceo": "A B"}], citation("$.ceo", "x"))) == []
+
+
+def test_no_call_is_started_with_less_than_the_minimum_wait_left():
+    from app.research.providers import Timeouts
+
+    timeouts = Timeouts(search_s=45, extract_s=45, research_s=120, build_s=20, min_call_s=30)
+    router = FakeRouter("halvorsen-robotics.test")
+    calls = ProviderCalls(lambda units: None, timeouts, env={"NIMBLE_API_KEY": "k"}, router=router)
+    results, outcome = asyncio.run(calls.search("halvorsen-robotics.test"))
+    assert results is None and not outcome.ok and router.calls == []

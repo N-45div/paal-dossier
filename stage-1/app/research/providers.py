@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -39,6 +40,7 @@ class Timeouts:
     extract_s: float
     research_s: float
     build_s: float
+    min_call_s: float  # a call is only started when at least this long is left for it to wait
 
     @staticmethod
     def for_environment(env: dict[str, str] | None = None) -> Timeouts:
@@ -46,8 +48,8 @@ class Timeouts:
         base = env.get("NIMBLE_BASE_URL")
         live = not base or urlparse(base).hostname == LIVE_NIMBLE_HOST
         if live:
-            return Timeouts(search_s=45, extract_s=45, research_s=120, build_s=280)
-        return Timeouts(search_s=4, extract_s=4, research_s=5, build_s=9)
+            return Timeouts(search_s=45, extract_s=45, research_s=120, build_s=280, min_call_s=30)
+        return Timeouts(search_s=4, extract_s=4, research_s=5, build_s=9, min_call_s=0.5)
 
 
 @dataclass
@@ -71,6 +73,7 @@ class Gathered:
     texts: list[ServedText] = field(default_factory=list)
     claims: list[Claim] = field(default_factory=list)
     search_urls: list[str] = field(default_factory=list)
+    extract_tried: set[str] = field(default_factory=set)
     successes: int = 0
     domain_searched: bool = False
 
@@ -134,7 +137,7 @@ class ProviderCalls:
         outcome = CallOutcome(False)
         for attempt in range(attempts):
             budget_s = min(limit_s, self.seconds_left())
-            if budget_s <= 0.5 or not self.can_afford(cost):
+            if budget_s < self._timeouts.min_call_s or not self.can_afford(cost):
                 break
             self._committed += cost
             try:
@@ -145,7 +148,7 @@ class ProviderCalls:
                     outcome = CallOutcome(False, cost)
                     return None, outcome
                 self._committed -= cost
-                if attempt + 1 < attempts and self.seconds_left() > RETRY_PAUSE_S + 1:
+                if attempt + 1 < attempts and self.seconds_left() > RETRY_PAUSE_S + self._timeouts.min_call_s:
                     await asyncio.sleep(RETRY_PAUSE_S)
                 continue
             self._spend(cost)
@@ -184,13 +187,32 @@ class ProviderCalls:
         return ([] if response is None else claims_of(response)), outcome
 
 
+_FIELD_PATH = re.compile(r"""^\$?\.?\[?['"]?([A-Za-z_]+)""")
+_INTEGER_FIELDS = ("founded_year", "funding_total")
+
+
+def _claim_field(path: str | None) -> str | None:
+    match = _FIELD_PATH.match(path or "")
+    return match.group(1) if match and match.group(1) in RESEARCH_PROPERTIES else None
+
+
+def _claim_value(name: str, value: Any) -> Any:
+    """The claimed value; an integer field given as digits is read as an integer."""
+    if name in _INTEGER_FIELDS and isinstance(value, str) and value.strip().replace(",", "").isdigit():
+        return int(value.strip().replace(",", ""))
+    return value
+
+
 def claims_of(response: Any) -> list[Claim]:
-    """The (field, value, url, excerpt) claims of a research answer: one per cited field with a value."""
+    """The (field, value, url, excerpt) claims of a research answer: one per cited excerpt of a field with a value."""
     structured = response.structured if isinstance(response.structured, dict) else {}
     claims = []
     for citation in response.citations:
-        name = (citation.field or "").removeprefix("$.")
-        excerpt = citation.snippet or next(iter((citation.extra or {}).get("excerpts") or []), "")
-        if name in RESEARCH_PROPERTIES and structured.get(name) is not None and excerpt:
-            claims.append(Claim(name, structured[name], citation.url, excerpt))
+        name = _claim_field(citation.field)
+        if name is None or structured.get(name) is None:
+            continue
+        extra = citation.extra or {}
+        excerpts = [citation.snippet, *(extra.get("excerpts") or [])]
+        for excerpt in dict.fromkeys(e for e in excerpts if isinstance(e, str) and e.strip()):
+            claims.append(Claim(name, _claim_value(name, structured[name]), citation.url, excerpt))
     return claims
