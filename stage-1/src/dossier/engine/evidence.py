@@ -8,9 +8,8 @@ from collections import defaultdict
 from .pages import collapse_whitespace, prose_of, sentences
 from .providers import Claim, Page
 from .result import FIELD_NAMES, FieldResult
-from .support import FIELDS, supported_values, supports
+from .support import EXCERPT_MAX_CHARS, FIELDS, supporting_excerpts, supports
 
-MAX_EXCERPT_CHARS = 500
 MAX_CITATIONS = 3
 _HEADCOUNT_RANGES = frozenset(
     ("1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+")
@@ -31,17 +30,14 @@ class Evidence:
     def add_page(self, page: Page) -> None:
         """Record what the page's prose supports; header lines are never read (R1.54)."""
         for sentence in sentences(prose_of(page.text)):
-            excerpt = collapse_whitespace(sentence)
-            if not excerpt or len(excerpt) > MAX_EXCERPT_CHARS:
-                continue
-            for field, value in supported_values(excerpt, self._domain):
+            for field, value, excerpt in supporting_excerpts(sentence, self._domain):
                 self._record(field, value, page.url, excerpt, page.provider)
 
     def add_claim(self, claim: Claim) -> None:
         """Record a research claim, asserted only when its citation supports the value."""
         value = _canonical(claim.field, claim.value)
         excerpt = collapse_whitespace(claim.excerpt or "")
-        if value is None or not excerpt or len(excerpt) > MAX_EXCERPT_CHARS:
+        if value is None or not excerpt or len(excerpt) > EXCERPT_MAX_CHARS:
             return
         if supports(excerpt, self._domain, claim.field, value):
             self._record(claim.field, value, claim.url, excerpt, claim.provider)
