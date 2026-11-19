@@ -108,6 +108,10 @@ class OracleSelfCheck(unittest.TestCase):
         self.assertFalse(supports(domain, 'funding_total', 1, 'Acme Robotics raised $1,23.'))
         self.assertTrue(supports(domain, 'funding_total', 12500000, 'Acme Robotics raised US$12.5 million.'))
         self.assertFalse(supports(domain, 'ceo', 'Dana Ruiz', 'Acme Robotics CEO Dana Ruiz leads. Acme Robotics employs 10 people.'))
+        sentence = 'THE REGISTER RECORDS HALVORSEN ROBOTICS AS AS THE REGISTERED NAME OF THE COMPANY TRADING AS HALVORSEN ROBOTICS.'
+        self.assertTrue(supports('halvorsen-robotics.test', 'legal_name', 'HALVORSEN ROBOTICS AS', sentence), 'R1.134 L1.31')
+        self.assertFalse(supports('halvorsen-robotics.test', 'legal_name', 'HALVORSEN ROBOTICS AS AS THE REGISTERED NAME OF THE COMPANY TRADING AS', sentence), 'R1.134 L1.31')
+        self.assertTrue(supports(domain, 'founded_year', 2014, 'Acme Robotics was founded in 2,014.'), 'R1.137 L1.31')
 
 
 class Acceptance(unittest.TestCase):
@@ -212,6 +216,15 @@ class Acceptance(unittest.TestCase):
         self.error(app('GET', '/unknown-route'), 404, 'not_found', 'L1.10')
         self.error(app('PUT', '/health'), 405, 'not_found', 'L1.10')
         poll('sample.test', self.token)
+
+    def test_idempotency_key_boundary_R1_57(self):
+        domain = 'acme-robotics.test'
+        calls_before = mock('GET', '/_mock/log')[1]['calls']
+        self.error(self.create(domain, 'k' * 256), 422, 'validation_failed', 'R1.57')
+        self.error(app('GET', '/dossiers/' + domain, token=self.token), 404, 'not_found', 'R1.57')
+        self.assertEqual(mock('GET', '/_mock/log')[1]['calls'], calls_before, 'R1.57 no build')
+        self.assertEqual(self.create(domain, 'k' * 255)[0], 202, 'R1.57 maximum key accepted')
+        poll(domain, self.token)
 
     def test_validation_boundaries_R1_21_R1_29_R1_33_R1_36_R1_51_R1_53_R1_55_R1_57_R1_61(self):
         for raw, status, code in [(b'{', 400, 'malformed_request'), (b'[]', 400, 'malformed_request'),
@@ -353,6 +366,7 @@ class Acceptance(unittest.TestCase):
         self.assertTrue(calls, 'INCONCLUSIVE: no requests reached the recording dependency')
         self.assertTrue(all(c['cost'] > 0 for c in calls), 'INCONCLUSIVE: mock refused a forwarded call')
         actual_cost = sum(c['cost'] for c in calls)
+        print(f'R1.143 dropped responses: mock calls={len(calls)} cost={actual_cost} spent={item["spent_units"]}', flush=True)
         self.assertLessEqual(actual_cost, 80, 'R1.148 cost from dependency log')
         self.assertEqual(item['state'], 'failed', 'R1.81: all responses were dropped')
         self.assertEqual(item['spent_units'], actual_cost, 'R1.94 R1.143: lost responses still cost their units')

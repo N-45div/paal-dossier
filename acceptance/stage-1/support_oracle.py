@@ -107,7 +107,7 @@ def values_for(field, text, company, domain):
                 rest = text[start.end():]
                 candidates = []
                 for suffix in SUFFIXES:
-                    m = re.match(r'((?: [^\W\d_]+)*),? ' + re.escape(suffix) + BOUNDARY_R, rest)
+                    m = re.match(r'((?: [^\W\d_]+)*?),? ' + re.escape(suffix) + BOUNDARY_R, rest)
                     if not m:
                         continue
                     words = m.group(1).split()
