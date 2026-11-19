@@ -1,5 +1,7 @@
 import time
 
+import pytest
+
 from starlette.testclient import TestClient
 
 from app.main import create_app
@@ -150,10 +152,6 @@ def test_export_during_build_holds_prior_state():
         assert c.get("/dossiers/acme.test", headers=h).json()["spent_units"] == 0
 
 
-def test_huge_integer_query_values(client, ada):
-    r = client.get("/dossiers?offset=" + "9" * 5000, headers=ada)
-    assert r.status_code == 200 and r.json() == {"dossiers": [], "has_more": False}
-    assert client.get("/dossiers?limit=" + "9" * 5000, headers=ada).status_code == 422
 
 
 def test_build_without_successful_call_fails():
@@ -164,17 +162,29 @@ def test_build_without_successful_call_fails():
         assert wait_ready(c, h)["state"] == "failed"
 
 
-def test_leading_zeros_in_integer_parameters(client, ada):
-    post(client, ada, {"domain": "a.test"})
-    assert client.get("/dossiers?limit=" + "0" * 19 + "1", headers=ada).status_code == 200
-    page = client.get("/dossiers?offset=" + "0" * 19, headers=ada).json()
-    assert len(page["dossiers"]) == 1
 
 
-def test_replay_identity_uses_raw_path(client, ada):
+def test_replay_identity_uses_decoded_path(client, ada):
     post(client, ada, {"domain": "one.test"}, key="c")
     first = client.post("/dossiers/%6fne.test/refresh", headers={**ada, "Idempotency-Key": "K"})
-    second = client.post("/dossiers/one.test/refresh", headers={**ada, "Idempotency-Key": "K"})
-    assert (first.status_code, second.status_code) == (202, 202)
-    again = client.post("/dossiers/one.test/refresh", headers={**ada, "Idempotency-Key": "K"})
-    assert again.status_code == 200
+    same = client.post("/dossiers/one.test/refresh", headers={**ada, "Idempotency-Key": "K"})
+    other = client.post("/dossiers/One.test/refresh", headers={**ada, "Idempotency-Key": "K"})
+    assert (first.status_code, same.status_code, other.status_code) == (202, 200, 202)
+
+
+@pytest.mark.parametrize("query,status", [
+    ("limit=0", 422), ("limit=1", 200), ("limit=200", 200), ("limit=201", 422), ("limit=" + "0" * 20 + "201", 422),
+    ("limit=" + "0" * 20 + "200", 200), ("limit=+4", 422), ("limit=-1", 422), ("limit=4.0", 422), ("limit=1e9", 422),
+    ("limit=%204", 422), ("limit=", 422), ("limit=" + "9" * 5000, 422), ("limit=1000000", 422), ("limit=\u0664", 422),
+    ("offset=0", 200), ("offset=" + "0" * 30, 200), ("offset=+4", 422), ("offset=-1", 422), ("offset=4.0", 422), ("offset=1e9", 422),
+    ("offset=%204", 422), ("offset=", 422), ("offset=" + "9" * 5000, 200), ("offset=1000000", 200),
+])
+def test_integer_parameter_forms(client, ada, query, status):
+    assert client.get("/dossiers?" + query, headers=ada).status_code == status
+
+
+def test_huge_offset_is_empty_page_and_zero_offset_is_first(client, ada):
+    post(client, ada, {"domain": "a.test"})
+    assert client.get("/dossiers?offset=" + "9" * 5000, headers=ada).json() == {"dossiers": [], "has_more": False}
+    assert len(client.get("/dossiers?offset=" + "0" * 19, headers=ada).json()["dossiers"]) == 1
+    assert client.get("/dossiers?limit=" + "0" * 19 + "1", headers=ada).status_code == 200

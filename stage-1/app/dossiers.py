@@ -15,11 +15,11 @@ from .idempotency import read_key, remember, replay
 from .service import Service
 from .state import Dossier
 
-_DIGITS = re.compile(r"[0-9]+")
+_DIGITS = re.compile(r"[0-9]+")  # ASCII digits only, unlike \d
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
-_MAX_DIGITS = 18
-_HUGE = 10**18
+MAX_SIGNIFICANT_DIGITS = 6
+HUGE = 10**7  # any value past six significant digits: beyond every possible page
 
 
 def _path_domain(raw: str) -> str:
@@ -29,27 +29,33 @@ def _path_domain(raw: str) -> str:
         raise invalid("domain is not a valid host name") from exc
 
 
-def raw_path(request: Request) -> str:
-    """The path exactly as sent, percent-encoding kept: replay identity is per raw path (ruling L1.03)."""
-    raw = request.scope.get("raw_path")
-    return raw.decode("latin-1") if raw else request.url.path
-
-
 def _handle(dossier: Dossier) -> dict[str, Any]:
     return {"dossier_id": dossier.dossier_id, "domain": dossier.domain, "state": dossier.state}
 
 
-def _integer_param(request: Request, name: str, default: int, low: int, high: int | None) -> int:
+def _digits_param(request: Request, name: str) -> int | None:
+    """Ruling L1.28: plain ASCII digits only; None when absent, HUGE when over six significant digits."""
     raw = request.query_params.get(name)
     if raw is None:
-        return default
+        return None
     if _DIGITS.fullmatch(raw) is None:
         raise invalid(f"{name} must be plain decimal digits")
-    digits = raw.lstrip("0") or "0"  # leading zeros do not change the value
-    value = int(digits) if len(digits) <= _MAX_DIGITS else _HUGE  # avoids Python's integer-conversion limit
-    if value < low or (high is not None and value > high):
-        raise invalid(f"{name} out of range")
+    significant = raw.lstrip("0") or "0"
+    return HUGE if len(significant) > MAX_SIGNIFICANT_DIGITS else int(significant)
+
+
+def _limit(request: Request) -> int:
+    value = _digits_param(request, "limit")
+    if value is None:
+        return DEFAULT_LIMIT
+    if not 1 <= value <= MAX_LIMIT:
+        raise invalid("limit must be between 1 and 200")
     return value
+
+
+def _offset(request: Request) -> int:
+    value = _digits_param(request, "offset")
+    return 0 if value is None else value
 
 
 class DossierHandlers:
@@ -64,7 +70,7 @@ class DossierHandlers:
         body = object_body(raw)
         key = read_key(request)
         compared = {"domain": body["domain"]} if "domain" in body else {}
-        path = raw_path(request)
+        path = request.url.path
         stored = replay(store, user_id, "POST", path, key, compared)
         if stored is not None:
             return json_response(stored, 200)
@@ -89,7 +95,7 @@ class DossierHandlers:
         store = service.store
         user_id = authenticate(request, store)
         key = read_key(request)
-        path = raw_path(request)
+        path = request.url.path
         stored = replay(store, user_id, "POST", path, key, None)
         if stored is not None:
             return json_response(stored, 200)
@@ -121,8 +127,8 @@ class DossierHandlers:
     async def listing(self, request: Request) -> Response:
         store = self.service.store
         authenticate(request, store)
-        limit = _integer_param(request, "limit", DEFAULT_LIMIT, 1, MAX_LIMIT)
-        offset = _integer_param(request, "offset", 0, 0, None)
+        limit = _limit(request)
+        offset = _offset(request)
         needle = request.query_params.get("q", "").lower()
         matching = [
             d
