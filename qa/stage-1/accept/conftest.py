@@ -175,6 +175,10 @@ def adversarial_deployment(request, tmp_path_factory):
         ('fraction-ledger.test', 'Fraction Ledger raised $0.00000007 million.'),
         ('length-probe.test', long_sentence),
         ('extract-probe.test', 'Extract Probe publishes an annual review.'),
+        ('hidden-record.test', 'Hidden Record was incorporated in 2008.\nHidden Record employs 120 people.'),
+        ('long-witness.test', 'Long Witness was incorporated in 2012 ' + 'and ' * 200 + 'today.'),
+        ('late-negation.test', 'Late Negation raised $19M ' + 'filler ' * 90 + 'not later.'),
+        ('late-conflict.test', 'Late Conflict raised $19M ' + 'filler ' * 90 + 'or $23M.'),
     ):
         page = {'url':f'https://{domain}/about', 'kind':'own', 'epochs':[0],
                 'searchable':True, 'published_at':None, 'true_from':None,
@@ -186,6 +190,11 @@ def adversarial_deployment(request, tmp_path_factory):
             company['research'] = {'nimble': {'0': [{
                 'field':'ceo', 'value':'Elena Vale', 'url':'https://extract-probe.test/missing',
                 'excerpt':'Extract Probe CEO Elena Vale.'}]}}
+        elif domain == 'hidden-record.test':
+            page['searchable'] = False
+            company['research'] = {'nimble': {'0': [{
+                'field':'founded_year', 'value':2008, 'url':page['url'],
+                'excerpt':'Hidden Record was incorporated in 2008.'}]}}
         (corpus / (domain + '.json')).write_text(json.dumps(company))
     yield from launch_deployment(request, corpus)
 

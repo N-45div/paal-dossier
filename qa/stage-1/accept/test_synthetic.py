@@ -146,3 +146,52 @@ def test_R1_99_R1_117_R1_118_missing_extract_is_charged(synthetic):
         assert not any(p['url'] == 'https://extract-probe.test/missing' for p in call['served'])
     assert dossier['spent_units'] == sum(c['cost'] for c in calls)
     assert dossier['fields']['ceo'] == {'value':None, 'status':'unknown', 'citations':[]}
+
+
+def test_R1_41_R1_45_R1_86_unsearchable_page_only_claimed_field(synthetic):
+    """R1.41 R1.45 R1.86: unsearchable pages contribute only supported research claims."""
+    api, mock, token = synthetic
+    assert create(api, token, 'hidden-record.test', 'hidden').status_code == 202
+    dossier = done(api, token, 'hidden-record.test')
+    assert dossier['state'] == 'ready'
+    year = dossier['fields']['founded_year']
+    assert year['status'] == 'known' and year['value'] == 2008 and year['citations']
+    assert dossier['fields']['headcount_range'] == {'value':None, 'status':'unknown', 'citations':[]}
+    calls = mock.get('/_mock/log').json()['calls']
+    assert not any(page['url'] == 'https://hidden-record.test/about'
+                   for call in calls if call['method'] == 'search' for page in call.get('served', []))
+    assert any(call['method'] == 'research' and call['status'] == 200 for call in calls)
+    for citation in year['citations']:
+        assert candidates('hidden-record.test', 'founded_year', citation['excerpt']) == {2008}
+        excerpt = re.sub(r'\s+', ' ', citation['excerpt']).strip()
+        assert any(call['method'] == 'extract' and call['provider'] == citation['provider'] and
+                   any(page['url'] == citation['url'] and excerpt in re.sub(r'\s+', ' ', prose(page['text']))
+                       for page in call.get('served', [])) for call in calls)
+
+
+def test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix(synthetic):
+    """R1.3 R1.43 R1.86: a supporting prefix may cite an overlong sentence."""
+    api, mock, token = synthetic
+    assert create(api, token, 'long-witness.test', 'long-witness').status_code == 202
+    dossier = done(api, token, 'long-witness.test')
+    assert dossier['state'] == 'ready'
+    field = dossier['fields']['founded_year']
+    assert field['status'] == 'known' and field['value'] == 2012 and field['citations']
+    calls = mock.get('/_mock/log').json()['calls']
+    for citation in field['citations']:
+        assert 1 <= len(citation['excerpt']) <= 500
+        assert candidates('long-witness.test', 'founded_year', citation['excerpt']) == {2012}
+        excerpt = re.sub(r'\s+', ' ', citation['excerpt']).strip()
+        assert any(call['provider'] == citation['provider'] and
+                   any(page['url'] == citation['url'] and excerpt in re.sub(r'\s+', ' ', prose(page['text']))
+                       for page in call.get('served', [])) for call in calls)
+
+
+@pytest.mark.parametrize('domain', ['late-negation.test', 'late-conflict.test'])
+def test_R1_43_R1_44_R1_86_long_sentence_full_context(synthetic, domain):
+    """R1.43 R1.44 R1.86: late negation or conflicting values defeat a short prefix."""
+    api, mock, token = synthetic
+    assert create(api, token, domain, 'long-context').status_code == 202
+    dossier = done(api, token, domain)
+    assert dossier['state'] == 'ready'
+    assert dossier['fields']['funding_total'] == {'value':None, 'status':'unknown', 'citations':[]}
