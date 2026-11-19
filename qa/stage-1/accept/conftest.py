@@ -164,12 +164,17 @@ def deployment(request):
 @pytest.fixture(scope='session')
 def adversarial_deployment(request, tmp_path_factory):
     corpus = tmp_path_factory.mktemp('prover-corpus')
+    long_prefix = 'Length Probe ' + ('background ' * 28) + 'raised $19M '
+    long_sentence = long_prefix + 'x' * (500 - len(long_prefix)) + '.'
+    assert len(long_sentence) == 501
     for domain, sentence in (
         ('rumor-press.test', 'Rumor Press is rumoured to have raised $17M.'),
         ('scale-probe.test', 'Scale Probe has raised $23mn.'),
         ('adjacency-labs.test', 'Adjacency Labs raised $73widgets.'),
         ('exact-ledger.test', 'Exact Ledger raised $987654321098765432109876543210987654321.'),
         ('fraction-ledger.test', 'Fraction Ledger raised $0.00000007 million.'),
+        ('length-probe.test', long_sentence),
+        ('extract-probe.test', 'Extract Probe publishes an annual review.'),
     ):
         page = {'url':f'https://{domain}/about', 'kind':'own', 'epochs':[0],
                 'searchable':True, 'published_at':None, 'true_from':None,
@@ -177,6 +182,10 @@ def adversarial_deployment(request, tmp_path_factory):
                 'lineage':{'canonical':None, 'first_published_by':None, 'registrant':domain}}
         company = {'domain':domain, 'names':[domain.split('.')[0].replace('-', ' ')],
                    'pages':[page], 'research':{}}
+        if domain == 'extract-probe.test':
+            company['research'] = {'nimble': {'0': [{
+                'field':'ceo', 'value':'Elena Vale', 'url':'https://extract-probe.test/missing',
+                'excerpt':'Extract Probe CEO Elena Vale.'}]}}
         (corpus / (domain + '.json')).write_text(json.dumps(company))
     yield from launch_deployment(request, corpus)
 
