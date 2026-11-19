@@ -382,6 +382,8 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 
 - **L1.33 Re-plan of the P5 fault harness (third rejection: #3, #6, #7).** Fault-delay attribution moves out of builder-a's tools. R1.58 fault coverage and M1.2 (1 s delay ≤ 10 s) are owned by the Prover's independent suite (already covering error, rate_limit and 1 s / 5 s delays against the mock log) and the event check. builder-a removes the `delay` verdicts from `stage-1/tools/dossier_harness/fault_run.py` (or reports them as `informational`, never `pass`), keeps `error` / `rate_limit` cases only where `/_mock/log` shows a call by the faulted provider and method answered with that fault status, and otherwise reports `not exercised`. Tools never gate acceptance of the service.
 
+- **L1.34 Dev harness stays out of the frozen deliverable.** (§2: the deliverable is the HTTP service, its `Dockerfile`, `RUN.md` and source.) builder-a's measurement harness (`stage-1/tools/`, `stage-1/tests/integration/`) is a development aid, not part of the deliverable, and is not merged into the stage folder. It stays on builder-a's branches for seats to use. The frozen stage-1 folder contains the service (`Dockerfile`, `RUN.md`, `requirements.txt`, `app/`), its unit tests (`tests/api/`, `tests/research/`) and `LEDGER.md`. Fault, delay and M1.2 coverage is provided by the Prover's independent suite (which verifies delayed calls against the mock log) and the event check, so no weakened or skipped test is shipped. Supersedes the tools part of L1.33.
+
 ## Rejections (stage 1)
 
 | # | Commit | Package | Ledger ids | Reason | Change |
