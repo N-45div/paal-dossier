@@ -4,7 +4,7 @@ import re
 import secrets
 from dataclasses import dataclass
 
-from dossier.server.errors import ApiError, email_taken, unauthenticated, validation
+from dossier.server.errors import email_taken, unauthenticated, validation
 from dossier.server.fields import read_fields
 from dossier.server.passwords import hash_password, verify_password
 from dossier.server.store import Store, User

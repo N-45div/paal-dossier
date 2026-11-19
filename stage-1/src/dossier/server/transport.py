@@ -5,9 +5,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from dossier.server import routes
 from dossier.server.errors import ApiError, malformed
-from dossier.server.store import Store
+from dossier.server.service import Service
 
 MAX_BODY_BYTES = 1024 * 1024
+
+
+def _idempotency_key(header: str | None) -> str | None:
+    return header.strip() if header is not None else None
 
 
 class Server(ThreadingHTTPServer):
@@ -15,8 +19,8 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = True
     request_queue_size = 128
 
-    def __init__(self, address: tuple[str, int], store: Store) -> None:
-        self.store = store
+    def __init__(self, address: tuple[str, int], service: Service) -> None:
+        self.service = service
         super().__init__(address, Handler)
 
 
@@ -35,10 +39,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = self._read_body()
             status, payload = routes.dispatch(
-                self.server.store,
+                self.server.service,
                 self.command,
                 self.path,
                 self.headers.get("Authorization"),
+                _idempotency_key(self.headers.get("Idempotency-Key")),
                 body,
             )
         except ApiError as error:

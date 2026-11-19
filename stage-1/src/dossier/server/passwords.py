@@ -36,3 +36,19 @@ def verify_password(password: str, stored: str) -> bool:
     except (ValueError, TypeError):
         return False
     return hmac.compare_digest(digest.hex(), digest_hex)
+
+
+def is_valid_hash(stored: object) -> bool:
+    """True when a stored hash has this module's format, so an import cannot plant junk."""
+    if not isinstance(stored, str):
+        return False
+    parts = stored.split("$")
+    if len(parts) != 6 or parts[0] != "scrypt":
+        return False
+    try:
+        n, r, p = int(parts[1]), int(parts[2]), int(parts[3])
+        bytes.fromhex(parts[4])
+        bytes.fromhex(parts[5])
+    except ValueError:
+        return False
+    return n >= 2 and r >= 1 and p >= 1

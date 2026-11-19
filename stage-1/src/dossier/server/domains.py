@@ -2,6 +2,8 @@
 
 import re
 
+from dossier.server.errors import validation
+
 _LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?|[a-z0-9]")
 
 
@@ -23,3 +25,11 @@ def is_valid_host(domain: str) -> bool:
     if len(labels) < 2:
         return False
     return all(_LABEL.fullmatch(label) for label in labels)
+
+
+def require_domain(raw: str) -> str:
+    """Normalise a domain from a body or path and reject anything that is not a host name."""
+    domain = normalise(raw)
+    if not is_valid_host(domain):
+        raise validation("domain is not a valid host name")
+    return domain

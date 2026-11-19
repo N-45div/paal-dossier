@@ -8,9 +8,10 @@ import urllib.request
 from datetime import timezone
 
 from dossier.server.domains import is_valid_host, normalise
-from dossier.server.store import Store
+from dossier.server.service import make_service
 from dossier.server.timestamps import format_timestamp, parse_rfc3339
 from dossier.server.transport import Server
+from fake_engine import FakeEngine
 
 
 class DomainTests(unittest.TestCase):
@@ -49,7 +50,7 @@ class TimestampTests(unittest.TestCase):
 class HttpTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server = Server(("127.0.0.1", 0), Store())
+        cls.server = Server(("127.0.0.1", 0), make_service(FakeEngine()))
         cls.base = f"http://127.0.0.1:{cls.server.server_address[1]}"
         threading.Thread(target=cls.server.serve_forever, daemon=True).start()
 
