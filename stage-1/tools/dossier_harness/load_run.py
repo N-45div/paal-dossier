@@ -23,6 +23,11 @@ class LoadReport:
     def max_latency(self) -> float:
         return max(r.seconds for r in self.replies)
 
+    @property
+    def p95_latency(self) -> float:
+        ordered = sorted(r.seconds for r in self.replies)
+        return ordered[min(len(ordered) - 1, int(0.95 * len(ordered)))]
+
 
 def _expect(report: LoadReport, condition: bool, message: str) -> None:
     if not condition:

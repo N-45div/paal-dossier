@@ -12,6 +12,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dossier_harness import fault_run, load_run, stack, startup_run  # noqa: E402
 
 
+LOAD_REPEATS = 3  # the load is repeated: one run can be an outlier
+
+
 def check_startup() -> bool:
     times = startup_run.measure()
     print("startup (cold, warm, warm):", ", ".join(f"{t:.1f}s" for t in times), f"(limit {startup_run.LIMIT_SECONDS:.0f}s)")
@@ -19,9 +22,13 @@ def check_startup() -> bool:
 
 
 def check_load(service, mock) -> bool:
-    report = load_run.run_load(service, mock)
-    print(f"load: {len(report.replies)} replies, max latency {report.max_latency:.2f}s, problems: {report.problems or 'none'}")
-    return not report.problems
+    ok = True
+    for attempt in range(LOAD_REPEATS):
+        report = load_run.run_load(service, mock)
+        print(f"load {attempt + 1}/{LOAD_REPEATS}: {len(report.replies)} replies, max latency {report.max_latency:.2f}s, "
+              f"p95 {report.p95_latency:.2f}s, problems: {report.problems or 'none'}")
+        ok = ok and not report.problems
+    return ok
 
 
 def check_faults(service, mock) -> bool:
