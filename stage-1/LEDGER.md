@@ -205,7 +205,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > A **build** researches one dossier: it calls the providers, decides each field, and replaces the dossier's fields with the result when it completes. A dossier's first build starts with `POST /dossiers`, and every later one with `POST /dossiers/{domain}/refresh`. A build's **time** is the clock's time when the request that started it was received.
 - **R1.80** §8 Builds — P2 — accepted (main c521788)
   > A dossier has at most one build running at a time.
-- **R1.81** §8 Builds — P2/P4 — accepted (main c521788)
+- **R1.81** §8 Builds — P2/P4 — service part accepted (main c521788: orchestration, failed/ready state, fields unchanged on failure); research part (real provider faults → `failed`) pending builder-b 958bd72
   > A build ends in `ready` when it completed, or `failed` when none of its provider calls succeeded. A failed build leaves the fields as they were.
 - **R1.82** §8 Builds — P4 — built (7653221) (measure M1.5)
   > When a build completes `ready`, each field is `known` exactly when the evidence (§4) supports a value for it.
@@ -235,7 +235,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > `fields` always holds all six fields. Before the first build completes `ready`, every field is `unknown`. While a later build runs, `fields` are those of the last build that completed `ready`.
 - **R1.93** §8 — P2 — accepted (main c521788)
   > `researched_at` is the time of the last build that completed `ready`, or null.
-- **R1.94** §8 — P2/P4 — accepted (main c521788)
+- **R1.94** §8 — P2/P4 — service part accepted (main c521788: `spent_units` accumulation and exposure); research part (per-call accounting via `spend`) pending builder-b 958bd72
   > `spent_units` is the total cost (§9) of every provider call made for this dossier, by every build, since it was created.
 - **R1.95a** §8 — P2 — accepted (main c521788)
   > The domain in the path is normalised (§4). No dossier for it is 404 `not_found`.
@@ -243,7 +243,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 ### §8 `POST /dossiers/{domain}/refresh`
 - **R1.106** §8 — P2 — accepted (main c521788)
   > `Idempotency-Key` is required; see §7. No body. Starts a new build of the dossier and returns 202 with `{ "dossier_id", "domain", "state": "building" }`. A refresh received while a build of the dossier is running starts no second build and returns 202 with the same body.
-- **R1.107** §8 — P2/P4 — accepted (main c521788)
+- **R1.107** §8 — P2/P4 — service part accepted (main c521788: refresh starts a build, spending added); research part (refresh makes provider calls) pending builder-b 958bd72
   > A refresh researches again: its build makes provider calls whether or not anything has changed since the last build, and its spending counts in `spent_units`.
 - **R1.108** §8 — P2 — accepted (main c521788)
   > No dossier for the domain: 404 `not_found`
@@ -253,7 +253,7 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
   > `GET /dossiers?q=acme&limit=50&offset=0` -> `{ "dossiers": [ { "dossier_id", "domain", "state", "legal_name", "researched_at", "spent_units" } ], "has_more": false }`
 - **R1.110** §8 — P2 — accepted (main c521788)
   > `legal_name` is the value of the dossier's `legal_name` field, or null.
-- **R1.111** §8 — P2 — accepted (main c521788)
+- **R1.111** §8 — P2 — service part accepted (main c521788: `q` filtering on domain and `legal_name`); research part (real `legal_name` values to match) pending builder-b 958bd72
   > `q` is optional. When present, only dossiers whose domain or `legal_name` contains `q`, compared case-insensitively, are listed. An empty `q` lists every dossier.
 - **R1.112** §8 — P2 — accepted (main c521788)
   > Dossiers are ordered by domain ascending.
