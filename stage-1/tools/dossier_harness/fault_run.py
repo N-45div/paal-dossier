@@ -74,8 +74,8 @@ def run_case(service: ServiceClient, mock: MockAdmin, provider: str, mode: str, 
     faulted = [c for c in calls if c["provider"] in targets and c["method"] in FAULTED_METHODS]
     if mode in FAULT_STATUS:
         faulted = [c for c in faulted if c["status"] == FAULT_STATUS[mode]]
-    # a delayed call that outlasts the client's timeout is never logged by the mock, but the service still counted its units
-    result.exercised = bool(faulted) or (mode == "delay" and result.spent_units > 0)
+    # evidence must be attributable to the faulted provider: a logged call to it, with the fault status unless it is a delay
+    result.exercised = bool(faulted)
     result.optional = provider == "tavily"
     # rate_limit is not permanent in the mock: a call refused three times is answered normally (README), so only `error` forces failure
     if provider == "both" and mode == "error":
