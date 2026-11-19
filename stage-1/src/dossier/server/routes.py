@@ -60,7 +60,9 @@ def dispatch(
         match = route.pattern.fullmatch(parts.path)
         if match is None:
             continue
-        user_id = accounts.authenticate(service.store, authorization) if route.needs_auth else None
+        user_id, generation = (None, None)
+        if route.needs_auth:
+            user_id, generation = accounts.authenticate(service.store, authorization)
         request = Request(
             method=method,
             path=parts.path,
@@ -69,6 +71,7 @@ def dispatch(
             body=body,
             user_id=user_id,
             idempotency_key=idempotency_key,
+            generation=generation,
         )
         return route.handler(service, request)
     raise not_found()

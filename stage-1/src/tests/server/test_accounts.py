@@ -38,7 +38,7 @@ class LoginRacesReset(unittest.TestCase):
     def test_login_without_a_race_still_issues_a_token(self):
         store = seeded_store()
         session = accounts.login(store, {"email": "ADA@example.com", "password": "correct horse"})
-        self.assertEqual(accounts.authenticate(store, f"Bearer {session.token}"), "u_ada")
+        self.assertEqual(accounts.authenticate(store, f"Bearer {session.token}")[0], "u_ada")
 
 
 if __name__ == "__main__":

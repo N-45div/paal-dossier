@@ -9,6 +9,7 @@ from dossier.server.fields import parse_object, read_fields
 from dossier.server.domains import require_domain
 from dossier.server.idempotency import canonical, check_key_length, require_key_present, run_idempotent
 from dossier.server.query import integer_param
+from dossier.server.request import require_current
 from dossier.server.model import Dossier
 from dossier.server.request import Request
 from dossier.server.service import Service
@@ -20,7 +21,7 @@ def post_dossiers(service: Service, request: Request) -> tuple[int, dict]:
     check_key_length(key)
     claimed = {"domain": body["domain"]} if "domain" in body else {}
     return run_idempotent(
-        service.store, request, key, canonical(claimed), lambda: _create(service, body)
+        service.store, request, key, canonical(claimed), lambda: _create(service, body, request)
     )
 
 
@@ -29,13 +30,14 @@ def post_refresh(service: Service, request: Request) -> tuple[int, dict]:
     check_key_length(key)
     raw_domain = request.params["domain"]
     return run_idempotent(
-        service.store, request, key, "", lambda: _refresh(service, raw_domain)
+        service.store, request, key, "", lambda: _refresh(service, raw_domain, request)
     )
 
 
 def get_dossier(service: Service, request: Request) -> tuple[int, dict]:
     domain = require_domain(unquote(request.params["domain"]))
     with service.store.lock:
+        require_current(service.store, request)
         dossier = service.store.dossiers.get(domain)
         if dossier is None:
             raise not_found("no dossier for this domain")
@@ -48,6 +50,7 @@ def list_dossiers(service: Service, request: Request) -> tuple[int, dict]:
     offset = integer_param(request.query.get("offset"), 0, 0, None)
     needle = (query or "").lower()
     with service.store.lock:
+        require_current(service.store, request)
         matching = [
             dossier
             for dossier in sorted(service.store.dossiers.values(), key=lambda d: d.domain)
@@ -58,10 +61,11 @@ def list_dossiers(service: Service, request: Request) -> tuple[int, dict]:
     return 200, {"dossiers": rows, "has_more": len(matching) > offset + limit}
 
 
-def _create(service: Service, body: dict) -> tuple[int, dict]:
+def _create(service: Service, body: dict, request: Request) -> tuple[int, dict]:
     fields = read_fields(body, {"domain": str})
     domain = require_domain(fields["domain"])
     with service.store.lock:
+        require_current(service.store, request)
         existing = service.store.dossiers.get(domain)
         if existing is not None:
             return 200, views.dossier_ref(existing)
@@ -71,9 +75,10 @@ def _create(service: Service, body: dict) -> tuple[int, dict]:
         return 202, views.dossier_ref(dossier)
 
 
-def _refresh(service: Service, raw_domain: str) -> tuple[int, dict]:
+def _refresh(service: Service, raw_domain: str, request: Request) -> tuple[int, dict]:
     domain = require_domain(unquote(raw_domain))
     with service.store.lock:
+        require_current(service.store, request)
         dossier = service.store.dossiers.get(domain)
         if dossier is None:
             raise not_found("no dossier for this domain")

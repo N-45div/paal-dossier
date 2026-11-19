@@ -12,3 +12,13 @@ class Request:
     body: bytes
     user_id: str | None
     idempotency_key: str | None
+    generation: int | None = None  # store generation at authentication; None when unauthenticated
+
+
+def require_current(store, request: Request) -> None:
+    """Caller holds store.lock. A request whose session predates a reset or import is refused:
+    it is treated as made against the old state, which the new state no longer has (RL1.8)."""
+    from dossier.server.errors import unauthenticated
+
+    if request.generation is not None and request.generation != store.generation:
+        raise unauthenticated("the session ended while the request was running")

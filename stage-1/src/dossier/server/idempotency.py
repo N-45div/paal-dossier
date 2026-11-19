@@ -8,6 +8,7 @@ import json
 
 from dossier.server.errors import idempotency_key_reuse, missing_idempotency_key, validation
 from dossier.server.model import Claim
+from dossier.server.request import require_current
 from dossier.server.request import Request
 from dossier.server.store import Store
 
@@ -40,6 +41,7 @@ def run_idempotent(store: Store, request: Request, key: str, body: str, action) 
     claim_key = (request.user_id, key, request.method, request.path)
     while True:
         with store.lock:
+            require_current(store, request)
             claim = store.claims.get(claim_key)
             if claim is None:
                 claim = Claim(body)

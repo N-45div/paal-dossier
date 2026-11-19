@@ -32,14 +32,24 @@ def signup(store: Store, body: dict) -> Session:
     _check_email(email)
     _check_password(password)
     _check_display_name(display_name)
-    password_hash = hash_password(password)
     with store.lock:
         if email.casefold() in store.user_by_email:
             raise email_taken()
+        generation = store.generation
         user_id = _new_user_id(store)
+    password_hash = hash_password(password)  # slow, outside the lock
+    token = new_token()
+    with store.lock:
+        if store.generation != generation:
+            # A reset or import landed while hashing: this signup belongs to the old state,
+            # which that reset discarded. Nothing is stored, so neither the user nor the token
+            # survives into the new state (R1.25, R1.143).
+            return Session(user_id, display_name, token)
+        if email.casefold() in store.user_by_email:
+            raise email_taken()  # a concurrent signup took the address first
         store.users[user_id] = User(user_id, email, display_name, password_hash)
         store.user_by_email[email.casefold()] = user_id
-        token = _issue_token(store, user_id)
+        store.tokens[token] = user_id
     return Session(user_id, display_name, token)
 
 
@@ -60,16 +70,20 @@ def login(store: Store, body: dict) -> Session:
     return Session(user.user_id, user.display_name, token)
 
 
-def authenticate(store: Store, authorization: str | None) -> str:
-    """Return the user id for a valid bearer token, else 401."""
+def authenticate(store: Store, authorization: str | None) -> tuple[str, int]:
+    """Return (user id, state generation) for a valid bearer token, else 401.
+
+    Both are read under one lock section, so the generation is the one the token was valid in.
+    """
     match = _BEARER.fullmatch(authorization or "")
     if match is None:
         raise unauthenticated()
     with store.lock:
         user_id = store.tokens.get(match.group(1))
+        generation = store.generation
     if user_id is None:
         raise unauthenticated()
-    return user_id
+    return user_id, generation
 
 
 def _issue_token(store: Store, user_id: str) -> str:
