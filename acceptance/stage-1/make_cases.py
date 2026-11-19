@@ -32,4 +32,9 @@ if __name__ == '__main__':
         page = {'url': 'https://' + domain + '/about', 'kind': 'own', 'epochs': [0, 1], 'searchable': True,
                 'published_at': None, 'true_from': None, 'title': name, 'text': prose,
                 'facts': {'ceo': 'Misleading Person', 'funding_total': '$999M'}, 'lineage': {'canonical': None, 'first_published_by': None, 'registrant': domain}}
-        (root / (domain + '.json')).write_text(json.dumps({'domain': domain, 'names': [name], 'pages': [page], 'research': {'nimble': {'0': [], '1': []}}}))
+        claims = []
+        if domain == 'evidencezeta.test':
+            claims.append({'field':'founded_year','value':2014,'url':page['url'],'excerpt':'Evidencezeta reportedly was founded in 2014.'})
+        if domain == 'evidencealpha.test':
+            claims.append({'field':'ceo','value':'Sam Ortiz','url':page['url'],'excerpt':'Evidencealpha CEO: Dana Müller.'})
+        (root / (domain + '.json')).write_text(json.dumps({'domain': domain, 'names': [name], 'pages': [page], 'research': {'nimble': {'0': claims, '1': claims}}}))

@@ -58,7 +58,7 @@ def mock(method, path, **kwargs):
     return request(MOCK, method, path, **kwargs)
 
 
-def poll(domain, token, bound=15):
+def poll(domain, token, bound=15, reason='R1.83 M1.2'):
     deadline = time.monotonic() + bound
     last = None
     while time.monotonic() < deadline:
@@ -66,7 +66,7 @@ def poll(domain, token, bound=15):
         if status == 200 and last['state'] != 'building':
             return last
         time.sleep(.05)
-    raise AssertionError('R1.83 M1.2 build did not finish: ' + repr(last))
+    raise AssertionError(reason + ': build did not finish: ' + repr(last))
 
 
 class OracleSelfCheck(unittest.TestCase):
@@ -198,6 +198,17 @@ class Acceptance(unittest.TestCase):
         poll('boundary.test', self.token)
         poll(max_domain, self.token)
 
+    def test_reset_null_users_R1_21_R1_54(self):
+        self.error(app('POST', '/_test/reset', body={'now':NOW,'users':None}), 400, 'malformed_request', 'R1.54')
+        self.assertEqual(app('GET', '/dossiers', token=self.token)[0], 200, 'R1.21 invalid reset must not change state')
+
+    def test_huge_query_digits_R1_56_R1_58(self):
+        huge = '9' * 5000
+        huge_offset = app('GET', '/dossiers?offset=' + huge, token=self.token)
+        self.assertEqual(huge_offset[0], 200, f'R1.56 huge offset: {huge_offset[:2]}')
+        self.assertEqual(huge_offset[1]['dossiers'], [], 'R1.56 huge offset')
+        self.error(app('GET', '/dossiers?limit=' + huge, token=self.token), 422, 'validation_failed', 'R1.56 huge limit')
+
     def test_domains_and_idempotency_R1_35_R1_36_R1_37_R1_70_R1_71_R1_72_R1_73_R1_74_R1_75_R1_77(self):
         first = self.create(' WWW.Example.TEST. ', 'key')
         self.assertEqual(first[0], 202, 'R1.86')
@@ -321,11 +332,16 @@ class Acceptance(unittest.TestCase):
         self.assertEqual(snapshot[1]['track'], 'dossier')
         self.assertEqual(snapshot[1]['format_version'], 1)
         self.assertIsInstance(snapshot[1]['state'], dict)
-        self.assertEqual(request(DEST, 'POST', '/_test/reset', body={'now': '2027-01-01T00:00:00+00:00'}, timeout=10)[0], 204)
+        destination_fixture = {'now':'2027-01-01T00:00:00+00:00', 'users':[{'id':'u_old','email':'old@example.test','password':'password-old','display_name':'Old'}]}
+        self.assertEqual(request(DEST, 'POST', '/_test/reset', body=destination_fixture, timeout=10)[0], 204)
+        old_token = request(DEST, 'POST', '/auth/login', body={'email':'old@example.test','password':'password-old'})[1]['token']
         calls_before = len(mock('GET', '/_mock/log')[1]['calls'])
         self.assertEqual(request(DEST, 'POST', '/_test/import', body=snapshot[1], timeout=10)[0], 204, 'R1.115 cross-process')
         self.assertEqual(len(mock('GET', '/_mock/log')[1]['calls']), calls_before, 'R1.118 cross-process import')
         self.assertEqual(request(DEST, 'GET', '/dossiers/snapshot.test', token=self.token)[1], before, 'R1.117 cross-process')
+        self.error(request(DEST, 'GET', '/dossiers', token=old_token), 401, 'unauthenticated', 'R1.119 destination credentials removed')
+        self.assertEqual(request(DEST, 'POST', '/auth/login', body={'email':'ada@example.test','password':'correct horse'})[0], 200, 'R1.117 imported login')
+        self.error(request(DEST, 'POST', '/_test/clock', body={'now':'2026-12-31T23:59:59+00:00'}), 422, 'validation_failed', 'R1.119 import preserves destination clock')
         replay = request(DEST, 'POST', '/dossiers', body={'domain': 'snapshot.test'}, token=self.token, key='snapshot')
         self.assertEqual(replay[:2], (200, original[1]), 'R1.117 cross-process retry')
         self.error(request(DEST, 'POST', '/_test/import', body={'track': 'dossier', 'format_version': 1, 'state': {}}, timeout=10), 422, 'validation_failed', 'R1.116')
@@ -423,6 +439,19 @@ class Acceptance(unittest.TestCase):
         cost = sum(call['cost'] for call in log)
         self.assertLessEqual(cost, 80, 'R1.02 R1.148 M1.1')
         self.assertEqual(item['spent_units'], cost, 'R1.94 R1.141')
+
+    def test_five_second_search_L1_25_R1_84(self):
+        domain = 'halvorsen-robotics.test'
+        self.assertEqual(mock('POST', '/_mock/faults', body={'provider':'nimble','methods':['search'],'mode':'delay','seconds':5})[0], 204)
+        started = time.monotonic()
+        response = self.create(domain, 'slow')
+        self.assertEqual(response[0], 202)
+        self.assertLess(response[2], 5, 'R1.15')
+        item = poll(domain, self.token, bound=300, reason='INCONCLUSIVE: slow-provider harness wait expired')
+        calls = mock('GET', '/_mock/log')[1]['calls']
+        self.assertTrue(any(c['method'] == 'search' and c['query'] == domain and 200 <= c['status'] < 300 for c in calls), 'L1.25 5-second search abandoned')
+        self.assertGreaterEqual(time.monotonic() - started, 5, 'L1.25 delayed answer was not awaited')
+        self.assertEqual(item['state'], 'ready', 'R1.81')
 
     def test_controlled_support_R1_49_R1_50_R1_121_R1_122_R1_123_R1_124_R1_125_R1_126_R1_127_R1_128_R1_129_R1_130_R1_131_R1_132_R1_133_R1_134_R1_135_R1_136_R1_137_R1_138_R1_139_R1_140(self):
         for domain, (prose, expected) in CASES.items():
