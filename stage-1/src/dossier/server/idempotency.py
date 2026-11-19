@@ -35,12 +35,14 @@ def canonical(value: object) -> str:
 def run_idempotent(store: Store, request: Request, key: str, body: str, action) -> tuple[int, dict]:
     """Run `action()` once for this claim; replays and concurrent twins get its stored body.
 
-    `action` returns (status, payload) or raises ApiError. Only a 2xx result is stored: an
-    error removes the claim, so a waiting twin runs as the first use.
+    The effect and the claim's completion happen in one critical section (the store lock is
+    reentrant), so an export sees both or neither (R1.139). `action` returns (status, payload)
+    or raises ApiError. Only a 2xx result is stored: an error removes the claim, so a waiting
+    twin runs as the first use.
     """
     claim_key = (request.user_id, key, request.method, request.path)
-    while True:
-        with store.lock:
+    with store.lock:
+        while True:
             require_current(store, request)
             claim = store.claims.get(claim_key)
             if claim is None:
@@ -52,17 +54,15 @@ def run_idempotent(store: Store, request: Request, key: str, body: str, action) 
             if claim.done:
                 return 200, claim.payload
             store.lock.wait(timeout=_WAIT_SECONDS)
-    try:
-        status, payload = action()
-    except BaseException:
-        with store.lock:
+        try:
+            status, payload = action()
+        except BaseException:
             if store.claims.get(claim_key) is claim:
                 del store.claims[claim_key]
             store.lock.notify_all()
-        raise
-    with store.lock:
+            raise
         if store.claims.get(claim_key) is claim:
             claim.done = True
             claim.payload = payload
         store.lock.notify_all()
-    return status, payload
+        return status, payload

@@ -10,6 +10,7 @@ from dossier.server.passwords import hash_password, verify_password
 from dossier.server.store import Store, User
 
 _EMAIL = re.compile(r"[^@\s]+@[^@\s]+")
+_WAIT_SECONDS = 0.5
 _BEARER = re.compile(r"Bearer ([^\s]+)", re.IGNORECASE)
 _SIGNUP_FIELDS = {"email": str, "password": str, "display_name": str}
 _LOGIN_FIELDS = {"email": str, "password": str}
@@ -41,7 +42,11 @@ def signup(store: Store, body: dict) -> Session:
     _check_display_name(display_name)
     key = email.casefold()
     with store.lock:
-        if key in store.user_by_email or key in store.reservations:
+        # A duplicate waits for an in-flight signup of the same email to finish, so its 409
+        # always follows that signup's commit: login and export then see the user (R1.79, R1.143).
+        while key in store.reservations:
+            store.lock.wait(timeout=_WAIT_SECONDS)
+        if key in store.user_by_email:
             raise email_taken()
         generation = store.generation
         user_id = _new_user_id(store)
@@ -60,6 +65,7 @@ def signup(store: Store, body: dict) -> Session:
         with store.lock:
             if store.reservations.get(key) is marker:
                 del store.reservations[key]
+            store.lock.notify_all()
 
 
 def login(store: Store, body: dict) -> Session:
