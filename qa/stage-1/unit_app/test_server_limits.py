@@ -1,7 +1,8 @@
 """Socket-level body limits (R1.31, RL20): 16 MiB is accepted, above it is 413 payload_too_large.
 
 Index: R1.31 -> test_r1_31_body_up_to_16_mib_with_unknown_field_is_accepted,
-       R1.31 -> test_r1_31_body_above_16_mib_is_413_payload_too_large.
+       R1.31 -> test_r1_31_body_above_16_mib_is_413_payload_too_large,
+       R1.61 -> test_r1_61_overlong_request_target_answers_the_envelope.
 
 Run from the repository root:  PYTHONPATH=stage-1 python3 -m unittest discover -s qa/stage-1/unit_app -t qa/stage-1/unit_app
 
@@ -62,6 +63,18 @@ class ServerLimitTests(unittest.TestCase):
         connection.close()
         self.assertEqual(response.status, 413)
         self.assertEqual(data["error"]["code"], "payload_too_large")
+
+
+    def test_r1_61_overlong_request_target_answers_the_envelope(self):
+        """Covers R1.61, R1.62: a request line beyond the server's limit gets the §5 envelope, never 500 or a dropped reply."""
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=30)
+        connection.putrequest("GET", "/dossiers?q=" + "a" * 120000)
+        connection.endheaders()
+        response = connection.getresponse()
+        data = json.loads(response.read())
+        connection.close()
+        self.assertIn(response.status, (400, 414))
+        self.assertEqual(data["error"]["code"], "malformed_request")
 
 
 if __name__ == "__main__":

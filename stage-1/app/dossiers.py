@@ -16,7 +16,7 @@ HEADCOUNT_RANGES = ("1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000
 PROVIDERS = ("nimble", "tavily")
 IMPORTABLE_STATES = ("ready", "failed")
 DOSSIER_KEYS = frozenset({"dossier_id", "domain", "state", "researched_at", "spent_units", "fields"})
-FIELD_KEYS = frozenset({"value", "citations"})
+FIELD_KEYS = frozenset({"value", "status", "citations"})  # RL22.4: exactly these three
 CITATION_KEYS = frozenset({"url", "excerpt", "provider"})
 
 
@@ -88,7 +88,24 @@ def export_dossier(record: dict[str, Any]) -> dict[str, Any]:
         "state": state,
         "researched_at": record["researched_at"],
         "spent_units": record["spent_units"],
-        "fields": record["fields"] if record["researched_at"] else unknown_fields(),
+        "fields": _exported_fields(record) if record["researched_at"] else _exported_unknown(),
+    }
+
+
+def _exported_fields(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {name: _exported_field(record["fields"][name]) for name in FIELD_NAMES}
+
+
+def _exported_unknown() -> dict[str, dict[str, Any]]:
+    return {name: _exported_field({"value": None, "citations": []}) for name in FIELD_NAMES}
+
+
+def _exported_field(field: dict[str, Any]) -> dict[str, Any]:
+    value = field["value"]
+    return {
+        "value": value,
+        "status": "known" if value is not None else "unknown",
+        "citations": [dict(c) for c in field["citations"]],
     }
 
 
@@ -136,19 +153,21 @@ def dossier_from_json(entry: Any) -> dict[str, Any]:
 
 
 def _field_from_json(name: str, entry: Any) -> dict[str, Any]:
+    """Strict field check (RL22.4): exact keys, status iff value, typed value, well-formed citations."""
     if not isinstance(entry, dict) or set(entry) != FIELD_KEYS:
         raise validation("state holds an invalid field")
     value = entry["value"]
+    status = entry["status"]
     citations = entry["citations"]
     if not isinstance(citations, list):
         raise validation("state holds an invalid citation list")
     if value is None:
-        if citations:
-            raise validation("an unknown field cannot have citations")
+        if status != "unknown" or citations != []:
+            raise validation("an unknown field has no value, no citations and status unknown")
         return {"value": None, "citations": []}
-    if not _is_value(name, value) or not citations:
-        raise validation("state holds an invalid field value")
-    if not all(_is_citation(c) and set(c) == CITATION_KEYS for c in citations):
+    if status != "known" or not _is_value(name, value) or not citations:
+        raise validation("state holds an invalid known field")
+    if not all(isinstance(c, dict) and set(c) == CITATION_KEYS and _is_citation(c) for c in citations):
         raise validation("state holds an invalid citation")
     return {"value": value, "citations": [dict(c) for c in citations]}
 
@@ -170,10 +189,14 @@ def _is_value(name: str, value: Any) -> bool:
         return False
     if name == "founded_year":
         return 1800 <= value <= 2099
+    if name == "funding_total":
+        return value >= 1
+    if name in ("legal_name", "hq_city", "ceo"):
+        return value != "" and value == value.strip()
     if name == "headcount_range":
         return value in HEADCOUNT_RANGES
     if isinstance(value, str):
-        return value != ""
+        return value != "" and value == value.strip()
     return value >= 0
 
 

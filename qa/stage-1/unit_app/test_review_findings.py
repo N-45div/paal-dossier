@@ -1,9 +1,9 @@
 """Regression tests for the P3 review findings on c2c42b65 (RL16–RL20).
 
 Index of claimed ids covered in this module:
-    R1.23 -> test_r1_23_token_removed_by_reset_is_refused
-    R1.40 -> test_r1_40_invalid_stored_values_are_refused_on_import
-    R1.61 -> test_r1_61_very_long_digit_offsets_answer_without_5xx
+    R1.23 -> test_r1_23_token_removed_by_reset_is_refused, test_r1_23_controlled_reset_race_request_behaves_as_after_reset
+    R1.40 -> test_r1_40_invalid_stored_values_are_refused_on_import, test_r1_40_each_invalid_import_field_is_refused_and_a_valid_one_is_accepted
+    R1.61 -> test_r1_61_very_long_digit_offsets_answer_without_5xx, test_r1_61_leading_zero_and_huge_offsets_and_limits_are_plain_digits
     R1.125 -> test_r1_125_export_during_failed_refresh_shows_the_last_completed_build
     R1.126 -> test_r1_126_export_during_failed_refresh_round_trips_unchanged
     R1.128 -> test_r1_128_export_during_failed_refresh_shows_the_last_completed_build
@@ -143,6 +143,73 @@ class ReviewFindingTests(unittest.TestCase):
                 mutate(bad["state"]["dossiers"][0]["fields"])
                 self.assertEqual(call(self.app, "POST", "/_test/import", bad)[0], 422)
                 self.assertEqual(call(self.app, "GET", "/_test/export")[1], before)
+
+
+    def test_r1_23_controlled_reset_race_request_behaves_as_after_reset(self):
+        """Covers R1.23, R1.129: a request blocked between its arrival and its transaction sees the reset state."""
+        reply = {}
+
+        def request():
+            reply["reply"] = call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"},
+                                  dict(self.headers, **{"idempotency-key": "race"}))
+
+        with self.app.store._lock:  # the test thread holds the state lock, as a reset in progress would
+            worker = threading.Thread(target=request)
+            worker.start()
+            time.sleep(0.2)  # the request is now waiting on the lock, before authentication
+            self.assertEqual(call(self.app, "POST", "/_test/reset", {"now": "2026-03-01T09:00:00+00:00", "users": []})[0], 204)
+        worker.join(5)
+        status, body = reply["reply"]
+        self.assertEqual((status, body["error"]["code"]), (401, "unauthenticated"))
+        exported = call(self.app, "GET", "/_test/export")[1]["state"]
+        self.assertEqual((exported["dossiers"], exported["idempotency"]), ([], []))
+
+    def test_r1_61_leading_zero_and_huge_offsets_and_limits_are_plain_digits(self):
+        """Covers R1.61: leading zeros are valid digits; limit is 1-200; any-length offset is a page or empty."""
+        call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(self.headers, **{"idempotency-key": "z"}))
+        self.settle("acme-robotics.test")
+        self.assertEqual(call(self.app, "GET", "/dossiers?offset=" + "0" * 100 + "0", headers=self.headers)[1]["has_more"], False)
+        status, body = call(self.app, "GET", "/dossiers?offset=" + "0" * 5000 + "1", headers=self.headers)
+        self.assertEqual((status, body["dossiers"], body["has_more"]), (200, [], False))
+        self.assertEqual(call(self.app, "GET", "/dossiers?limit=00200", headers=self.headers)[0], 200)
+        self.assertEqual(call(self.app, "GET", "/dossiers?limit=00201", headers=self.headers)[0], 422)
+        self.assertEqual(call(self.app, "GET", "/dossiers?limit=" + "9" * 5000, headers=self.headers)[0], 422)
+        self.assertEqual(call(self.app, "GET", "/dossiers?offset=1e3", headers=self.headers)[0], 422)
+
+    def test_r1_40_each_invalid_import_field_is_refused_and_a_valid_one_is_accepted(self):
+        """Covers R1.40, R1.126: each malformed field is 422 with no change; the valid positive control is 204."""
+        call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(self.headers, **{"idempotency-key": "o"}))
+        self.settle("acme-robotics.test")
+        exported = call(self.app, "GET", "/_test/export")[1]
+        before = copy.deepcopy(exported)
+        cite = {"url": "https://acme-robotics.test/about", "excerpt": "Acme Robotics was founded in 2014.", "provider": "nimble"}
+
+        def fields(mutate):
+            bad = copy.deepcopy(exported)
+            mutate(bad["state"]["dossiers"][0]["fields"])
+            return bad
+
+        cases = {
+            "legal_name with leading space": lambda f: f["legal_name"].update(value=" Acme Robotics, Inc."),
+            "ceo empty string known": lambda f: f.update(ceo={"value": "", "status": "known", "citations": [cite]}),
+            "funding_total zero": lambda f: f.update(funding_total={"value": 0, "status": "known", "citations": [cite]}),
+            "status mismatch: known value marked unknown": lambda f: f["founded_year"].update(status="unknown"),
+            "headcount outside the ranges": lambda f: f.update(headcount_range={"value": "7", "status": "known", "citations": [cite]}),
+            "founded_year is a boolean": lambda f: f["founded_year"].update(value=True),
+            "excerpt longer than 500": lambda f: f["founded_year"]["citations"][0].update(excerpt="x" * 501),
+            "empty url": lambda f: f["founded_year"]["citations"][0].update(url=""),
+            "unknown provider": lambda f: f["founded_year"]["citations"][0].update(provider="bing"),
+            "unknown field carries citations": lambda f: f.update(ceo={"value": None, "status": "unknown", "citations": [cite]}),
+            "known field without citations": lambda f: f["founded_year"].update(citations=[]),
+            "field without status": lambda f: f["founded_year"].pop("status"),
+            "field with an extra key": lambda f: f["founded_year"].update(score=1),
+        }
+        for why, mutate in cases.items():
+            with self.subTest(why=why):
+                self.assertEqual(call(self.app, "POST", "/_test/import", fields(mutate))[0], 422)
+                self.assertEqual(call(self.app, "GET", "/_test/export")[1], before)
+        valid = fields(lambda f: f.update(headcount_range={"value": "51-200", "status": "known", "citations": [cite]}))
+        self.assertEqual(call(self.app, "POST", "/_test/import", valid)[0], 204)
 
 
 if __name__ == "__main__":

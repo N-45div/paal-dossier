@@ -35,7 +35,7 @@ def valid_dossier(**overrides):
         "state": "failed",
         "researched_at": "2026-03-01T09:00:00+00:00",
         "spent_units": 3,
-        "fields": {name: {"value": None, "citations": []} for name in
+        "fields": {name: {"value": None, "status": "unknown", "citations": []} for name in
                    ("legal_name", "hq_city", "ceo", "founded_year", "headcount_range", "funding_total")},
     }
     record.update(overrides)
@@ -134,13 +134,13 @@ class ImportValidationTests(unittest.TestCase):
             "ready without researched_at": valid_dossier(state="ready", researched_at=None),
             "negative spend": valid_dossier(spent_units=-1),
             "bool spend": valid_dossier(spent_units=True),
-            "field with a wrong type": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": "2014", "citations": [valid_citation()]})),
-            "headcount outside the ranges": valid_dossier(fields=dict(valid_dossier()["fields"], headcount_range={"value": "7", "citations": [valid_citation()]})),
-            "known value without citations": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "citations": []})),
-            "unknown value with citations": valid_dossier(fields=dict(valid_dossier()["fields"], ceo={"value": None, "citations": [valid_citation()]})),
-            "citation with an unknown provider": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "citations": [dict(valid_citation(), provider="bing")]})),
-            "citation with an extra key": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "citations": [dict(valid_citation(), score=1)]})),
-            "known field in a dossier without researched_at": valid_dossier(researched_at=None, fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "citations": [valid_citation()]})),
+            "field with a wrong type": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": "2014", "status": "known", "citations": [valid_citation()]})),
+            "headcount outside the ranges": valid_dossier(fields=dict(valid_dossier()["fields"], headcount_range={"value": "7", "status": "known", "citations": [valid_citation()]})),
+            "known value without citations": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "status": "known", "citations": []})),
+            "unknown value with citations": valid_dossier(fields=dict(valid_dossier()["fields"], ceo={"value": None, "status": "unknown", "citations": [valid_citation()]})),
+            "citation with an unknown provider": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "status": "known", "citations": [dict(valid_citation(), provider="bing")]})),
+            "citation with an extra key": valid_dossier(fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "status": "known", "citations": [dict(valid_citation(), score=1)]})),
+            "known field in a dossier without researched_at": valid_dossier(researched_at=None, fields=dict(valid_dossier()["fields"], founded_year={"value": 2014, "status": "known", "citations": [valid_citation()]})),
             "domain not normalised": valid_dossier(domain="Acme-Robotics.test."),
         }
         for why, dossier in cases.items():
