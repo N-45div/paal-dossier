@@ -367,6 +367,8 @@ The owner tag on each entry below is authoritative; the id ranges in this table 
 
 - **L1.26 No successful call means failed.** (R1.81) A build in which no provider call succeeded — including one that made no provider call at all — ends `failed` with fields unchanged. An exception raised by `run_build` is treated the same way (no 5xx). `run_build` returns `ok: false` in both cases; any stub returns `ok: false`.
 
+- **L1.27 No abandoned calls; uniform patience.** (R1.84, R1.94, R1.143, R1.148, supersedes the mock part of L1.18) A build never finishes while one of its provider calls is still in flight: it awaits every call it issued and accounts each one by its outcome (answered → table cost; refused with an error status → 0; timed out or connection lost → table cost). Units for a call are reserved against the 80-unit budget before the call is issued, so in-flight calls can never push a build over 80. In every mode (mock or live) no call is given up before it has waited 30 s; the whole build is capped at 280 s. Reason: the 10 s bound applies only when calls answer within 1 s, so long timeouts cost nothing there, while a short mock timeout turns a slow-but-valid answer into a charged loss and a `failed` build.
+
 ## Rejections (stage 1)
 
 | # | Commit | Package | Ledger ids | Reason | Change |
