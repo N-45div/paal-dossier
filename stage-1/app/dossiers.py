@@ -29,6 +29,12 @@ def _path_domain(raw: str) -> str:
         raise invalid("domain is not a valid host name") from exc
 
 
+def raw_path(request: Request) -> str:
+    """The path exactly as sent, percent-encoding kept: replay identity is per raw path (ruling L1.03)."""
+    raw = request.scope.get("raw_path")
+    return raw.decode("latin-1") if raw else request.url.path
+
+
 def _handle(dossier: Dossier) -> dict[str, Any]:
     return {"dossier_id": dossier.dossier_id, "domain": dossier.domain, "state": dossier.state}
 
@@ -70,7 +76,7 @@ class DossierHandlers:
         body = object_body(raw)
         key = read_key(request)
         compared = {"domain": body["domain"]} if "domain" in body else {}
-        path = request.url.path
+        path = raw_path(request)
         stored = replay(store, user_id, "POST", path, key, compared)
         if stored is not None:
             return json_response(stored, 200)
@@ -95,7 +101,7 @@ class DossierHandlers:
         store = service.store
         user_id = authenticate(request, store)
         key = read_key(request)
-        path = request.url.path
+        path = raw_path(request)
         stored = replay(store, user_id, "POST", path, key, None)
         if stored is not None:
             return json_response(stored, 200)

@@ -164,12 +164,11 @@ def test_build_without_successful_call_fails():
 
 
 
-def test_replay_identity_uses_decoded_path(client, ada):
+def test_replay_identity_uses_raw_path(client, ada):
     post(client, ada, {"domain": "one.test"}, key="c")
-    first = client.post("/dossiers/%6fne.test/refresh", headers={**ada, "Idempotency-Key": "K"})
-    same = client.post("/dossiers/one.test/refresh", headers={**ada, "Idempotency-Key": "K"})
-    other = client.post("/dossiers/One.test/refresh", headers={**ada, "Idempotency-Key": "K"})
-    assert (first.status_code, same.status_code, other.status_code) == (202, 200, 202)
+    sent = lambda p: client.post(p, headers={**ada, "Idempotency-Key": "K"}).status_code
+    assert (sent("/dossiers/%6fne.test/refresh"), sent("/dossiers/one.test/refresh"), sent("/dossiers/One.test/refresh")) == (202, 202, 202)
+    assert sent("/dossiers/one.test/refresh") == 200
 
 
 @pytest.mark.parametrize("query,status", [
