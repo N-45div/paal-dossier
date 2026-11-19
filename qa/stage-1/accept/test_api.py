@@ -251,6 +251,36 @@ def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(deployment,
     assert max(row[3] for row in rows) < 5
 
 
+def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(deployment, seeded):
+    barrier = threading.Barrier(50)
+    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+        def one(_):
+            barrier.wait(timeout=5)
+            start = time.monotonic()
+            response = client.post('/auth/signup', json={
+                'email': 'parallel@example.com', 'password': 'correct horse', 'display_name': 'Parallel'})
+            return response.status_code, response.json(), time.monotonic() - start
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+            rows = list(pool.map(one, range(50)))
+    assert sum(status == 201 for status, _, _ in rows) == 1
+    assert sum(status == 409 and body['error']['code'] == 'email_taken' for status, body, _ in rows) == 49
+    assert max(duration for _, _, duration in rows) < 5
+
+
+def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(deployment, seeded):
+    barrier = threading.Barrier(50)
+    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+        def one(_):
+            barrier.wait(timeout=5)
+            start = time.monotonic()
+            response = client.post('/auth/login', json={'email': 'ada@example.com', 'password': 'correct horse'})
+            return response.status_code, response.json(), time.monotonic() - start
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+            rows = list(pool.map(one, range(50)))
+    assert all(status == 200 and body['user_id'] == 'u_ada' and body['token'] for status, body, _ in rows)
+    assert max(duration for _, _, duration in rows) < 5
+
+
 def test_R1_16_R1_62_R1_93_R1_129_concurrent_different_keys(deployment, seeded):
     barrier = threading.Barrier(50)
     with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
