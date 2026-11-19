@@ -226,5 +226,72 @@ class ReviewFindingTests(unittest.TestCase):
         self.assertEqual(call(self.app, "GET", "/_test/export")[1], zero)
 
 
+    def test_r1_125_counter_10_12_round_trips_after_a_signup(self):
+        """Covers R1.125, R1.126: import counter 10^12, sign up, export, import (204) (RL27.1)."""
+        exported = call(self.app, "GET", "/_test/export")[1]
+        exported["state"]["counters"] = {"user": 10**12}
+        self.assertEqual(call(self.app, "POST", "/_test/import", exported)[0], 204)
+        status, body = call(self.app, "POST", "/auth/signup",
+                            {"email": "new@example.test", "password": "longenough", "display_name": "New"})
+        self.assertEqual(status, 201)
+        self.assertLessEqual(len(body["user_id"]), 64)
+        again = call(self.app, "GET", "/_test/export")[1]
+        self.assertEqual(again["state"]["counters"]["user"], 10**12 + 1)
+        self.assertEqual(call(self.app, "POST", "/_test/import", again)[0], 204)
+
+    def test_r1_85_injected_apply_failure_ends_the_build_failed_with_fields_unchanged(self):
+        """Covers R1.85, R1.96: an exception while applying a result ends the build failed, fields unchanged (RL27.2)."""
+        def boom(*args, **kwargs):
+            raise RuntimeError("injected failure in the apply step")
+        self.app.store.finish_build = boom
+        call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(self.headers, **{"idempotency-key": "x1"}))
+        body = self.settle("acme-robotics.test")
+        self.assertEqual(body["state"], "failed")
+        self.assertEqual(body["researched_at"], None)
+        self.assertTrue(all(f["status"] == "unknown" for f in body["fields"].values()))
+
+    def test_r1_40_engine_returns_funding_zero_and_the_api_shows_known_zero(self):
+        """Covers R1.40, R1.86: a supported $0 from the engine is a known value 0 (RL24, RL27)."""
+        def zero_engine(domain, *, budget=80, on_spend=None, cancelled=None):
+            cite = {"url": "https://acme-robotics.test/about", "excerpt": "Acme raised $0.", "provider": "nimble"}
+            return SimpleNamespace(ok=True, spent=0, fields={
+                "funding_total": {"value": 0, "citations": [cite]},
+            })
+        app = App(Clock(), engine=zero_engine)
+        call(app, "POST", "/_test/reset", FIXTURE)
+        token = call(app, "POST", "/auth/login", {"email": "ada@example.com", "password": "correct horse"})[1]["token"]
+        headers = {"authorization": f"Bearer {token}"}
+        call(app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(headers, **{"idempotency-key": "z"}))
+        body = None
+        for _ in range(500):
+            _, body = call(app, "GET", "/dossiers/acme-robotics.test", headers=headers)
+            if body["state"] != "building":
+                break
+            time.sleep(0.01)
+        self.assertEqual(body["fields"]["funding_total"]["status"], "known")
+        self.assertEqual(body["fields"]["funding_total"]["value"], 0)
+
+    def test_r1_17_only_the_parameter_sets_this_service_writes_are_imported(self):
+        """Covers R1.17: scrypt records other than signup/login (n=2^13) and fixture (n=2^10) are 422 (RL27.3)."""
+        from app.passwords import hash_password
+        exported = call(self.app, "GET", "/_test/export")[1]
+        before = copy.deepcopy(exported)
+        for n in (2**14, 2**12):
+            with self.subTest(n=n):
+                bad = copy.deepcopy(exported)
+                bad["state"]["users"][0]["password_hash"] = hash_password("correct horse", n=n)
+                self.assertEqual(call(self.app, "POST", "/_test/import", bad)[0], 422)
+                self.assertEqual(call(self.app, "GET", "/_test/export")[1], before)
+
+    def test_r1_27_timestamps_outside_years_0001_to_9999_are_422(self):
+        """Covers R1.27: an instant must be representable in UTC and in its offset; otherwise 422 with no change (RL27.2)."""
+        before = call(self.app, "GET", "/_test/export")[1]
+        for now in ["0001-01-01T00:00:00+23:59", "9999-12-31T23:59:59-23:59"]:
+            with self.subTest(now=now):
+                self.assertEqual(call(self.app, "POST", "/_test/reset", {"now": now, "users": []})[0], 422)
+                self.assertEqual(call(self.app, "GET", "/_test/export")[1], before)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", {"now": "0001-01-01T00:00:00Z", "users": []})[0], 204)
+
+
 if __name__ == "__main__":
     unittest.main()

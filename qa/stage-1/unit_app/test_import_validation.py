@@ -110,8 +110,8 @@ class ImportValidationTests(unittest.TestCase):
         state["counters"] = {"user": 1}
         self.assert_rejected(state, "user counter below the highest issued id")
         state = self.base()
-        state["counters"] = {"user": 10**13}
-        self.assert_rejected(state, "counter above the bound")
+        state["counters"] = {"user": 10**30}
+        self.assert_rejected(state, "counter at or above 10^30")
         state = self.base()
         state["counters"] = {"user": True}
         self.assert_rejected(state, "boolean counter")

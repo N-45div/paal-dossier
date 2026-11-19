@@ -124,9 +124,11 @@ class PrecisionTests(unittest.TestCase):
         """Covers R1.33."""
         call(self.app, "POST", "/_test/reset", fixture())
         exported = call(self.app, "GET", "/_test/export")[1]
-        exported["state"]["counters"] = {"user": 10**13}
+        exported["state"]["counters"] = {"user": 10**30}
         self.assertEqual(call(self.app, "POST", "/_test/import", exported)[0], 422)
-        exported["state"]["counters"] = {"user": 10**12}
+        exported["state"]["counters"] = {"user": 10**30 - 1}
+        self.assertEqual(call(self.app, "POST", "/_test/import", exported)[0], 204)
+        exported["state"]["counters"] = {"user": 10**29}
         self.assertEqual(call(self.app, "POST", "/_test/import", exported)[0], 204)
         status, body, _ = call(self.app, "POST", "/auth/signup",
                                {"email": "z@example.test", "password": "longenough", "display_name": "Z"})

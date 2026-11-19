@@ -13,11 +13,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 SIGNUP_N = 2**13
 FIXTURE_N = 2**10
-_MIN_N = 2**4
-_MAX_N = 2**20
-_MIN_R, _MAX_R = 1, 32
-_MIN_P, _MAX_P = 1, 16
-_MEMORY_LIMIT = 256 * 1024 * 1024  # 128 * n * r bytes; larger stored records are refused
+# RL27: only the parameter sets this service writes are accepted from storage: signup and login
+# (n=2^13) and fixture users (n=2^10), both with r=8, p=1.
+ACCEPTED_PARAMETERS = frozenset({(2**13, 8, 1), (2**10, 8, 1)})
 _R = 8
 _P = 1
 _SALT_BYTES = 16
@@ -70,11 +68,7 @@ def _parse(encoded: object) -> tuple[int, int, int, bytes, bytes] | None:
         digest = base64.b64decode(parts[5], validate=True)
     except (ValueError, TypeError):
         return None
-    if not (_MIN_N <= n <= _MAX_N and n & (n - 1) == 0):
-        return None
-    if not (_MIN_R <= r <= _MAX_R and _MIN_P <= p <= _MAX_P):
-        return None
-    if 128 * n * r > _MEMORY_LIMIT:
+    if (n, r, p) not in ACCEPTED_PARAMETERS:
         return None
     if len(salt) != _SALT_BYTES or len(digest) != _DKLEN:
         return None

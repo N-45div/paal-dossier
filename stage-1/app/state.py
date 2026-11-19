@@ -21,8 +21,10 @@ SECTIONS = ("counters", "dossiers", "idempotency", "tokens", "users")
 USER_KEYS = frozenset({"id", "email", "display_name", "password_hash"})
 TOKEN_KEYS = frozenset({"token", "user_id"})
 COUNTER_PREFIXES = {"user": "u_", "dossier": "d_"}
-MAX_COUNTER = 10**12
-_CANONICAL = re.compile(r"[1-9][0-9]{0,11}")
+# RL27: a counter is a non-negative integer below 10^30, so every id it generates ("u_" or "d_"
+# plus its digits) is at most 32 characters, within the 64-character id limit.
+MAX_COUNTER = 10**30 - 1
+_CANONICAL = re.compile(r"[1-9][0-9]{0,29}")
 
 
 def canonical_number(kind: str, identifier: str) -> int | None:
@@ -48,6 +50,8 @@ class State:
         prefix = COUNTER_PREFIXES[kind]
         while True:
             number += 1
+            if number > MAX_COUNTER:
+                raise validation("the id space for this kind is exhausted")
             candidate = f"{prefix}{number}"
             if candidate not in taken:
                 self.counters[kind] = number
@@ -134,7 +138,7 @@ def _counters(value: Any) -> dict[str, int]:
     counters: dict[str, int] = {}
     for name, number in value.items():
         if not isinstance(number, int) or isinstance(number, bool) or not 0 <= number <= MAX_COUNTER:
-            raise validation("state counters must be integers from 0 to 10^12")
+            raise validation("state counters must be integers from 0 to 10^30 - 1")
         counters[name] = number
     return counters
 

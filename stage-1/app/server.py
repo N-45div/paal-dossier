@@ -1,6 +1,7 @@
 """HTTP transport: a threaded stdlib server that hands every request to App.handle."""
 
 import logging
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .app import App
@@ -72,6 +73,13 @@ class _Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
     request_queue_size = REQUEST_QUEUE_SIZE
+
+    def handle_error(self, request, client_address) -> None:
+        # A client that closes early (or a refused oversize body) is normal; keep stderr quiet.
+        error = sys.exc_info()[1]
+        if isinstance(error, (ConnectionError, TimeoutError)):
+            return
+        logging.getLogger("dossier.http").exception("request from %s failed", client_address)
 
 
 def make_server(host: str, port: int, app: App) -> ThreadingHTTPServer:

@@ -8,7 +8,7 @@ docker smoke run recorded in the handoff; "gap:" entries are declared gaps with 
 import importlib
 import unittest
 
-MODULES = ["test_foundation", "test_domain", "test_dossiers", "test_precision_and_limits", "test_import_validation", "test_server_limits", "test_declared_gaps", "test_review_findings"]
+MODULES = ["test_foundation", "test_domain", "test_dossiers", "test_precision_and_limits", "test_import_validation", "test_server_limits", "test_declared_gaps", "test_review_findings", "test_infrastructure"]
 
 P1_IDS = [6, 7, 8, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
           48, 49, 50, 51, 53, 54, 56, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 70, 124, 125, 126, 127, 128]
@@ -16,18 +16,18 @@ P3_IDS = [40, 52, 55, 60, 61] + list(range(71, 86)) + list(range(89, 110))
 
 COVERAGE = {
     # P1 foundation
-    6: ["manual: docker build and run per RUN.md, smoke recorded in handoff"],
-    7: ["manual: docker build and run per RUN.md, smoke recorded in handoff"],
-    8: ["manual: docker run with -e PORT and a port mapping, smoke recorded in handoff"],
-    11: ["manual: Dockerfile pip install line, image contains webrouter"],
+    6: ["InfrastructureTests.test_r1_6_deliverables_build_and_start_with_documented_commands"],
+    7: ["InfrastructureTests.test_r1_7_image_is_self_contained_and_serves_http"],
+    8: ["InfrastructureTests.test_r1_8_image_takes_its_port_from_the_environment_and_publishes_it"],
+    11: ["InfrastructureTests.test_r1_11_dockerfile_installs_webrouter_with_the_extras"],
     12: ["DeclaredGapTests.test_r1_12_port_is_the_only_setting_p1_reads"],
-    14: ["manual: container limits measured with docker stats (222 MiB, 2 vCPU cap)"],
-    15: ["manual: health reachable within seconds of container start (smoke)"],
-    16: ["manual: 50 concurrent logins measured (smoke, 0.16 s)"],
+    14: ["InfrastructureTests.test_r1_14_hashing_uses_two_worker_threads_and_no_processes"],
+    15: ["InfrastructureTests.test_r1_15_health_answers_within_five_seconds_of_start"],
+    16: ["InfrastructureTests.test_r1_16_fifty_concurrent_requests_succeed_within_the_limit"],
     17: ["PrecisionTests.test_R1_17_two_thousand_user_fixture_resets_within_budget"],
-    19: ["manual: state held in memory, container restart clears it (RUN.md)"],
+    19: ["InfrastructureTests.test_r1_19_no_write_is_required_outside_memory"],
     20: ["DeclaredGapTests.test_r1_20_app_package_ships_no_runtime_assets"],
-    21: ["manual: app/__main__.py binds 0.0.0.0 at PORT (smoke)"],
+    21: ["InfrastructureTests.test_r1_21_binds_all_interfaces_on_port_or_8080"],
     22: ["FoundationTests.test_health_is_ok_without_auth"],
     23: ["FoundationTests.test_reset_clears_previous_accounts",
          "FoundationTests.test_reset_rejects_duplicate_email_without_changing_state"],
@@ -146,6 +146,7 @@ _CLASSES = {
     "ServerLimitTests": "test_server_limits",
     "DeclaredGapTests": "test_declared_gaps",
     "ReviewFindingTests": "test_review_findings",
+    "InfrastructureTests": "test_infrastructure",
 }
 
 
@@ -157,7 +158,7 @@ class ClaimedIdTraceabilityTests(unittest.TestCase):
     def test_every_named_test_exists(self):
         for ident, entries in COVERAGE.items():
             for entry in entries:
-                if entry.startswith(("manual:", "gap:")):
+                if entry.startswith("gap:"):
                     continue
                 with self.subTest(ident=ident, entry=entry):
                     cls_name, method = entry.split(".")
@@ -174,7 +175,7 @@ class ClaimedIdTraceabilityTests(unittest.TestCase):
         """RL18.6: each claimed id is named in the docstring or the name of every test that covers it."""
         for ident, entries in COVERAGE.items():
             for entry in entries:
-                if entry.startswith(("manual:", "gap:")):
+                if entry.startswith("gap:"):
                     continue
                 with self.subTest(ident=ident, entry=entry):
                     cls_name, method = entry.split(".")

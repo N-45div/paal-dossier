@@ -147,6 +147,16 @@ class Store:
             record["state"] = "ready"
             record["last_state"] = "ready"
 
+    def fail_build(self, dossier_id: str, generation: int) -> None:
+        """End a build as failed without touching its fields (the last-resort path of a worker)."""
+        with self._lock:
+            if generation != self._generation:
+                return
+            record = self._record_by_id(dossier_id)
+            if record is not None:
+                record["state"] = "failed"
+                record["last_state"] = "failed"
+
     def _record_by_id(self, dossier_id: str) -> dict | None:
         for record in self._state.dossiers.values():
             if record["dossier_id"] == dossier_id:

@@ -24,6 +24,7 @@ class BuildRunner:
     def _run(self, dossier_id: str, domain: str, requested_at, generation: int) -> None:
         started = time.monotonic()
         reported = [0]
+        applied = False
 
         def on_spend(units: int) -> None:
             reported[0] += units
@@ -33,8 +34,15 @@ class BuildRunner:
             return self._store.generation != generation or time.monotonic() - started > BUILD_WALL_SECONDS
 
         try:
-            result = self._run_build(domain, budget=BUILD_BUDGET_UNITS, on_spend=on_spend, cancelled=cancelled)
-        except Exception:
-            log.exception("build for %s raised", domain)
-            result = None
-        self._store.finish_build(dossier_id, generation, requested_at, result, reported[0])
+            try:
+                result = self._run_build(domain, budget=BUILD_BUDGET_UNITS, on_spend=on_spend, cancelled=cancelled)
+            except Exception:
+                log.exception("build for %s raised", domain)
+                result = None
+            self._store.finish_build(dossier_id, generation, requested_at, result, reported[0])
+            applied = True
+        finally:
+            if not applied:
+                # Any failure while applying the result ends the build failed, fields unchanged.
+                log.error("build for %s could not be applied; ending it failed", domain)
+                self._store.fail_build(dossier_id, generation)
