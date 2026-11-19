@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 from conftest import ADMIN
+from oracle import candidates, prose
 from test_api import auth, create, done
 
 
@@ -61,7 +62,7 @@ def test_R1_44_R1_149_R1_157_R1_164_invalid_amount_is_unknown(synthetic, domain)
 
 
 def test_R1_44_R1_155_R1_164_large_amount_exact(synthetic):
-    """R1.44 R1.155 R1.164: whole-dollar amounts are not rounded."""
+    """R1.3 R1.43 R1.44 R1.155 R1.164: whole-dollar amounts and citations are exact."""
     api, mock, token = synthetic
     assert create(api, token, 'exact-ledger.test', 'large-amount').status_code == 202
     dossier = done(api, token, 'exact-ledger.test')
@@ -70,3 +71,10 @@ def test_R1_44_R1_155_R1_164_large_amount_exact(synthetic):
     assert field['status'] == 'known' and type(field['value']) is int
     assert field['value'] == 987654321098765432109876543210987654321
     assert field['citations']
+    calls = mock.get('/_mock/log').json()['calls']
+    for citation in field['citations']:
+        assert candidates('exact-ledger.test', 'funding_total', citation['excerpt']) == {field['value']}
+        excerpt = re.sub(r'\s+', ' ', citation['excerpt']).strip()
+        assert any(call['provider'] == citation['provider'] and
+                   any(page['url'] == citation['url'] and excerpt in re.sub(r'\s+', ' ', prose(page['text']))
+                       for page in call.get('served', [])) for call in calls)
