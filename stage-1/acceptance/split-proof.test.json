@@ -1,0 +1,19 @@
+{
+  "domain": "split-proof.test",
+  "names": ["Split Proof"],
+  "pages": [{
+    "url": "https://split-proof.test/about",
+    "kind": "own",
+    "epochs": [0, 1],
+    "searchable": true,
+    "published_at": null,
+    "true_from": null,
+    "title": "Split Proof company",
+    "text": "Split Proof was founded in 2014.",
+    "facts": {},
+    "lineage": {"canonical": null, "first_published_by": null, "registrant": "split-proof.test"}
+  }],
+  "research": {"nimble": {"0": [
+    {"field": "ceo", "value": "Dana Ruiz", "url": "https://split-proof.test/about", "excerpt": "Split Proof CEO: Dana Ruiz."}
+  ]}}
+}

@@ -1,6 +1,7 @@
 """Evidence checks use the provider's own log and the published sample corpus."""
 import json
 import re
+import time
 
 import pytest
 
@@ -82,3 +83,60 @@ def test_unsupported_ambiguous_research_and_header(client):
         assert result["value"] == value, (field, result)
         for citation in result["citations"]:
             assert supports(citation["excerpt"], domain, field, value)
+
+
+def test_same_url_with_distinct_search_and_research_text(client):
+    """R1.1 R1.50 R1.53 R1.56 R1.104: retain every text served for the same URL."""
+    c = client
+    token = c.login()
+    domain = "split-proof.test"
+    url = "https://split-proof.test/about"
+    response = c.request("POST", "/dossiers", headers=c.auth(token, "split-evidence"), json={"domain": domain})
+    assert response.status_code == 202
+    dossier = c.finish(domain, token)
+    assert dossier["state"] == "ready"
+    calls = c.calls()
+    search = [item["text"] for call in calls if call["method"] == "search" for item in call["served"] if item["url"] == url]
+    research = [item["text"] for call in calls if call["method"] == "research" for item in call["served"] if item["url"] == url]
+    assert any("Split Proof was founded in 2014." in text for text in search), search
+    assert any("Split Proof CEO: Dana Ruiz." in text for text in research), research
+    assert sum(call["cost"] for call in calls) <= 80
+    for field, value in (("founded_year", 2014), ("ceo", "Dana Ruiz")):
+        result = dossier["fields"][field]
+        assert result["status"] == "known" and result["value"] == value and result["citations"], (field, result)
+        for citation in result["citations"]:
+            excerpt = " ".join(citation["excerpt"].split())
+            assert supports(excerpt, domain, field, value)
+            assert any(call["provider"] == citation["provider"] and any(item["url"] == citation["url"] and excerpt in " ".join(item["text"].split()) for item in call["served"]) for call in calls)
+
+
+def test_same_url_changes_between_search_and_extract(client):
+    """R1.1 R1.50 R1.53 R1.104: earlier search evidence survives a later different extract."""
+    c = client
+    domain = "epoch-proof.test"
+    url = "https://epoch-proof.test/about"
+    token = c.login()
+    c.control("faults", {"provider": "nimble", "methods": ["extract"], "mode": "delay", "seconds": 2})
+    response = c.request("POST", "/dossiers", headers=c.auth(token, "epoch-evidence"), json={"domain": domain})
+    assert response.status_code == 202
+    deadline = time.monotonic() + 8
+    while time.monotonic() < deadline:
+        calls = c.calls()
+        if any(call["method"] == "search" and any(item["url"] == url and "Epoch Proof was founded in 2014." in item["text"] for item in call["served"]) for call in calls):
+            break
+        time.sleep(.02)
+    else:
+        pytest.fail("No search served the original epoch's page")
+    c.control("epoch", {"epoch": 1})
+    dossier = c.finish(domain, token, seconds=45)
+    assert dossier["state"] == "ready"
+    calls = c.calls()
+    assert any(call["method"] == "extract" and any(item["url"] == url and "Epoch Proof CEO: Dana Ruiz." in item["text"] for item in call["served"]) for call in calls), "Extract did not serve the changed page"
+    assert sum(call["cost"] for call in calls) <= 80
+    for field, value in (("founded_year", 2014), ("ceo", "Dana Ruiz")):
+        result = dossier["fields"][field]
+        assert result["status"] == "known" and result["value"] == value and result["citations"], (field, result)
+        for citation in result["citations"]:
+            excerpt = " ".join(citation["excerpt"].split())
+            assert supports(excerpt, domain, field, value)
+            assert any(call["provider"] == citation["provider"] and any(item["url"] == citation["url"] and excerpt in " ".join(item["text"].split()) for item in call["served"]) for call in calls)

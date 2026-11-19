@@ -112,7 +112,8 @@ def system():
     corpus_copy = tempfile.TemporaryDirectory(prefix=RESOURCE_PREFIX + "-corpus-")
     try:
         shutil.copytree(CORPUS, corpus_copy.name, dirs_exist_ok=True)
-        shutil.copyfile(Path(__file__).with_name("ledger-test.test.json"), Path(corpus_copy.name) / "ledger-test.test.json")
+        for fixture in Path(__file__).parent.glob("*.test.json"):
+            shutil.copyfile(fixture, Path(corpus_copy.name) / fixture.name)
         for image, path in ((mock_image, WEB), (api_image, STAGE)):
             subprocess.run(["flock", "/tmp/factory-heavy.lock", "docker", "build", "-t", image, str(path)],
                            check=True, timeout=900)

@@ -1,0 +1,21 @@
+{
+  "domain": "epoch-proof.test",
+  "names": ["Epoch Proof"],
+  "pages": [
+    {
+      "url": "https://epoch-proof.test/about",
+      "kind": "own", "epochs": [0], "searchable": true,
+      "published_at": null, "true_from": null, "title": "Epoch Proof company",
+      "text": "Epoch Proof was founded in 2014.", "facts": {},
+      "lineage": {"canonical": null, "first_published_by": null, "registrant": "epoch-proof.test"}
+    },
+    {
+      "url": "https://epoch-proof.test/about",
+      "kind": "own", "epochs": [1], "searchable": true,
+      "published_at": null, "true_from": null, "title": "Epoch Proof company",
+      "text": "Epoch Proof CEO: Dana Ruiz.", "facts": {},
+      "lineage": {"canonical": null, "first_published_by": null, "registrant": "epoch-proof.test"}
+    }
+  ],
+  "research": {"nimble": {"0": [], "1": []}}
+}
