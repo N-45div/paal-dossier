@@ -1,0 +1,71 @@
+{
+  "domain": "long-proof.test",
+  "names": [
+    "Long Proof"
+  ],
+  "pages": [
+    {
+      "url": "https://long-proof.test/founded",
+      "kind": "own",
+      "epochs": [
+        0,
+        1
+      ],
+      "searchable": true,
+      "published_at": null,
+      "true_from": null,
+      "title": "Long Proof founded",
+      "text": "neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral Long Proof was founded in 2014.",
+      "facts": {},
+      "lineage": {
+        "canonical": null,
+        "first_published_by": null,
+        "registrant": "long-proof.test"
+      }
+    },
+    {
+      "url": "https://long-proof.test/ceo",
+      "kind": "own",
+      "epochs": [
+        0,
+        1
+      ],
+      "searchable": true,
+      "published_at": null,
+      "true_from": null,
+      "title": "Long Proof leadership",
+      "text": "Long Proof CEO: Dana Ruiz neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral .",
+      "facts": {},
+      "lineage": {
+        "canonical": null,
+        "first_published_by": null,
+        "registrant": "long-proof.test"
+      }
+    },
+    {
+      "url": "https://long-proof.test/rumour",
+      "kind": "own",
+      "epochs": [
+        0,
+        1
+      ],
+      "searchable": true,
+      "published_at": null,
+      "true_from": null,
+      "title": "Long Proof rumour",
+      "text": "Reportedly neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral neutral Long Proof employs 120 people.",
+      "facts": {},
+      "lineage": {
+        "canonical": null,
+        "first_published_by": null,
+        "registrant": "long-proof.test"
+      }
+    }
+  ],
+  "research": {
+    "nimble": {
+      "0": [],
+      "1": []
+    }
+  }
+}

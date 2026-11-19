@@ -140,3 +140,26 @@ def test_same_url_changes_between_search_and_extract(client):
             excerpt = " ".join(citation["excerpt"].split())
             assert supports(excerpt, domain, field, value)
             assert any(call["provider"] == citation["provider"] and any(item["url"] == citation["url"] and excerpt in " ".join(item["text"].split()) for item in call["served"]) for call in calls)
+
+
+def test_supported_fragment_of_long_sentence(client):
+    """R1.53 R1.104: supported fragments of long served sentences are usable; negated sentences are not."""
+    c = client
+    token = c.login()
+    domain = "long-proof.test"
+    response = c.request("POST", "/dossiers", headers=c.auth(token, "long-evidence"), json={"domain": domain})
+    assert response.status_code == 202
+    dossier = c.finish(domain, token)
+    assert dossier["state"] == "ready"
+    calls = c.calls()
+    founded_text = [item["text"] for call in calls for item in call["served"]
+                    if item["url"] == "https://long-proof.test/founded" and "Long Proof was founded in 2014." in item["text"]]
+    assert founded_text and any(len(text) > 500 for text in founded_text)
+    for field, value in (("founded_year", 2014), ("ceo", "Dana Ruiz")):
+        result = dossier["fields"][field]
+        assert result["status"] == "known" and result["value"] == value and result["citations"], (field, result)
+        for citation in result["citations"]:
+            excerpt = " ".join(citation["excerpt"].split())
+            assert 1 <= len(excerpt) <= 500 and supports(excerpt, domain, field, value)
+            assert any(call["provider"] == citation["provider"] and any(item["url"] == citation["url"] and excerpt in " ".join(item["text"].split()) for item in call["served"]) for call in calls)
+    assert dossier["fields"]["headcount_range"] == {"value": None, "status": "unknown", "citations": []}
