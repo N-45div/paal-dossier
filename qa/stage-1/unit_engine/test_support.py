@@ -531,6 +531,18 @@ class ClaimedLedgerIdTests(unittest.TestCase):
                     supports(f"Acme Robotics {word} was founded in 2014.", D, "founded_year")
                 )
 
+    def test_r1_147_rumoured_is_a_negating_phrase(self):
+        # Literal phrase, not the NEGATING_PHRASES tuple, so removing it from the tuple is caught.
+        self.assertIsNone(
+            supports("Acme Robotics is rumoured to have raised $12M.", D, "funding_total")
+        )
+
+    def test_r1_158_mn_multiplies_by_one_million_exactly(self):
+        # Literal expectation, so changing the mn multiplier is caught.
+        self.assertEqual(supports("Acme Robotics raised $12mn.", D, "funding_total"), 12_000_000)
+        # A scale written after a space is not a scale of the k/m/mn/bn form: the amount is $12.
+        self.assertEqual(supports("Acme Robotics raised $12 mn.", D, "funding_total"), 12)
+
     def test_r1_148_capitalised_and_uppercase_words(self):
         self.assertEqual(supports("Acme Robotics is based in Zürich.", D, "hq_city"), "Zürich")
         self.assertEqual(supports("Acme Robotics is based in Müller.", D, "hq_city"), "Müller")
