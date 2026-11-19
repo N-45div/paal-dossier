@@ -12,6 +12,8 @@ from pathlib import Path
 import pytest
 import requests
 
+from long_examples import write_fixtures
+
 STAGE = Path(os.environ.get("DOSSIER_STAGE", Path(__file__).resolve().parents[1])).resolve()
 WEB = Path(os.environ.get("DOSSIER_MOCK", "/home/ndivij/buildathon/sf-buildathon-2026/challenges/dossier/web")).resolve()
 CORPUS = Path(os.environ.get("DOSSIER_CORPUS", WEB / "corpus/sample")).resolve()
@@ -114,6 +116,7 @@ def system():
         shutil.copytree(CORPUS, corpus_copy.name, dirs_exist_ok=True)
         for fixture in Path(__file__).parent.glob("*.test.json"):
             shutil.copyfile(fixture, Path(corpus_copy.name) / fixture.name)
+        write_fixtures(corpus_copy.name)
         for image, path in ((mock_image, WEB), (api_image, STAGE)):
             lock = [] if os.environ.get("DOSSIER_LOCK_HELD") == "1" else ["flock", "/tmp/factory-heavy.lock"]
             subprocess.run([*lock, "docker", "build", "-t", image, str(path)],
