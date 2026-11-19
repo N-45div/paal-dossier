@@ -6,6 +6,8 @@ import time
 import httpx
 import pytest
 
+from conftest import docker
+
 
 def auth(token, key=None):
     headers = {'Authorization': 'Bearer ' + token}
@@ -169,6 +171,19 @@ def test_R1_32_R1_34_R1_105_R1_107_R1_108_R1_109_order_and_pagination(api, seede
     assert [x['domain'] for x in page['dossiers']] == ['zebra.test'] and page['has_more'] is False
     page = api.get('/dossiers', headers=auth(bob), params={'q':'PHA'}).json()
     assert [x['domain'] for x in page['dossiers']] == ['alpha.test']
+    empty = api.get('/dossiers', headers=auth(bob), params={'limit':'200', 'offset':'9'*100})
+    assert empty.status_code == 200 and empty.json()['dossiers'] == [] and not empty.json()['has_more']
+    assert api.get('/dossiers', headers=auth(bob), params={'limit':'001', 'offset':'000'}).status_code == 200
+
+
+def test_R1_59_R1_60_R1_78_key_boundaries_and_failed_refresh_reuse(api, seeded):
+    token = seeded[0]
+    error(api.post('/dossiers/new.test/refresh', headers=auth(token, 'same')), 404, 'not_found')
+    assert create(api, token, 'new.test', 'x'*255).status_code == 202
+    refreshed = api.post('/dossiers/new.test/refresh', headers=auth(token, 'same'))
+    assert refreshed.status_code == 202
+    replay = api.post('/dossiers/new.test/refresh', headers=auth(token, 'same'))
+    assert replay.status_code == 200 and replay.json() == refreshed.json()
 
 
 def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(deployment, seeded):
@@ -186,6 +201,18 @@ def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(deployme
     assert [status for status, _, _ in results].count(200) == 49
     assert all(body == results[0][1] for _, body, _ in results)
     assert max(duration for _, _, duration in results) < 5
+
+
+def test_R1_14_container_memory_limit(deployment, seeded):
+    reading = docker('stats', '--no-stream', '--format', '{{.MemUsage}}', deployment['container'], timeout=10).stdout.strip()
+    used = reading.split('/')[0].strip()
+    units = {'B': 1, 'KiB': 1024, 'MiB': 1024**2, 'GiB': 1024**3}
+    for suffix in sorted(units, key=len, reverse=True):
+        if used.endswith(suffix):
+            assert float(used[:-len(suffix)]) * units[suffix] <= 3 * 1024**3
+            break
+    else:
+        pytest.fail(f'Unrecognized Docker memory usage: {used}')
 
 
 def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(deployment, seeded):
@@ -206,6 +233,22 @@ def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(deployment,
                (status == 409 and body['error']['code'] == 'idempotency_key_reuse')
                for domain, status, body, _ in rows if status != 202)
     assert max(row[3] for row in rows) < 5
+
+
+def test_R1_16_R1_62_R1_93_R1_129_concurrent_different_keys(deployment, seeded):
+    barrier = threading.Barrier(50)
+    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as client:
+        def one(i):
+            barrier.wait(timeout=5)
+            start = time.monotonic()
+            response = client.post('/dossiers', headers=auth(seeded[0], 'distinct-' + str(i)), json={'domain': 'same.test'})
+            return response.status_code, response.json(), time.monotonic() - start
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+            rows = list(pool.map(one, range(50)))
+    assert sum(status == 202 for status, _, _ in rows) == 1
+    assert sum(status == 200 for status, _, _ in rows) == 49
+    assert len({body['dossier_id'] for _, body, _ in rows}) == 1
+    assert max(duration for _, _, duration in rows) < 5
 
 
 def test_R1_81_R1_89_R1_101_R1_102_R1_103_refresh_and_replay(api, mock, seeded):

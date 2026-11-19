@@ -1,5 +1,7 @@
 import time
 
+import pytest
+
 from test_api import auth, create, done, error
 
 
@@ -84,11 +86,14 @@ def test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip(api, mock, se
     error(api.post('/_test/clock', json={'now':'2026-03-02T00:00:00+00:00'}), 422, 'validation_failed')
 
 
-def test_R1_126_invalid_import_does_not_replace_state(api, seeded):
+@pytest.mark.parametrize('body', [
+    {}, {'track':'other','format_version':1,'state':{}},
+    {'track':'dossier','format_version':999,'state':{}},
+    {'track':'dossier','format_version':1,'state':{}}])
+def test_R1_126_invalid_import_does_not_replace_state(api, seeded, body):
     token = seeded[0]
-    for body in ({}, {'track':'other','format_version':1,'state':{}}, {'track':'dossier','format_version':999,'state':{}}, {'track':'dossier','format_version':1,'state':{}}):
-        error(api.post('/_test/import', json=body), 422, 'validation_failed')
-        assert api.get('/dossiers', headers=auth(token)).status_code == 200
+    error(api.post('/_test/import', json=body), 422, 'validation_failed')
+    assert api.get('/dossiers', headers=auth(token)).status_code == 200
     error(api.post('/_test/import', content=b'{', headers={'Content-Type':'application/json'}), 400, 'malformed_request')
 
 

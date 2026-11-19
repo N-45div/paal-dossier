@@ -24,14 +24,33 @@ def normalized(text):
     ('funding_total', 'Acme Robotics has raised 12 million dollars.', {12000000}),
     ('funding_total', 'Acme Robotics raised $1.2.3 million.', set()),
     ('funding_total', 'Acme Robotics raised $0.001.', set()),
+    ('funding_total', 'Acme Robotics raised US$12.5 million.', {12500000}),
+    ('funding_total', 'Acme Robotics raised 1,200 US dollars.', {1200}),
+    ('funding_total', 'Acme Robotics raised €1200.', set()),
     ('headcount_range', 'Acme Robotics has 51-200 employees.', {'51-200'}),
     ('headcount_range', 'Acme Robotics has 50-51 employees.', set()),
     ('legal_name', 'The registered name is Acme Robotics, Inc.', {'Acme Robotics, Inc.'}),
+    ('legal_name', 'The registered name is Acme Robotics AB GmbH.', {'Acme Robotics AB'}),
     ('hq_city', 'Acme Robotics is headquartered in Zürich.', {'Zürich'}),
+    ('hq_city', 'Acme Robotics is headquartered in New York.', {'New York'}),
+    ('founded_year', 'Acme Robotics was founded in 1799.', set()),
+    ('founded_year', 'Acme Robotics was founded in 2099.', {2099}),
+    ('founded_year', 'Acme Robotics was founded in 2100.', set()),
+    ('founded_year', 'Acme Robotics was founded in 2014 or 2015.', set()),
     ('ceo', 'Acme Robotics CEO Sam Ortiz and Dana Ruiz.', set()),
+    ('ceo', 'Acme Robotics former CEO Sam Ortiz.', set()),
+    ('ceo', 'Acme Robotics CEO María Müller.', {'María Müller'}),
+    ('ceo', 'Acme Robotics CEO Ana María Laura Müller.', set()),
 ])
 def test_R1_130_R1_132_R1_133_R1_134_R1_135_R1_136_R1_137_R1_138_R1_139_R1_140_R1_141_R1_142_R1_143_R1_144_R1_145_R1_146_R1_147_R1_148_R1_149_R1_150_R1_151_R1_152_R1_153_R1_154_R1_155_R1_156_R1_157_R1_158_R1_159_R1_160_R1_161_R1_162_R1_163_R1_164_oracle_examples(field, text, expected):
     assert candidates('acme-robotics.test', field, text) == expected
+
+
+def test_R1_47_R1_131_sentence_boundaries_and_header():
+    text = 'Kind: news\nFacts: {"ceo":"invented"}\n\nAcme Robotics, Inc. employs 10 people. Another line!\nAcme Robotics CEO: Sam Ortiz.'
+    assert sentences(prose(text)) == [
+        'Acme Robotics, Inc. employs 10 people.', 'Another line!', 'Acme Robotics CEO: Sam Ortiz.']
+    assert prose('No header here.\nSecond line.') == 'No header here.\nSecond line.'
 
 
 COMPANIES = sorted(p for p in CORPUS.glob('*.test.json'))
@@ -67,8 +86,16 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
             assert domain in call['query']
             assert set(call['fields']) == set(FIELDS)
     assert set(dossier['fields']) == set(FIELDS)
-    pages = [p for p in company['pages'] if 0 in p['epochs']]
-    supported = corpus_candidates(domain, pages)
+    all_pages = [page for file in COMPANIES for page in json.loads(file.read_text())['pages']
+                 if 0 in page['epochs']]
+    supported = corpus_candidates(domain, [page for page in all_pages if page.get('searchable', True)])
+    for claim in company.get('research', {}).get('nimble', {}).get('0', []):
+        field, value, excerpt = claim['field'], claim['value'], claim['excerpt']
+        if field in FIELDS and value in candidates(domain, field, excerpt) and any(
+            page['url'] == claim['url'] and normalized(excerpt) in normalized(page['text'])
+            for page in all_pages
+        ):
+            supported[field].add(value)
     for field, result in dossier['fields'].items():
         value = result['value']
         if supported[field]:
