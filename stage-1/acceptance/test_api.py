@@ -311,3 +311,40 @@ def test_export_during_refresh_restores_last_completed(client):
     assert c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(t)).json() == previous
     time.sleep(3)
     assert c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(t)).json() == previous
+
+
+def test_conflicting_idempotency_burst(client):
+    """R1.3 R1.16 R1.17 R1.68 R1.76 R1.95 R1.98 R1.143."""
+    c = client
+    token = c.login()
+    def send(i):
+        domain = DOMAIN if i % 2 else "windrush-bakery.test"
+        return create(c, token, domain, "conflict")
+    with ThreadPoolExecutor(max_workers=50) as pool:
+        replies = list(pool.map(send, range(50)))
+    assert sum(r.status_code == 202 for r in replies) == 1
+    assert sum(r.status_code == 200 for r in replies) == 24
+    assert sum(r.status_code == 409 for r in replies) == 25
+    winner = next(r.json() for r in replies if r.status_code == 202)
+    assert all(r.json() == winner for r in replies if r.status_code == 200)
+    for response in replies:
+        if response.status_code == 409:
+            error(response, 409, "idempotency_key_reuse")
+    c.finish(winner["domain"], token)
+    page = c.request("GET", "/dossiers", headers=c.auth(token)).json()
+    assert [d["domain"] for d in page["dossiers"]] == [winner["domain"]]
+
+
+def test_reset_validation_does_not_replace_state(client):
+    """R1.24 R1.25 R1.60 R1.62 R1.64 R1.69 RL1.9 RL1.11."""
+    c = client
+    token = c.login()
+    for payload, status, code in (({}, 422, "validation_failed"), ({"now": 3}, 400, "malformed_request"),
+                                  ({"now": "not-a-time"}, 422, "validation_failed"),
+                                  ({"now": "2026-03-01T09:00:00"}, 422, "validation_failed"),
+                                  ([], 400, "malformed_request")):
+        error(c.request("POST", "/_test/reset", json=payload, timeout=10), status, code)
+        assert c.request("GET", "/dossiers", headers=c.auth(token)).status_code == 200
+    assert c.request("POST", "/_test/reset", json={"now": "2026-03-01T09:00:00Z"}, timeout=10).status_code == 204
+    error(c.request("GET", "/dossiers", headers=c.auth(token)), 401, "unauthenticated")
+    error(c.request("POST", "/auth/login", json={"email": "ada@example.com", "password": "correct horse"}), 401, "unauthenticated")

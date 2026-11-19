@@ -1,0 +1,20 @@
+{
+  "domain": "ledger-test.test",
+  "names": ["Ledger Test"],
+  "pages": [{
+    "url": "https://ledger-test.test/about",
+    "kind": "own",
+    "epochs": [0, 1],
+    "searchable": true,
+    "published_at": null,
+    "true_from": null,
+    "title": "Ledger Test company particulars",
+    "text": "The registered name is Ledger Test, Inc.\nLedger Test is based in Zürich.\nLedger Test CEO: Dana Ruiz.\nLedger Test was founded in 2001 and established in 2002.\nLedger Test employs 10-11 people.\nLedger Test raised $12.5 million.",
+    "facts": {"founded_year": 2001, "headcount_range": "1-10"},
+    "lineage": {"canonical": null, "first_published_by": null, "registrant": "ledger-test.test"}
+  }],
+  "research": {"nimble": {"0": [
+    {"field": "founded_year", "value": 2001, "url": "https://ledger-test.test/about", "excerpt": "Ledger Test was founded in 2001 and established in 2002."},
+    {"field": "headcount_range", "value": "1-10", "url": "https://ledger-test.test/about", "excerpt": "Ledger Test employs 10-11 people."}
+  ]}}
+}

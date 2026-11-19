@@ -65,3 +65,20 @@ def test_sample_dossier_evidence(client, domain):
             normalized = " ".join(excerpt.split())
             assert url in pages and any(normalized in " ".join(text.split()) for text in pages[url])
             assert any(provider == call["provider"] and any(s["url"] == url and normalized in " ".join(s["text"].split()) for s in call["served"]) for call in log), citation
+
+
+def test_unsupported_ambiguous_research_and_header(client):
+    """R1.45 R1.54 R1.56 R1.58 R1.59 R1.104 R1.146 R1.153 R1.157 R1.159 RL1.13."""
+    c = client
+    token = c.login()
+    domain = "ledger-test.test"
+    assert c.request("POST", "/dossiers", headers=c.auth(token, "adversarial"), json={"domain": domain}).status_code == 202
+    dossier = c.finish(domain, token)
+    assert dossier["state"] == "ready"
+    expected = {"legal_name": "Ledger Test, Inc.", "hq_city": "Zürich", "ceo": "Dana Ruiz",
+                "founded_year": None, "headcount_range": None, "funding_total": 12500000}
+    for field, value in expected.items():
+        result = dossier["fields"][field]
+        assert result["value"] == value, (field, result)
+        for citation in result["citations"]:
+            assert supports(citation["excerpt"], domain, field, value)

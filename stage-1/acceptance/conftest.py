@@ -1,7 +1,9 @@
 """Black-box Docker and mock-web fixtures. No product modules are imported."""
 import os
+import shutil
 import socket
 import subprocess
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -99,7 +101,10 @@ def system():
     mock_image, api_image = tag + "-web-image", tag + "-api-image"
     api_port = free_port()
     mock_port = free_port((api_port,))
+    corpus_copy = tempfile.TemporaryDirectory(prefix="prover-corpus-")
     try:
+        shutil.copytree(CORPUS, corpus_copy.name, dirs_exist_ok=True)
+        shutil.copyfile(Path(__file__).with_name("ledger-test.test.json"), Path(corpus_copy.name) / "ledger-test.test.json")
         for image, path in ((mock_image, WEB), (api_image, STAGE)):
             subprocess.run(["flock", "/tmp/factory-heavy.lock", "docker", "build", "-t", image, str(path)],
                            check=True, timeout=900)
@@ -107,7 +112,7 @@ def system():
         docker("network", "create", ingress)
         docker("run", "-d", "--name", mock_name, "--network", network,
                "-e", "MOCK_ADMIN_TOKEN=prover-local",
-               "-v", f"{CORPUS}:/data/corpus:ro", mock_image)
+               "-v", f"{corpus_copy.name}:/data/corpus:ro", mock_image)
         # This relay accepts only two fixed destinations. The service stays on the
         # internal network; only the relay has an ingress network and published ports.
         relay = '''import select, socket, socketserver, threading
@@ -153,6 +158,7 @@ threading.Event().wait()
         docker("network", "rm", ingress, check=False)
         for image in (api_image, mock_image):
             docker("image", "rm", image, check=False)
+        corpus_copy.cleanup()
 
 
 @pytest.fixture
