@@ -348,3 +348,19 @@ def test_reset_validation_does_not_replace_state(client):
     assert c.request("POST", "/_test/reset", json={"now": "2026-03-01T09:00:00Z"}, timeout=10).status_code == 204
     error(c.request("GET", "/dossiers", headers=c.auth(token)), 401, "unauthenticated")
     error(c.request("POST", "/auth/login", json={"email": "ada@example.com", "password": "correct horse"}), 401, "unauthenticated")
+
+
+def test_failed_refresh_preserves_last_success(client):
+    """R1.103 R1.114 R1.115 R1.116 R1.117 RL1.7."""
+    c = client
+    token = c.login()
+    assert create(c, token).status_code == 202
+    ready = c.finish(DOMAIN, token)
+    assert ready["state"] == "ready"
+    c.control("faults", {"provider": "nimble", "methods": ["search", "extract", "research"], "mode": "error"})
+    assert c.request("POST", "/_test/clock", json={"now": "2026-03-01T10:00:00+00:00"}).status_code == 204
+    assert c.request("POST", "/dossiers/" + DOMAIN + "/refresh", headers=c.auth(token, "failure")).status_code == 202
+    failed = c.finish(DOMAIN, token, seconds=30)
+    assert failed["state"] == "failed"
+    assert failed["fields"] == ready["fields"] and failed["researched_at"] == ready["researched_at"]
+    assert failed["spent_units"] == sum(call["cost"] for call in c.calls())
