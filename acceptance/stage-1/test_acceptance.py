@@ -263,7 +263,7 @@ class Acceptance(unittest.TestCase):
     def test_query_decimal_forms_L1_28_R1_56_R1_57_R1_113(self):
         self.assertEqual(self.create('one.test', 'one')[0], 202)
         zeros = '0' * 5000
-        for query in ('limit=1', 'limit=200', 'limit=0001', 'limit=' + zeros + '1', 'limit=' + zeros + '200'):
+        for query in ('limit=1', 'limit=200', 'limit=0001', 'limit=' + '0'*19 + '1', 'limit=' + zeros + '1', 'limit=' + zeros + '200'):
             with self.subTest(query=query[:24]):
                 response = app('GET', '/dossiers?' + query, token=self.token)
                 self.assertEqual(response[0], 200, f'L1.28 {query[:24]}: {response[:2]}')
@@ -271,7 +271,7 @@ class Acceptance(unittest.TestCase):
         for query in ('limit=0', 'limit=201', 'limit=' + zeros + '201', 'limit=%2B4', 'limit=-1', 'limit=4.0', 'limit=1e9', 'limit=%204', 'limit=%D9%A1'):
             with self.subTest(query=query[:24]):
                 self.error(app('GET', '/dossiers?' + query, token=self.token), 422, 'validation_failed', 'L1.28')
-        for offset in ('0', '0000', zeros):
+        for offset in ('0', '0000', '0'*19, zeros):
             with self.subTest(offset=offset[:24]):
                 response = app('GET', '/dossiers?offset=' + offset, token=self.token)
                 self.assertEqual(response[0], 200, 'L1.28')
@@ -293,6 +293,11 @@ class Acceptance(unittest.TestCase):
         self.assertEqual(encoded[0], 202, 'L1.03 raw encoded path is distinct')
         retry = app('POST', '/dossiers/%6fne.test/refresh', token=self.token, key='same')
         self.assertEqual(retry[:2], (200, encoded[1]), 'L1.03')
+        poll('one.test', self.token)
+        encoded_first = app('POST', '/dossiers/%6fne.test/refresh', token=self.token, key='reverse')
+        plain_second = app('POST', '/dossiers/one.test/refresh', token=self.token, key='reverse')
+        self.assertEqual(encoded_first[0], 202, 'L1.03 encoded path first')
+        self.assertEqual(plain_second[0], 202, 'L1.03 plain path remains distinct')
         poll('one.test', self.token)
 
     def test_domains_and_idempotency_R1_35_R1_36_R1_37_R1_70_R1_71_R1_72_R1_73_R1_74_R1_75_R1_77(self):
@@ -369,6 +374,7 @@ class Acceptance(unittest.TestCase):
         print(f'R1.143 dropped responses: mock calls={len(calls)} cost={actual_cost} spent={item["spent_units"]}', flush=True)
         self.assertLessEqual(actual_cost, 80, 'R1.148 cost from dependency log')
         self.assertEqual(item['state'], 'failed', 'R1.81: all responses were dropped')
+        self.assertTrue(all(field['status'] == 'unknown' and field['value'] is None and field['citations'] == [] for field in item['fields'].values()), 'R1.81 L1.30 failed build fields')
         self.assertEqual(item['spent_units'], actual_cost, 'R1.94 R1.143: lost responses still cost their units')
 
     def test_concurrent_refresh_R1_77_R1_80_R1_106_R1_107_R1_120a(self):
