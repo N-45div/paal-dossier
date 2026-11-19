@@ -42,6 +42,19 @@ def test_R1_9_R1_62_R1_85_nimble_failure(api, mock, seeded):
     assert dossier['spent_units'] == sum(c['cost'] for c in calls)
 
 
+def test_R1_62_R1_85_R1_87_rate_limits(api, mock, seeded):
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'rate_limit')
+    fault(mock, 'tavily', ['search', 'extract'], 'rate_limit')
+    token = seeded[0]
+    started = time.monotonic()
+    assert create(api, token, 'ashgrove-solar.test', 'throttled').status_code == 202
+    dossier = done(api, token, 'ashgrove-solar.test')
+    calls = mock.get('/_mock/log').json()['calls']
+    assert time.monotonic() - started <= 10
+    assert dossier['state'] == ('ready' if any(c['status'] < 400 for c in calls) else 'failed')
+    assert dossier['spent_units'] == sum(c['cost'] for c in calls)
+
+
 def test_R1_87_delay_under_one_second(api, mock, seeded):
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.2)
     token = seeded[0]

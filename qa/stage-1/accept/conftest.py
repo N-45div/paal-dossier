@@ -154,4 +154,15 @@ def seeded(api, mock):
         response = api.post('/auth/login', json={'email': user['email'], 'password': user['password']})
         assert response.status_code == 200, response.text
         tokens.append(response.json()['token'])
-    return tokens
+    yield tokens
+    # Do not clear the provider log for the next test while this test's builds
+    # are still producing calls. Tests that deliberately invalidate these tokens
+    # (reset/import) already wait for their in-flight build explicitly.
+    deadline = time.monotonic() + 12
+    while time.monotonic() < deadline:
+        response = api.get('/dossiers', headers={'Authorization': 'Bearer ' + tokens[0]})
+        if response.status_code != 200 or all(
+            item['state'] != 'building' for item in response.json().get('dossiers', [])
+        ):
+            break
+        time.sleep(.05)

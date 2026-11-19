@@ -105,11 +105,27 @@ def test_R1_53_R1_67_R1_68_auth_precedes_key(api, seeded, header):
     error(api.post('/dossiers', headers=headers, json={'domain': 'foo.test'}), 401, 'unauthenticated')
 
 
+@pytest.mark.parametrize('method,path', [
+    ('GET', '/dossiers'), ('GET', '/dossiers/missing.test'),
+    ('POST', '/dossiers'), ('POST', '/dossiers/missing.test/refresh')])
+def test_R1_53_R1_67_missing_auth_all_routes(api, seeded, method, path):
+    error(api.request(method, path), 401, 'unauthenticated')
+
+
+def test_R1_49_R1_51_R1_56_malformed_body_types(api, seeded):
+    error(api.post('/auth/login', content=b'{', headers={'Content-Type': 'application/json'}), 400, 'malformed_request')
+    error(api.post('/auth/login', json={'email': 'ada@example.com', 'password': 7}), 400, 'malformed_request')
+    error(api.post('/auth/login', json={'email': 'ada@example.com'}), 422, 'validation_failed')
+    error(api.post('/dossiers', headers=auth(seeded[0], 'array'), json=[]), 400, 'malformed_request')
+
+
 def test_R1_24_R1_25_R1_26_R1_27_R1_28_clock(api, seeded):
     t = seeded[0]
     assert api.post('/_test/clock', json={'now': '2026-03-01T10:00:00+00:00'}).status_code == 204
     error(api.post('/_test/clock', json={'now': '2026-03-01T09:59:59+00:00'}), 422, 'validation_failed')
     error(api.post('/_test/clock', json={'now': '2026-03-01T10:01:00'}), 422, 'validation_failed')
+    error(api.post('/_test/clock', json={'now': 42}), 400, 'malformed_request')
+    assert api.post('/_test/clock', json={'now': '2026-03-01T11:00:00+01:00'}).status_code == 204
     assert create(api, t, 'clock-one.test', 'clock1').status_code == 202
     assert datetime.datetime.fromisoformat(done(api, t, 'clock-one.test')['researched_at']) == datetime.datetime.fromisoformat('2026-03-01T10:00:00+00:00')
     assert create(api, t, 'clock-two.test', 'clock2').status_code == 202

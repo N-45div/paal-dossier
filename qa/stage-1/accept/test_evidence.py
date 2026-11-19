@@ -114,6 +114,8 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
             assert len(sentences(normalized(excerpt))) == 1
             assert value in candidates(domain, field, excerpt), (domain, field, value, excerpt)
             assert citation['provider'] in ('nimble', 'tavily')
+            assert any(page['url'] == citation['url'] and normalized(excerpt) in normalized(page['text'])
+                       for page in all_pages), citation
             assert any(normalized(excerpt) in normalized(prose(served['text']))
                        for call in calls if call['provider'] == citation['provider']
                        for served in call.get('served', []) if served['url'] == citation['url']), citation
