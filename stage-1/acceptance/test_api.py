@@ -364,3 +364,23 @@ def test_failed_refresh_preserves_last_success(client):
     assert failed["state"] == "failed"
     assert failed["fields"] == ready["fields"] and failed["researched_at"] == ready["researched_at"]
     assert failed["spent_units"] == sum(call["cost"] for call in c.calls())
+
+
+def test_ten_second_provider_delay_completes_and_accounts(client):
+    """R1.106: mock-testable timing and no abandoned charged calls; source review covers live limits."""
+    c = client
+    c.control("faults", {"provider": "nimble", "methods": ["search", "extract", "research"], "mode": "delay", "seconds": 10})
+    token = c.login()
+    started = time.monotonic()
+    assert create(c, token).status_code == 202
+    result = c.finish(DOMAIN, token, seconds=300)
+    assert time.monotonic() - started <= 300
+    assert result["state"] == "ready"
+    calls_at_completion = c.calls()
+    assert calls_at_completion
+    assert result["spent_units"] == sum(call["cost"] for call in calls_at_completion) <= 80
+    # Every configured response takes at most ten seconds. A late log entry after
+    # that window exposes an outstanding call abandoned before build completion.
+    time.sleep(11)
+    assert c.calls() == calls_at_completion
+    assert c.request("GET", "/dossiers/" + DOMAIN, headers=c.auth(token)).json()["spent_units"] == result["spent_units"]
