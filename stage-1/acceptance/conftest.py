@@ -1,5 +1,6 @@
 """Black-box Docker and mock-web fixtures. No product modules are imported."""
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -14,6 +15,13 @@ import requests
 STAGE = Path(os.environ.get("DOSSIER_STAGE", Path(__file__).resolve().parents[1])).resolve()
 WEB = Path(os.environ.get("DOSSIER_MOCK", "/home/ndivij/buildathon/sf-buildathon-2026/challenges/dossier/web")).resolve()
 CORPUS = Path(os.environ.get("DOSSIER_CORPUS", WEB / "corpus/sample")).resolve()
+RESOURCE_PREFIX = os.environ.get("DOSSIER_RESOURCE_PREFIX", "prover").rstrip("-")
+PORT_MIN = int(os.environ.get("DOSSIER_PORT_MIN", "18200"))
+PORT_MAX = int(os.environ.get("DOSSIER_PORT_MAX", "18299"))
+if not re.fullmatch(r"[a-z0-9][a-z0-9_.-]*", RESOURCE_PREFIX):
+    raise ValueError("DOSSIER_RESOURCE_PREFIX must be a Docker-compatible lowercase name")
+if not 1 <= PORT_MIN < PORT_MAX <= 65535:
+    raise ValueError("DOSSIER_PORT_MIN and DOSSIER_PORT_MAX must specify at least two valid ports")
 NOW = "2026-03-01T09:00:00+00:00"
 SEED = {"now": NOW, "users": [
     {"id": "u_ada", "email": "ada@example.com", "password": "correct horse", "display_name": "Ada"},
@@ -27,7 +35,7 @@ def docker(*args, timeout=60, check=True):
 
 
 def free_port(exclude=()):
-    for port in range(18200, 18300):
+    for port in range(PORT_MIN, PORT_MAX + 1):
         if port in exclude:
             continue
         with socket.socket() as s:
@@ -36,7 +44,7 @@ def free_port(exclude=()):
                 return port
             except OSError:
                 continue
-    raise RuntimeError("No free port in 18200-18299")
+    raise RuntimeError(f"No free port in {PORT_MIN}-{PORT_MAX}")
 
 
 def healthy(url, seconds=60):
@@ -95,13 +103,13 @@ class System:
 @pytest.fixture(scope="session")
 def system():
     """R1.7 R1.8 R1.14 R1.15 R1.18 R1.20 R1.21 RL1.14."""
-    tag = "prover-" + uuid.uuid4().hex[:10]
+    tag = RESOURCE_PREFIX + "-" + uuid.uuid4().hex[:10]
     network, ingress = tag + "-net", tag + "-ingress"
     mock_name, api_name, proxy_name = tag + "-web", tag + "-api", tag + "-proxy"
     mock_image, api_image = tag + "-web-image", tag + "-api-image"
     api_port = free_port()
     mock_port = free_port((api_port,))
-    corpus_copy = tempfile.TemporaryDirectory(prefix="prover-corpus-")
+    corpus_copy = tempfile.TemporaryDirectory(prefix=RESOURCE_PREFIX + "-corpus-")
     try:
         shutil.copytree(CORPUS, corpus_copy.name, dirs_exist_ok=True)
         shutil.copyfile(Path(__file__).with_name("ledger-test.test.json"), Path(corpus_copy.name) / "ledger-test.test.json")
