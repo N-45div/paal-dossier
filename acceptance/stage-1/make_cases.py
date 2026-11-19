@@ -45,3 +45,13 @@ if __name__ == '__main__':
                       'published_at':None, 'true_from':None, 'title':'Multiproof ' + path, 'text':text, 'facts':{},
                       'lineage':{'canonical':None,'first_published_by':None,'registrant':domain}})
     (root / (domain + '.json')).write_text(json.dumps({'domain':domain,'names':['Multiproof'],'pages':pages,'research':{'nimble':{'0':[],'1':[]}}}))
+    domain = 'researchonly.test'
+    url = 'https://' + domain + '/about'
+    page = {'url':url, 'kind':'own', 'epochs':[0,1], 'searchable':True,
+            'published_at':None, 'true_from':None, 'title':'Researchonly',
+            'text':'Researchonly builds machines.', 'facts':{},
+            'lineage':{'canonical':None,'first_published_by':None,'registrant':domain}}
+    claim = {'field':'founded_year', 'value':2014, 'url':url,
+             'excerpt':'Researchonly was founded in 2014. Another sentence.'}
+    (root / (domain + '.json')).write_text(json.dumps({'domain':domain,'names':['Researchonly'],
+        'pages':[page], 'research':{'nimble':{'0':[claim],'1':[claim]}}}))

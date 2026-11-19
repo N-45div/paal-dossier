@@ -17,6 +17,7 @@ from support_oracle import NEGATIONS, SUFFIXES, norm, prose, sentences, supports
 BASE = os.environ['PROVER_URL']
 DEST = os.environ.get('PROVER_DEST', BASE)
 DEFAULT = os.environ.get('PROVER_DEFAULT', BASE)
+LOSS = os.environ.get('PROVER_LOSS', BASE)
 MOCK = os.environ['PROVER_MOCK']
 CORPUS = Path(os.environ['PROVER_CORPUS'])
 FIELDS = ('legal_name', 'hq_city', 'ceo', 'founded_year', 'headcount_range', 'funding_total')
@@ -58,11 +59,11 @@ def mock(method, path, **kwargs):
     return request(MOCK, method, path, **kwargs)
 
 
-def poll(domain, token, bound=15, reason='R1.83 M1.2'):
+def poll(domain, token, bound=15, reason='R1.83 M1.2', base=BASE):
     deadline = time.monotonic() + bound
     last = None
     while time.monotonic() < deadline:
-        status, last, _, _ = app('GET', '/dossiers/' + domain, token=token)
+        status, last, _, _ = request(base, 'GET', '/dossiers/' + domain, token=token)
         if status == 200 and last['state'] != 'building':
             return last
         time.sleep(.05)
@@ -118,7 +119,8 @@ class Acceptance(unittest.TestCase):
             try:
                 if (app('GET', '/health', timeout=1)[:2] == (200, {'status': 'ok'}) and
                     request(DEST, 'GET', '/health', timeout=1)[:2] == (200, {'status': 'ok'}) and
-                    request(DEFAULT, 'GET', '/health', timeout=1)[:2] == (200, {'status': 'ok'})):
+                    request(DEFAULT, 'GET', '/health', timeout=1)[:2] == (200, {'status': 'ok'}) and
+                    request(LOSS, 'GET', '/health', timeout=1)[:2] == (200, {'status': 'ok'})):
                     break
             except (OSError, TimeoutError):
                 pass
@@ -339,6 +341,22 @@ class Acceptance(unittest.TestCase):
         self.assertTrue(all(r[2] < 5 for r in replies), 'M1.4')
         poll(winner[0][1]['domain'], self.token)
 
+    def test_connection_loss_accounting_R1_58_R1_81_R1_94_R1_143_R1_148(self):
+        self.assertEqual(request(LOSS, 'POST', '/_test/reset', body=FIXTURE, timeout=10)[0], 204)
+        login = request(LOSS, 'POST', '/auth/login', body={'email':'ada@example.test','password':'correct horse'})
+        self.assertEqual(login[0], 200)
+        token = login[1]['token']
+        response = request(LOSS, 'POST', '/dossiers', body={'domain':'halvorsen-robotics.test'}, token=token, key='lost')
+        self.assertEqual(response[0], 202, 'R1.58')
+        item = poll('halvorsen-robotics.test', token, bound=300, reason='INCONCLUSIVE: connection-loss harness wait expired', base=LOSS)
+        calls = mock('GET', '/_mock/log')[1]['calls']
+        self.assertTrue(calls, 'INCONCLUSIVE: no requests reached the recording dependency')
+        self.assertTrue(all(c['cost'] > 0 for c in calls), 'INCONCLUSIVE: mock refused a forwarded call')
+        actual_cost = sum(c['cost'] for c in calls)
+        self.assertLessEqual(actual_cost, 80, 'R1.148 cost from dependency log')
+        self.assertEqual(item['state'], 'failed', 'R1.81: all responses were dropped')
+        self.assertEqual(item['spent_units'], actual_cost, 'R1.94 R1.143: lost responses still cost their units')
+
     def test_concurrent_refresh_R1_77_R1_80_R1_106_R1_107_R1_120a(self):
         domain = 'halvorsen-robotics.test'
         self.assertEqual(self.create(domain, 'first')[0], 202)
@@ -459,8 +477,11 @@ class Acceptance(unittest.TestCase):
         self.assertEqual(self.create('shared.test')[0], 202)
         self.assertEqual(app('GET', '/dossiers/shared.test', token=bob)[0], 200, 'R1.34')
         poll('shared.test', self.token)
+        third_password = 'private-third-password'
+        self.assertEqual(app('POST', '/auth/signup', body={'email':'third@example.test','password':third_password,'display_name':'Third'})[0], 201)
         snapshot = app('GET', '/_test/export', timeout=10)[1]
-        self.assertNotIn('correct horse', json.dumps(snapshot), 'R1.68: plaintext password present in export')
+        for password in ('correct horse', third_password):
+            self.assertNotIn(password, json.dumps(snapshot), 'R1.68: plaintext password present in export')
 
     def test_faults_and_inflight_export_R1_23_R1_81_R1_92_R1_120(self):
         mock('POST', '/_mock/faults', body={'provider': 'nimble', 'methods': ['search', 'extract', 'research'], 'mode': 'delay', 'seconds': 1})
@@ -559,6 +580,19 @@ class Acceptance(unittest.TestCase):
         for citation in field['citations']:
             self.assertIn(citation['url'], ['https://multiproof.test/a', 'https://multiproof.test/b'])
             self.assertEqual(citation['excerpt'], 'Multiproof CEO: Dana Ruiz.')
+
+    def test_research_citation_two_sentences_R1_47_R1_123_L1_11(self):
+        domain = 'researchonly.test'
+        self.assertEqual(self.create(domain, 'research-two-sentences')[0], 202)
+        item = poll(domain, self.token)
+        calls = mock('GET', '/_mock/log')[1]['calls']
+        excerpt = 'Researchonly was founded in 2014. Another sentence.'
+        served = [s['text'] for c in calls if c['method'] == 'research'
+                  for s in c['served'] if s['url'] == 'https://' + domain + '/about']
+        self.assertIn(excerpt, served, 'INCONCLUSIVE: malformed research citation was not served')
+        self.assertEqual(item['fields']['founded_year'],
+                         {'value':None, 'status':'unknown', 'citations':[]},
+                         'R1.47 R1.123 L1.11: research citation must support the claim as a whole')
 
     def test_corpus_R1_01a_R1_06_R1_38_R1_39_R1_40_R1_41_R1_42_R1_44_R1_45_R1_46_R1_47_R1_48_R1_82_R1_141_R1_149_M1_5(self):
         key = json.loads((CORPUS / 'key.json').read_text())
