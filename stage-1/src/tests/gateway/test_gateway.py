@@ -4,7 +4,7 @@ import threading
 import unittest
 from types import SimpleNamespace
 
-from web_router import ResearchTimeoutError
+from web_router import ConfigurationError, ResearchTimeoutError
 
 from dossier.engine.gateway import Gateway
 from dossier.engine.providers import ERROR, OK, SKIPPED, TIMEOUT
@@ -65,6 +65,11 @@ class SearchRules(unittest.TestCase):
         gateway = Gateway(router=FakeRouter(TimeoutError("read timed out")))
         self.assertEqual(gateway.search("a.test", "nimble", "fast").status, TIMEOUT)
         self.assertEqual(gateway.spent, 5)
+
+    def test_missing_credential_is_skipped_and_costs_nothing(self):
+        gateway = Gateway(router=FakeRouter(ConfigurationError("No API key for provider 'nimble'.")))
+        self.assertEqual(gateway.search("a.test", "nimble", "deep").status, SKIPPED)
+        self.assertEqual(gateway.spent, 0)
 
     def test_budget_skips_before_any_call(self):
         router = FakeRouter(SimpleNamespace(results=[]))

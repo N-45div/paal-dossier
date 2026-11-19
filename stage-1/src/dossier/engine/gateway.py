@@ -17,7 +17,7 @@ import threading
 import time
 from typing import Any
 
-from web_router import ResearchTimeoutError, WebRouter
+from web_router import ConfigurationError, ResearchTimeoutError, WebRouter
 
 from .providers import ERROR, OK, SKIPPED, TIMEOUT, Answer, Claim, Page
 
@@ -155,6 +155,9 @@ class Gateway:
         return Answer(status=OK, items=items)
 
     def _failed(self, error: BaseException, units: int) -> Answer:
+        if isinstance(error, ConfigurationError):
+            self._refund(units)  # no credential: the request was never sent, so nothing is charged
+            return Answer(status=SKIPPED)
         if _is_refusal(_status_of(error), extract=False):
             self._refund(units)
             return Answer(status=ERROR)
