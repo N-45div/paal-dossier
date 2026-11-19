@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 
 from dossier.server.service import make_service
-from dossier.server.transport import Server
+from ports import bind_server
 from fake_engine import FakeEngine, citation, result
 
 FIXTURE = {
@@ -50,7 +50,7 @@ class DossierApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.engine = FakeEngine()
-        cls.server = Server(("127.0.0.1", 0), make_service(cls.engine))
+        cls.server = bind_server(make_service(cls.engine))
         cls.api = Api(f"http://127.0.0.1:{cls.server.server_address[1]}")
         threading.Thread(target=cls.server.serve_forever, daemon=True).start()
 
