@@ -29,6 +29,7 @@ Index of claimed P4 ledger ids -> tests (each id is named in an individual test 
   R1.119            test_r1_119_*    nimble research run: 25 units when started
   R1.120            test_r1_120_*    search depth is WebRouter's search_depth
   R1.121            test_r1_121_*    search cap of 10; refusals cost nothing; no answer costs full units
+  R1.135            test_r1_135_*    'Dana Ruiz has led Acme Robotics as chief executive since 2021.' gives ceo
   R1.122            test_r1_122_*    the build stops before exceeding 80 units
   R1.123            test_r1_123_*    the research query names the domain and six fields
   RL13              test_rl13_*      extracts run in a pool of at most eight threads
@@ -840,6 +841,15 @@ class EvidenceDecisionTests(unittest.TestCase):
         self.assertEqual(citation["excerpt"], "Acme Robotics, Inc. is headquartered in Lisbon.")
         self.assertEqual(citation["provider"], "nimble")
         self.assertEqual(citation["url"], "https://acme-robotics.test/about")
+
+    def test_r1_135_example_ceo_led_as_chief_executive_since_a_year(self):
+        """R1.135: 'Dana Ruiz has led Acme Robotics as chief executive since 2021.' gives ceo Dana Ruiz."""
+        evidence = Evidence(D)
+        sentence = "Dana Ruiz has led Acme Robotics as chief executive since 2021."
+        evidence.add_served_text("https://acme-robotics.test/leadership", "Leadership: team\n\n" + sentence, "nimble")
+        ceo = evidence.decide()["ceo"]
+        self.assertEqual(ceo["value"], "Dana Ruiz")
+        self.assertEqual(ceo["citations"][0]["excerpt"], sentence)
 
     def test_most_distinct_pages_wins(self):
         evidence = Evidence(D)
