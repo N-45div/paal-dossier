@@ -47,7 +47,7 @@ def main():
             call([sys.executable, '-m', 'venv', env_dir], timeout=120)
             python = env_dir / 'bin/python'
             call([python, '-m', 'pip', 'install', '--no-index', '--no-cache-dir', '--find-links', wheelhouse,
-                  'pytest>=8,<10', 'httpx>=0.27,<1'], timeout=120)
+                  '-r', suite / 'requirements.txt'], timeout=120)
             test_path = pathlib.Path(options.test_path).resolve() if options.test_path else suite
             command = [python, '-m', 'pytest', test_path, '--service-root', pathlib.Path(options.service_root).resolve(),
                        '--name-prefix', options.name_prefix, '--port-start', options.port_start,

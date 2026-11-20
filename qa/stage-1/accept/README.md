@@ -2,6 +2,8 @@
 
 Run from the prover checkout with local Docker, Python 3 and `venv` available. The runner builds a small wheelhouse image, installs pytest and httpx into a temporary venv with `--no-index`, and holds `/tmp/factory-heavy.lock` throughout:
 
+The dependencies are also listed in `qa/stage-1/accept/requirements.txt` for a separately managed venv.
+
 ```sh
 python3 qa/stage-1/accept/run.py --service-root /home/ndivij/buildathon/band-work/paal-dossier --name-prefix prover --port-start 18200 --port-end 18299
 ```
