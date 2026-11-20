@@ -12,7 +12,7 @@ import time
 from typing import Callable, Optional
 
 from .costs import (
-    EXTRACT_COST_PER_URL,
+    RENDERED_EXTRACT_COST_PER_URL,
     RESEARCH_START_COST,
     SEARCH_COST,
     charged_units,
@@ -26,6 +26,7 @@ REFUSAL_ATTEMPTS = 4  # a refused call is retried until it answers or these atte
 RETRY_DELAY_S = 1.1
 SEARCH_MAX_RESULTS = 10
 EXTRACT_FORMAT = "markdown"  # the served text, as the mock serves it for markdown and html
+RENDER_OPTIONS = {"render": True}  # RL60: the text the browser shows once the page has loaded
 
 RESEARCH_QUERY = (
     "Research the company {domain} ({name}): its registered legal name, the city of its "
@@ -125,12 +126,12 @@ class Gateway:
         )
 
     def reserve_extract(self) -> bool:
-        """Reserve the unit for one extract. Settle via extract_reserved."""
-        return self._ledger.reserve(EXTRACT_COST_PER_URL["nimble"])
+        """Reserve the cost of one rendered extract. Settle via extract_reserved."""
+        return self._ledger.reserve(RENDERED_EXTRACT_COST_PER_URL["nimble"])
 
     def extract_reserved(self, url: str):
-        """Extract a URL whose unit the caller has already reserved. Settles the reservation."""
-        units = EXTRACT_COST_PER_URL["nimble"]
+        """Extract a URL's rendered text, whose cost the caller has already reserved. Settles the reservation."""
+        units = RENDERED_EXTRACT_COST_PER_URL["nimble"]
         if self._cancel_requested():
             self._ledger.settle(units, 0)
             return None
@@ -140,6 +141,7 @@ class Gateway:
                 url,
                 provider="nimble",
                 format=EXTRACT_FORMAT,
+                provider_options=RENDER_OPTIONS,
                 timeout=CALL_TIMEOUT_S,
                 data_apis=False,
             )

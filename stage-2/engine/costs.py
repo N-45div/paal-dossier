@@ -10,7 +10,8 @@ SEARCH_COST = {
     ("tavily", "fast"): 16,
     ("tavily", "deep"): 16,
 }
-EXTRACT_COST_PER_URL = {"nimble": 1, "tavily": 2}
+# Nimble extract with provider_options render (RL60): the text a browser shows, 3 units a URL.
+RENDERED_EXTRACT_COST_PER_URL = {"nimble": 3}
 RESEARCH_START_COST = {"nimble": 25}
 
 
