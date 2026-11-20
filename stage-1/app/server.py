@@ -13,6 +13,15 @@ DRAIN_BYTES = 2 * MAX_BODY_BYTES  # RL28: most of an over-cap body read after th
 REQUEST_QUEUE_SIZE = 128
 _JSON_TYPE = "application/json; charset=utf-8"
 _CHUNK_SIZE = re.compile(rb"[0-9A-Fa-f]+")  # RFC 9112: chunk-size is bare hex digits, no sign or prefix
+_FIELD_NAME = re.compile(rb"[!#$%&'*+\-.^_`|~0-9A-Za-z]+")  # RFC 9110 token: a trailer field-name
+
+
+def _is_trailer_field(line: bytes) -> bool:
+    """RFC 9110 field grammar for a trailer line: token name, no space before the colon, value without NUL or bare CR."""
+    name, colon, value = line.partition(b":")
+    if not colon or _FIELD_NAME.fullmatch(name) is None:
+        return False
+    return b"\x00" not in value and b"\r" not in value
 
 
 class _TooLarge(Exception):
@@ -87,7 +96,7 @@ class _Handler(BaseHTTPRequestHandler):
                     trailer = self._read_chunk_line()
                     if trailer == b"":
                         return b"".join(chunks)
-                    if b":" not in trailer:
+                    if not _is_trailer_field(trailer):
                         raise _BadFraming("malformed trailer field")
             total += size
             if total > MAX_BODY_BYTES:

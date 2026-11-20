@@ -11,6 +11,13 @@ Index of claimed ids covered in this module:
     RL49  -> ChunkedFramingTests.test_rl49_0x_prefixed_chunk_size_is_400_and_changes_nothing
     RL49  -> ChunkedFramingTests.test_rl49_underscore_in_chunk_size_is_400_and_changes_nothing
     RL49  -> ChunkedFramingTests.test_rl49_missing_final_crlf_is_400_and_changes_nothing
+    RL49  -> ChunkedFramingTests.test_rl49_trailer_without_a_colon_is_400_and_changes_nothing
+    RL49  -> ChunkedFramingTests.test_rl49_trailer_with_an_empty_name_is_400_and_changes_nothing
+    RL49  -> ChunkedFramingTests.test_rl49_trailer_with_a_space_in_the_name_is_400_and_changes_nothing
+    RL49  -> ChunkedFramingTests.test_rl49_trailer_with_an_at_sign_in_the_name_is_400_and_changes_nothing
+    RL51  -> ChunkedFramingTests.test_rl51_trailer_with_whitespace_before_the_colon_is_400_and_changes_nothing
+    RL51  -> ChunkedFramingTests.test_rl51_trailer_with_a_bare_cr_in_the_value_is_400_and_changes_nothing
+    RL51  -> ChunkedFramingTests.test_rl51_valid_checksum_trailer_is_parsed
     RL49  -> ChunkedFramingTests.test_rl49_slow_chunked_upload_completes_and_health_answers_meanwhile
 
 Run from the repository root:  PYTHONPATH=stage-1 python3 -m unittest discover -s qa/stage-1/unit_app -t qa/stage-1/unit_app
@@ -111,6 +118,36 @@ class ChunkedFramingTests(unittest.TestCase):
     def test_rl49_missing_final_crlf_is_400_and_changes_nothing(self):
         """Covers RL49: a body without the final blank CRLF is incomplete; 400 and no reset."""
         self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\n", half_close=True)
+
+    def test_rl49_trailer_without_a_colon_is_400_and_changes_nothing(self):
+        """Covers RL49: a trailer line with no colon is not a field; 400 and no reset."""
+        self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\nInvalidTrailer\r\n\r\n")
+
+    def test_rl49_trailer_with_an_empty_name_is_400_and_changes_nothing(self):
+        """Covers RL49: a trailer whose field-name is empty is malformed; 400 and no reset."""
+        self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\n: value\r\n\r\n")
+
+    def test_rl49_trailer_with_a_space_in_the_name_is_400_and_changes_nothing(self):
+        """Covers RL49: a space is not a token character, so 'Bad Name' is malformed; 400 and no reset."""
+        self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\nBad Name: value\r\n\r\n")
+
+    def test_rl51_trailer_with_whitespace_before_the_colon_is_400_and_changes_nothing(self):
+        """Covers RL51: 'Name : value' has whitespace before the colon, which the grammar forbids; 400, no reset."""
+        self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\nName : value\r\n\r\n")
+
+    def test_rl51_trailer_with_a_bare_cr_in_the_value_is_400_and_changes_nothing(self):
+        """Covers RL51: a bare CR inside a field value is malformed; 400, no reset."""
+        self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\nX-Checksum: a\rb\r\n\r\n")
+
+    def test_rl51_valid_checksum_trailer_is_parsed(self):
+        """Covers RL51, R1.31: a valid trailer such as 'X-Checksum: abc' parses; the reset runs (204)."""
+        body = hex_size(OTHER_RESET) + b"\r\n" + OTHER_RESET + b"\r\n0\r\nX-Checksum: abc\r\n\r\n"
+        status, payload = self.send_raw(body)
+        self.assertEqual(status, 204, payload)
+
+    def test_rl49_trailer_with_an_at_sign_in_the_name_is_400_and_changes_nothing(self):
+        """Covers RL49: '@' is not a token character, so 'Bad@Name' is malformed; 400 and no reset."""
+        self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\nBad@Name: value\r\n\r\n")
 
     def test_rl49_slow_chunked_upload_completes_and_health_answers_meanwhile(self):
         """Covers RL49: a slow chunked upload completes (204) and the server answers /health during it."""
