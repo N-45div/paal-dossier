@@ -127,6 +127,12 @@ def test_R2_53_R2_54_R2_58_R2_59_R2_64_R2_65_R2_66_R2_67_R2_68_R2_69_R2_70_auth_
     assert api.post('/_test/reset', json={'now':'2026-03-01T09:00:00Z', 'users':[]}).status_code == 204
     page = browser_factory(deployment, width)
     page.navigate('/signup')
+    assert page.evaluate('window.innerWidth') == width, 'the screen must use the requested CSS viewport width'
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    page.call('Input.dispatchKeyEvent', {'type':'keyDown', 'key':'Tab', 'code':'Tab', 'windowsVirtualKeyCode':9})
+    page.call('Input.dispatchKeyEvent', {'type':'keyUp', 'key':'Tab', 'code':'Tab', 'windowsVirtualKeyCode':9})
+    assert page.evaluate('document.activeElement !== document.body')
+    page.screenshot(Path(tempfile.gettempdir()) / f'{page.artifact_prefix}-stage2-signup-{width}.png')
     page.fill('signup-email', 'browser@example.com')
     page.fill('signup-password', 'correct horse')
     page.fill('signup-display-name', 'Browser User')
@@ -143,6 +149,9 @@ def test_R2_53_R2_54_R2_58_R2_59_R2_64_R2_65_R2_66_R2_67_R2_68_R2_69_R2_70_auth_
         page.click('logout-button')
         page.wait('!' + present('current-user'))
     page.navigate('/login')
+    assert page.evaluate('window.innerWidth') == width
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    page.screenshot(Path(tempfile.gettempdir()) / f'{page.artifact_prefix}-stage2-login-{width}.png')
     page.fill('login-email', 'browser@example.com')
     page.fill('login-password', 'wrong password')
     page.click('login-submit')
@@ -197,6 +206,7 @@ def test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77
     page.wait(present('dossier-domain') + ' && ' + node('dossier-domain') + '.innerText.trim() === ' + json.dumps(domain))
     page.wait(present('dossier-state') + ' && ' + node('dossier-state') + '.innerText.trim() === "ready"')
     page.wait(present('current-user'))
+    assert page.evaluate('window.innerWidth') == width
     assert text(page, 'dossier-domain').strip() == domain
     assert text(page, 'dossier-state').strip() == 'ready'
     assert attribute(page, 'dossier-spent', 'data-units') == str(dossier['spent_units'])

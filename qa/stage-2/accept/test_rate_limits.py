@@ -10,7 +10,8 @@ from test_candidates import wait_ready
 
 
 @pytest.mark.parametrize('method', ['search', 'extract', 'research'])
-def test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost(timed_deployment, method):
+@pytest.mark.parametrize('mode', ['throttle', 'rate_limit'])
+def test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost(timed_deployment, method, mode):
     """A throttled provider is retried after one second, with refused calls costing zero."""
     domain = 'halvorsen-robotics.test'
     address = docker('inspect', '--format', '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
@@ -19,7 +20,7 @@ def test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost(timed_depl
          httpx.Client(base_url=timed_deployment['mock'], headers=ADMIN, timeout=10, trust_env=False) as mock, \
          httpx.Client(base_url=f'http://{address}:8080', timeout=10, trust_env=False) as probe:
         assert mock.post('/_mock/reset', json={'epoch':0}).status_code == 204
-        assert mock.post('/_mock/faults', json={'provider':'nimble', 'methods':[method], 'mode':'throttle'}).status_code == 204
+        assert mock.post('/_mock/faults', json={'provider':'nimble', 'methods':[method], 'mode':mode}).status_code == 204
         fixture = {'now':'2026-03-01T09:00:00Z', 'users':[
             {'id':'u', 'email':'retry@example.com', 'password':'correct horse', 'display_name':'Retry'}]}
         assert api.post('/_test/reset', json=fixture).status_code == 204
@@ -29,8 +30,8 @@ def test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost(timed_depl
         baseline = len(probe.get('/_probe/calls').json())
         started = time.monotonic()
         assert api.post('/dossiers', json={'domain':domain},
-                        headers={'Authorization':'Bearer ' + token, 'Idempotency-Key':'retry-' + method}).status_code == 202
-        dossier = wait_ready(api, token, domain)
+                        headers={'Authorization':'Bearer ' + token, 'Idempotency-Key':'retry-' + method + '-' + mode}).status_code == 202
+        dossier = wait_ready(api, token, domain, timeout=300)
         elapsed = time.monotonic() - started
         assert dossier['state'] == 'ready'
         calls = mock.get('/_mock/log').json()['calls']
@@ -52,7 +53,14 @@ def test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost(timed_depl
                 retries.append(following[0]['start'] - first['answered'])
                 intervals.append((first['answered'], following[0]['start']))
         assert retries, 'scenario must actually retry a refused call'
-        assert min(retries) >= 1.0, ('retry issued too early after 429', min(retries))
+        assert min(retries) >= 1.05, ('retry issued too early after 429', min(retries))
+        if mode == 'rate_limit':
+            groups = {}
+            for item in captured:
+                identity = (item['method'], item['path'], json.dumps(item['body'], sort_keys=True))
+                groups.setdefault(identity, []).append(item['status'])
+            assert any(len(values) >= 4 and values[:3] == [429,429,429] and values[3] < 400
+                       for values in groups.values()), 'three 429s must be retried'
         merged = []
         for start, end in sorted(intervals):
             if merged and start <= merged[-1][1]:

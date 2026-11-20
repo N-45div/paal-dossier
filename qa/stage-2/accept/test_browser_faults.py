@@ -23,7 +23,7 @@ def records_after_commit(page, endpoint):
             headers = {name.lower(): value for name, value in request.get('headers', {}).items()}
             body = request.get('postData', '')
             with lock:
-                requests.append((headers.get('idempotency-key'), body))
+                requests.append((headers.get('idempotency-key'), body, event.get('responseStatusCode')))
                 first = len(requests) == 1
             if first:
                 page.call('Fetch.failRequest', {'requestId': event['requestId'], 'errorReason': 'Failed'})
@@ -38,6 +38,7 @@ def assert_same_write(requests):
     assert len(requests) >= 2
     assert requests[0][0] and requests[0][0] == requests[1][0], 'retry must reuse the idempotency key'
     assert requests[0][1] == requests[1][1], 'retry must reuse the request body'
+    assert requests[0][2] in (200, 202) and requests[1][2] == 200, 'the committed write must replay'
 
 
 def test_R2_71_R2_72_R2_79_R2_107_existing_dossier_created_by_another_client_does_not_rebuild(api, mock, seeded, browser_page):
@@ -131,6 +132,35 @@ def test_R2_90_R2_91_confirmed_refresh_refusal_is_not_uncertain(api, seeded, bro
     browser_page.call('Fetch.disable')
 
 
+def test_R2_63_loading_state_screenshot_with_delayed_dossier_read(api, seeded, browser_page):
+    """Capture a genuine in-flight read for visual review of the loading state."""
+    domain = 'halvorsen-robotics.test'
+    assert api.post('/dossiers', json={'domain':domain}, headers={
+        'Authorization':'Bearer ' + seeded[0], 'Idempotency-Key':'loading-screenshot'}).status_code == 202
+    assert wait_ready(api, seeded[0], domain)['state'] == 'ready'
+    login(browser_page)
+    held, release = threading.Event(), threading.Event()
+    def delay(event):
+        request = event['request']
+        headers = {name.lower():value for name,value in request.get('headers',{}).items()}
+        if (request['method'] == 'GET' and urlsplit(request['url']).path == '/dossiers/' + domain and
+                'text/html' not in headers.get('accept','').lower() and not held.is_set()):
+            held.set()
+            assert release.wait(20), 'test did not release the loading read'
+        browser_page.call('Fetch.continueRequest', {'requestId':event['requestId']})
+    browser_page.on('Fetch.requestPaused', delay)
+    browser_page.call('Fetch.enable', {'patterns':[{'urlPattern':'*/dossiers/*', 'requestStage':'Request'}]})
+    try:
+        browser_page.navigate('/dossiers/' + domain)
+        assert held.wait(10), 'the browser must read the dossier through the API'
+        browser_page.screenshot(Path(tempfile.gettempdir()) / f'{browser_page.artifact_prefix}-stage2-loading.png')
+        release.set()
+        browser_page.wait(present('dossier-domain'))
+    finally:
+        release.set()
+        browser_page.call('Fetch.disable')
+
+
 def test_R2_93_R2_103_R2_104_latest_reload_wins_over_delayed_earlier_read(api, mock, seeded, browser_page):
     """A delayed response from an earlier reload cannot overwrite a later reload."""
     domain = 'halvorsen-robotics.test'
@@ -220,3 +250,48 @@ def test_R2_90_R2_96_R2_103_R2_105_browser_follows_another_clients_refresh(api, 
     calls = mock.get('/_mock/log').json()['calls'][before:]
     assert sum(c['method'] == 'search' and c['query'] == domain and c['status'] == 200 for c in calls) == 1
     browser_page.call('Network.disable')
+
+
+def test_R2_93_R2_96_R2_104_stale_build_poll_cannot_overwrite_ready(api, mock, seeded, browser_page):
+    """An earlier building response delayed in transit cannot replace a later ready read."""
+    domain = 'halvorsen-robotics.test'
+    login(browser_page)
+    assert mock.post('/_mock/faults', json={'provider':'nimble', 'methods':['search','extract','research'],
+                                            'mode':'delay', 'seconds':2}).status_code == 204
+    assert api.post('/dossiers', json={'domain':domain}, headers={
+        'Authorization':'Bearer ' + seeded[0], 'Idempotency-Key':'poll-order'}).status_code == 202
+    browser_page.navigate('/dossiers/' + domain)
+    browser_page.wait(present('dossier-state') + ' && ' + node('dossier-state') +
+                      '.innerText.trim() === "building"')
+    held, release = threading.Event(), threading.Event()
+    lock = threading.Lock()
+    def delay_building(event):
+        request = event['request']
+        if request['method'] == 'GET' and urlsplit(request['url']).path == '/dossiers/' + domain:
+            body = browser_page.call('Fetch.getResponseBody', {'requestId':event['requestId']})
+            raw = base64.b64decode(body['body']) if body.get('base64Encoded') else body['body'].encode()
+            value = json.loads(raw)
+            with lock:
+                should_hold = value.get('state') == 'building' and not held.is_set()
+                if should_hold:
+                    held.set()
+            if should_hold:
+                assert release.wait(30), 'test did not release the delayed poll'
+        browser_page.call('Fetch.continueRequest', {'requestId':event['requestId']})
+    browser_page.on('Fetch.requestPaused', delay_building)
+    browser_page.call('Fetch.enable', {'patterns':[{'urlPattern':'*/dossiers/*', 'requestStage':'Response'}]})
+    try:
+        assert held.wait(15), 'test requires a building poll to be delayed'
+        newest = wait_ready(api, seeded[0], domain)
+        assert newest['state'] == 'ready'
+        browser_page.click('dossier-reload')
+        browser_page.wait(present('dossier-state') + ' && ' + node('dossier-state') +
+                          '.innerText.trim() === "ready"', timeout=20)
+        release.set()
+        time.sleep(.5)
+        assert browser_page.evaluate(node('dossier-state') + '.innerText.trim()') == 'ready'
+        if newest['fields']['ceo']['value'] is not None:
+            assert browser_page.evaluate(node('field-value-ceo') + '.getAttribute("data-value")') == str(newest['fields']['ceo']['value'])
+    finally:
+        release.set()
+        browser_page.call('Fetch.disable')

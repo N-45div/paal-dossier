@@ -715,7 +715,7 @@ Referenced tests: `test_browser.py::test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_
   > identifiers only where they help the user. Each citation shows its excerpt as quoted text and
   > links to its URL.
 
-Referenced tests: `test_browser.py::test_R2_55_R2_63_failed_dossier_has_a_distinct_state`, `test_browser.py::test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77_R2_80_R2_81_R2_82_R2_83_R2_84_R2_85_R2_86_R2_87_R2_88_R2_89_R2_93_R2_95_R2_97_R2_98_R2_99_R2_100_R2_101_R2_102_dossier_evidence_and_contested`
+Referenced tests: `test_browser.py::test_R2_55_R2_63_failed_dossier_has_a_distinct_state`, `test_browser.py::test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77_R2_80_R2_81_R2_82_R2_83_R2_84_R2_85_R2_86_R2_87_R2_88_R2_89_R2_93_R2_95_R2_97_R2_98_R2_99_R2_100_R2_101_R2_102_dossier_evidence_and_contested`, `test_browser_faults.py::test_R2_63_loading_state_screenshot_with_delayed_dossier_read`
 
 ### R2.64
 - Section: Product and visual direction
@@ -1021,7 +1021,7 @@ Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_
 
   > | `dossier-reload` | Button. Reads the dossier again without starting a build |
 
-Referenced tests: `test_browser.py::test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77_R2_80_R2_81_R2_82_R2_83_R2_84_R2_85_R2_86_R2_87_R2_88_R2_89_R2_93_R2_95_R2_97_R2_98_R2_99_R2_100_R2_101_R2_102_dossier_evidence_and_contested`, `test_browser_faults.py::test_R2_93_R2_103_R2_104_latest_reload_wins_over_delayed_earlier_read`, `test_upgrade.py::test_R2_69_R2_93_R2_108_RL59_browser_session_survives_stage1_import`
+Referenced tests: `test_browser.py::test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77_R2_80_R2_81_R2_82_R2_83_R2_84_R2_85_R2_86_R2_87_R2_88_R2_89_R2_93_R2_95_R2_97_R2_98_R2_99_R2_100_R2_101_R2_102_dossier_evidence_and_contested`, `test_browser_faults.py::test_R2_93_R2_103_R2_104_latest_reload_wins_over_delayed_earlier_read`, `test_browser_faults.py::test_R2_93_R2_96_R2_104_stale_build_poll_cannot_overwrite_ready`, `test_upgrade.py::test_R2_69_R2_93_R2_108_RL59_browser_session_survives_stage1_import`
 
 ### R2.94
 - Section: Dossier — `/dossiers/{domain}`
@@ -1054,7 +1054,7 @@ Referenced tests: `test_browser.py::test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_
   > 2 seconds until the state is `ready` or `failed`, and then shows the new fields without a
   > manual reload.
 
-Referenced tests: `test_browser_faults.py::test_R2_90_R2_96_R2_103_R2_105_browser_follows_another_clients_refresh`
+Referenced tests: `test_browser_faults.py::test_R2_90_R2_96_R2_103_R2_105_browser_follows_another_clients_refresh`, `test_browser_faults.py::test_R2_93_R2_96_R2_104_stale_build_poll_cannot_overwrite_ready`
 
 ### R2.97
 - Section: Evidence — `/dossiers/{domain}/evidence`
@@ -1140,7 +1140,7 @@ Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2
   >   not overwrite a later one, including when responses arrive out of order. This applies to the
   >   reads while a dossier is `building` as well.
 
-Referenced tests: `test_browser_faults.py::test_R2_93_R2_103_R2_104_latest_reload_wins_over_delayed_earlier_read`
+Referenced tests: `test_browser_faults.py::test_R2_93_R2_103_R2_104_latest_reload_wins_over_delayed_earlier_read`, `test_browser_faults.py::test_R2_93_R2_96_R2_104_stale_build_poll_cannot_overwrite_ready`
 
 ### R2.105
 - Section: Refresh and competing clients

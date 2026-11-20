@@ -30,7 +30,7 @@ def main():
     if not options.inside_lock:
         command = ['flock', '/tmp/factory-heavy.lock', sys.executable, pathlib.Path(__file__).resolve(),
                    '--inside-lock', *sys.argv[1:]]
-        return call(command, timeout=1800, check=False).returncode
+        return call(command, timeout=3000, check=False).returncode
 
     suite = pathlib.Path(__file__).resolve().parent
     suffix = uuid.uuid4().hex[:12]
@@ -58,7 +58,7 @@ def main():
             if options.stage1_root:
                 command += ['--stage1-root', pathlib.Path(options.stage1_root).resolve()]
             command += pytest_args
-            return call(command, timeout=900, check=False).returncode
+            return call(command, timeout=1800, check=False).returncode
         finally:
             call(['docker', 'rm', '-f', container], timeout=20, check=False)
             call(['docker', 'image', 'rm', '-f', image], timeout=20, check=False)

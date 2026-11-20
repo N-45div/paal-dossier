@@ -14,15 +14,15 @@ def norm(value):
     return re.sub(r'\s+', ' ', value).strip()
 
 
-def wait_ready(api, token, domain):
-    deadline = time.monotonic() + 45
+def wait_ready(api, token, domain, timeout=45):
+    deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         response = api.get('/dossiers/' + domain, headers={'Authorization': 'Bearer ' + token}, timeout=5)
         assert response.status_code == 200
         dossier = response.json()
         if dossier['state'] != 'building':
             return dossier
-        time.sleep(.05)
+        time.sleep(.1)
     raise AssertionError('build did not finish')
 
 

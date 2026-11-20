@@ -30,7 +30,10 @@ The frozen Stage 1 is exercised separately during the upgrade test. If
 `--stage1-root` is omitted, the runner expects `stage-1/` and `stage-2/` under the
 same service root. The Stage 1 API and framing regression files in this suite are
 copies of our own previously reviewed acceptance tests, run against Stage 2; their
-Stage 1 requirement index is `../../stage-1/accept/CLAIMS.md`.
+Stage 1 requirement index is `../../stage-1/accept/CLAIMS.md`. Stage 2 explicitly
+excludes 429 retry waits from the build deadline; the copied fault regression is
+adapted to that rule, while `test_rate_limits.py` measures retry spacing and the
+remaining active-time bound from an independent provider proxy.
 
 The upgrade bridge deliberately serves Stage 2 HTML while routing API calls to the
 frozen Stage 1 until the test switches it. This makes a lost, committed Stage 1
