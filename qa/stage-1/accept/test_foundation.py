@@ -379,12 +379,13 @@ def test_R1_31_RL53_valid_chunk_extension_executes_reset(api, direct_api, seeded
     error(api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'}), 401, 'unauthenticated')
 
 
-def framed_socket_request(direct_api, headers, body=b'', finish=False):
+def framed_socket_request(direct_api, headers, body=b'', finish=False, require_close=False):
     endpoint = urlsplit(str(direct_api.base_url))
     with socket.create_connection((endpoint.hostname, endpoint.port), timeout=15) as conn:
         conn.settimeout(15)
+        connection = b'keep-alive' if require_close else b'close'
         conn.sendall(b'POST /_test/reset HTTP/1.1\r\nHost: localhost\r\n'
-                     b'Content-Type: application/json\r\nConnection: close\r\n' + headers + b'\r\n')
+                     b'Content-Type: application/json\r\nConnection: ' + connection + b'\r\n' + headers + b'\r\n')
         def upload():
             try:
                 if body:
@@ -403,7 +404,46 @@ def framed_socket_request(direct_api, headers, body=b'', finish=False):
         if writer:
             writer.join(timeout=15)
             assert not writer.is_alive(), 'upload did not stop after the response'
+        if require_close and status == 400:
+            conn.settimeout(3)
+            assert conn.recv(1) == b'', 'invalid transfer coding left the connection open'
         return status, payload
+
+
+@pytest.mark.parametrize('headers', [
+    b'Transfer-Encoding: chunked, gzip\r\n',
+    b'Transfer-Encoding: gzip, chunked\r\n',
+    b'Transfer-Encoding: chunked, chunked\r\n',
+    b'Transfer-Encoding: xchunked\r\n',
+    b'Transfer-Encoding: gzip\r\nTransfer-Encoding: chunked\r\n',
+    b'Transfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n',
+    b'Transfer-Encoding: \r\n',
+    b'Transfer-Encoding: chunked,\r\n',
+])
+def test_R1_31_R1_49_RL56_invalid_transfer_codings_do_not_execute(api, direct_api, seeded, headers):
+    """R1.31 R1.49 RL56: invalid transfer-coding lists cannot execute a reset."""
+    payload = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    body = f'{len(payload):x}\r\n'.encode() + payload + b'\r\n0\r\n\r\n'
+    snapshot = api.get('/_test/export', timeout=10).json()
+    status, response = framed_socket_request(direct_api, headers, body, require_close=True)
+    unchanged = api.get('/_test/export', timeout=10).json() == snapshot
+    assert status == 400, (status, unchanged)
+    envelope = json.loads(response)
+    assert envelope['error']['code'] == 'malformed_request'
+    assert isinstance(envelope['error']['message'], str)
+    if not unchanged:
+        pytest.fail('invalid transfer coding changed state')
+    assert direct_api.get('/health').status_code == 200
+
+
+@pytest.mark.parametrize('value', [b'Chunked', b'chunked ', b'  cHuNkEd\t'])
+def test_R1_31_RL56_valid_transfer_coding_executes_reset(api, direct_api, seeded, value):
+    """R1.31 RL56: a single chunked coding accepts case and surrounding whitespace."""
+    payload = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    body = f'{len(payload):x}\r\n'.encode() + payload + b'\r\n0\r\n\r\n'
+    status, _ = framed_socket_request(direct_api, b'Transfer-Encoding: ' + value + b'\r\n', body, finish=True)
+    assert status == 204
+    error(api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'}), 401, 'unauthenticated')
 
 
 @pytest.mark.parametrize('value', [b'9' * 5000, b'0' * 5000 + b'16777217'])
