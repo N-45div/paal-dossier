@@ -219,3 +219,25 @@ def test_R2_7_RL70_leap_second_oracle_controls():
         with pytest.raises(ValueError):
             instant(invalid)
     assert instant('2025-01-01T18:59:60-05:00') == instant('2025-01-02T00:00:00Z')
+
+
+def test_R2_2_R2_40_R2_45_RL62_RL71_bool_is_not_integer_in_field_or_citations():
+    """Field equality and citation grouping keep false distinct from 0 and true from 1."""
+    def candidate(value, url, selected):
+        return {'value':value, 'url':url, 'excerpt':'supports the value', 'provider':'nimble',
+                'kind':'own', 'published_at':None, 'retrieved_at':'2026-03-01T00:00:00Z',
+                'selected':selected}
+
+    for number, boolean in ((0, False), (1, True)):
+        selected = candidate(number, 'https://example.test/a', True)
+        citation = {key:selected[key] for key in ('url', 'excerpt', 'provider')}
+        malformed = {'value':boolean, 'status':'known', 'citations':[citation], 'candidates':[selected]}
+        with pytest.raises(AssertionError):
+            assert_field(malformed)
+
+    numeric = candidate(0, 'https://example.test/a', True)
+    boolean = candidate(False, 'https://example.test/b', False)
+    numeric_citation = {key:numeric[key] for key in ('url', 'excerpt', 'provider')}
+    field = {'value':0, 'status':'contested', 'citations':[numeric_citation],
+             'candidates':[numeric, boolean]}
+    assert_field(field)

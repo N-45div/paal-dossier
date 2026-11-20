@@ -48,6 +48,23 @@ def normal_value(value):
     return value.strip() if isinstance(value, str) else value
 
 
+def same_value(left, right):
+    """JSON equality after trimming strings, keeping booleans distinct from numbers."""
+    left = normal_value(left)
+    right = normal_value(right)
+    if isinstance(left, bool) or isinstance(right, bool):
+        return isinstance(left, bool) and isinstance(right, bool) and left is right
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        return left == right
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, list):
+        return len(left) == len(right) and all(same_value(a, b) for a, b in zip(left, right))
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(same_value(left[k], right[k]) for k in left)
+    return left == right
+
+
 def _compare(left, right):
     def compare(a, b):
         return (a > b) - (a < b)
@@ -61,9 +78,19 @@ def _compare(left, right):
         rank = compare(instant(b), instant(a))
     if rank:
         return rank
+    a, b = normal_value(left['value']), normal_value(right['value'])
+    if same_value(a, b):
+        value_rank = 0
+    elif isinstance(a, str) and isinstance(b, str):
+        value_rank = compare(a, b)
+    elif isinstance(a, (int, float)) and isinstance(b, (int, float))             and not isinstance(a, bool) and not isinstance(b, bool):
+        value_rank = compare(a, b)
+    else:
+        # JSON-type-aware tiebreak (RL71): booleans never equal numbers and no
+        # mixed-type pair may crash the oracle; order by type name instead.
+        value_rank = compare(type(a).__name__, type(b).__name__)
     return (compare(left['url'], right['url']) or
-            compare(_PROVIDER[left['provider']], _PROVIDER[right['provider']]) or
-            compare(normal_value(left['value']), normal_value(right['value'])))
+            compare(_PROVIDER[left['provider']], _PROVIDER[right['provider']]) or value_rank)
 
 
 def ranked(candidates):
@@ -80,9 +107,12 @@ def assert_field(field):
         assert field['value'] is None and field['status'] == 'unknown' and field['citations'] == []
         return
     value = normal_value(candidates[0]['value'])
-    distinct = {(type(normal_value(c['value'])), normal_value(c['value'])) for c in candidates}
-    assert normal_value(field['value']) == value
+    distinct = []
+    for candidate in candidates:
+        if not any(same_value(candidate['value'], existing) for existing in distinct):
+            distinct.append(candidate['value'])
+    assert same_value(field['value'], value)
     assert field['status'] == ('known' if len(distinct) == 1 else 'contested')
     citations = [{k: c[k] for k in ('url', 'excerpt', 'provider')}
-                 for c in candidates if normal_value(c['value']) == value]
+                 for c in candidates if same_value(c['value'], value)]
     assert field['citations'] == citations

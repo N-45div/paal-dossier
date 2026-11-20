@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from conftest import ADMIN
-from selection_oracle import assert_field, instant
+from selection_oracle import assert_field, instant, same_value
 from test_candidates import wait_ready
 from test_browser import login, node, present
 from test_browser_faults import assert_same_write, records_after_commit
@@ -58,7 +58,7 @@ def test_R2_108_R2_109_RL59_stage1_export_sessions_and_candidates_survive_upgrad
             assert actual == expected
             assert len(field['candidates']) == len(old_field['citations'])
             for candidate in field['candidates']:
-                assert candidate['value'] == old_field['value']
+                assert same_value(candidate['value'], old_field['value'])
                 assert candidate['kind'] is None and candidate['published_at'] is None
                 assert instant(candidate['retrieved_at']) == instant(old_dossier['researched_at'])
         replay = new.post('/dossiers', headers=headers, json={'domain': domain})
