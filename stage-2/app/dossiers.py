@@ -10,6 +10,8 @@ itself is made by the engine (RL62); this module only stores and checks its resu
 from typing import Any
 
 from .domain import normalise_domain
+from engine.selection import assemble_field
+
 from .errors import validation
 from .wire import format_ts, parse_rfc3339
 
@@ -67,37 +69,47 @@ def fields_from_engine(raw: Any, retrieved_at: str | None = None) -> dict[str, d
 def _engine_field(name: str, entry: dict, retrieved_at: str | None) -> dict[str, Any] | None:
     """One field as the engine returned it, or None when it is not a usable known/contested field.
 
-    A missing status is derived: known when the value is non-empty and has a citation. Missing
-    candidates are derived from the first citation (a single selected candidate) until the
-    selection rule is wired in for these fields.
+    Without candidates (a stage-1 style result), the field is derived per RL59 from its citations.
     """
     value = entry.get("value")
     citations = [_citation_from_engine(c) for c in (entry.get("citations") or []) if _is_citation(c)]
     if not _is_value(name, value) or not citations:
         return None
-    status = entry.get("status", "known")
+    if "candidates" not in entry:
+        return _derived_field(value, citations, retrieved_at or "")
+    status = entry.get("status")
     if status not in ("known", "contested"):
         return None
-    if "candidates" in entry:
-        candidates = [_candidate_from_engine(c) for c in (entry["candidates"] or []) if _is_candidate(name, c)]
-    else:
-        candidates = [_candidate_from_citation(value, citations[0], retrieved_at or "")]
+    candidates = [_candidate_from_engine(c) for c in (entry["candidates"] or []) if _is_candidate(name, c)]
     if not candidates:
         return None
     return {"value": value, "status": status, "citations": citations, "candidates": candidates}
 
 
-def _candidate_from_citation(value: Any, citation: dict, retrieved_at: str) -> dict[str, Any]:
-    """The single candidate of a citation whose page kind and time are not known (kind null)."""
+def _derived_field(value: Any, citations: list[dict], retrieved_at: str) -> dict[str, Any]:
+    """RL59: one candidate per citation (kind and published time unknown), then the selection rule.
+
+    The value, status, citations and candidates all come from assemble_field, as after a build.
+    """
+    candidates = [
+        {
+            "value": value,
+            "url": citation["url"],
+            "excerpt": citation["excerpt"],
+            "provider": citation["provider"],
+            "kind": None,
+            "published_at": None,
+            "retrieved_at": retrieved_at,
+            "selected": False,
+        }
+        for citation in citations
+    ]
+    assembled = assemble_field(candidates, retrieved_at)
     return {
-        "value": value,
-        "url": citation["url"],
-        "excerpt": citation["excerpt"],
-        "provider": citation["provider"],
-        "kind": None,
-        "published_at": None,
-        "retrieved_at": retrieved_at,
-        "selected": True,
+        "value": assembled["value"],
+        "status": assembled["status"],
+        "citations": assembled["citations"],
+        "candidates": assembled["candidates"],
     }
 
 
@@ -223,9 +235,8 @@ def _field_from_json(name: str, entry: Any, researched_at: str | None) -> dict[s
             raise validation("state holds an invalid candidate")
         candidates = [_candidate_from_engine(c) for c in candidates]
     else:
-        # An export without candidates (stage-1 form): one candidate per the first citation, until
-        # the selection rule derives them on import (RL59).
-        candidates = [_candidate_from_citation(value, citations[0], researched_at or "")]
+        # An export without candidates (stage-1 form) is derived on import (RL59).
+        return _derived_field(value, [dict(c) for c in citations], researched_at or "")
     return {
         "value": value,
         "status": status,
