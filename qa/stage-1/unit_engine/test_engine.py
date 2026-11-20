@@ -971,10 +971,11 @@ class MockFaultAccountingTests(unittest.TestCase):
         self.assertLess(elapsed, 10, f"{mode}: build took {elapsed:.1f} s")
         return result, calls
 
-    def test_r1_121_r1_110_rate_limit_costs_nothing_and_the_build_fails(self):
+    def test_r1_121_r1_110_rate_limit_costs_nothing_and_ok_follows_the_log(self):
+        # RL3: the build is ok iff some provider call answered; the 429s cost nothing either way
         result, calls = self.assert_accounting("rate_limit")
-        self.assertFalse(result.ok)
-        self.assertEqual(result.spent, 0)
+        answered = any(call["status"] == 200 for call in calls)
+        self.assertEqual(result.ok, answered)
         self.assertTrue(all(call["cost"] == 0 for call in calls if call["status"] == 429))
 
     def test_r1_121_r1_110_server_error_costs_nothing_and_the_build_fails(self):

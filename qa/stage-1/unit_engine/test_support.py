@@ -9,6 +9,7 @@ Index of claimed ledger ids -> tests (each id is named in at least one test name
   R1.132           test_r1_132_*           single-sentence test
   R1.133           test_r1_133_*           the five conditions of support (A.2)
   R1.134           test_r1_134_*           case-insensitive whole-word matching
+  R1.135           test_r1_135_*           A.2 example: CEO led as chief executive since a year
   R1.136           test_r1_136_*           A.2 example: CEO after a colon
   R1.137           test_r1_137_*           A.2 example: founded in a year
   R1.138           test_r1_138_*           A.2 example: headcount about 120
@@ -505,6 +506,9 @@ class ClaimedLedgerIdTests(unittest.TestCase):
     def test_r1_134_case_insensitive_whole_word(self):
         self.assertEqual(supports("ACME ROBOTICS WAS FOUNDED IN 2014.", D, "founded_year"), 2014)
         self.assertIsNone(supports("Superacme Robotics was founded in 2014.", D, "founded_year"))
+
+    def test_r1_135_example_ceo_led_as_chief_executive_since_a_year(self):
+        self.assertEqual(supports("Dana Ruiz has led Acme Robotics as chief executive since 2021.", D, "ceo"), "Dana Ruiz")
 
     def test_r1_136_example_ceo_after_a_colon(self):
         self.assertEqual(supports("Acme Robotics CEO: Sam Ortiz.", D, "ceo"), "Sam Ortiz")
