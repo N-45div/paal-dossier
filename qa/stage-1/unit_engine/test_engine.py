@@ -1,7 +1,8 @@
 """Unit tests for the engine's ledger, discovery, evidence and decision rules (RL4-RL7, RL14, RL19, RL21).
 
-Index of claimed P4 ledger ids -> tests (each id is named in at least one test below):
-  R1.3              test_r1_3_*      every citation supports its value, verbatim
+Index of claimed P4 ledger ids -> tests (each id is named in an individual test below):
+  R1.3              test_r1_3_*      every citation supports its value, verbatim, from its provider's served text
+  R1.3 + R1.43      test_r1_3_and_r1_43_*  citation provider labels: fallback, both served, research claim
   R1.4              test_r1_4_*      the build never spends above 80 units
   R1.5              test_r1_5_*      only the six fields are produced
   R1.9              test_r1_9_*      Tavily is optional; Nimble alone researches
@@ -16,10 +17,23 @@ Index of claimed P4 ledger ids -> tests (each id is named in at least one test b
   R1.86             test_r1_86_*     fields known exactly when evidence supports a value
   R1.87             test_r1_87_*     a fast build ends within 10 seconds
   R1.88             test_r1_88_*     live timeouts respect the 30 s and 300 s bounds
-  R1.110-R1.119     test_r1_110_119_* the unit price table
-  R1.120-R1.121     test_r1_120_121_* search depth; refusals cost nothing
+  R1.110            test_r1_110_*    every provider call has a unit cost in the table
+  R1.111            test_r1_111_*    nimble search, lite: 1 unit
+  R1.112            test_r1_112_*    nimble search, fast: 5 units
+  R1.113            test_r1_113_*    nimble search, deep: 15 units
+  R1.114            test_r1_114_*    tavily search, lite: 8 units
+  R1.115            test_r1_115_*    tavily search, fast: 16 units
+  R1.116            test_r1_116_*    tavily search, deep: 16 units
+  R1.117            test_r1_117_*    nimble extract: 1 unit per URL
+  R1.118            test_r1_118_*    tavily extract: 2 units per URL
+  R1.119            test_r1_119_*    nimble research run: 25 units when started
+  R1.120            test_r1_120_*    search depth is WebRouter's search_depth
+  R1.121            test_r1_121_*    search cap of 10; refusals cost nothing; no answer costs full units
   R1.122            test_r1_122_*    the build stops before exceeding 80 units
   R1.123            test_r1_123_*    the research query names the domain and six fields
+  RL13              test_rl13_*      extracts run in a pool of at most eight threads
+  RL19              test_rl19_*      research-cited URLs take the first extract slots
+  RL24              test_rl24_*      a research-only $0 claim is a known zero
 
 Provider-free. The end-to-end test against the mock web runs only when DOSSIER_MOCK_WEB
 names its base URL (for example http://127.0.0.1:18100), with NIMBLE_API_KEY set.
@@ -27,6 +41,7 @@ names its base URL (for example http://127.0.0.1:18100), with NIMBLE_API_KEY set
 
 import os
 import sys
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -35,10 +50,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "stage-1"))
 
 from engine.discovery import Hit, candidates, support_queries  # noqa: E402
 from engine.build import _free_text  # noqa: E402
-from engine.support import FIELDS, supports  # noqa: E402
-from engine.support import FIELDS, supports  # noqa: E402
+from engine.support import FIELDS, is_verbatim_in_prose, parse_page, supports  # noqa: E402
 import engine.build as build_module  # noqa: E402
-from engine.costs import charged_units  # noqa: E402
+from engine.costs import EXTRACT_COST_PER_URL, RESEARCH_START_COST, SEARCH_COST, charged_units  # noqa: E402
 from web_router import ExtractFailedError, ProviderError  # noqa: E402
 from web_router.types_errors import ExtractFailure  # noqa: E402
 from engine.ledger import Ledger as _Ledger  # noqa: E402
@@ -87,8 +101,8 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(ledger.spent, 3)
 
 
-def _hit(url, rank, query, title="", snippet=""):
-    return Hit(url=url, rank=rank, query=query, title=title, snippet=snippet)
+def _hit(url, rank, query, title="", snippet="", provider="nimble"):
+    return Hit(url=url, rank=rank, query=query, title=title, snippet=snippet, provider=provider)
 
 
 class DiscoveryTests(unittest.TestCase):
@@ -139,8 +153,8 @@ class DiscoveryTests(unittest.TestCase):
             _hit("https://long.test/", 1, 1, "t", long_snippet),
         ]
         whole, partial = _free_text(candidates(hits, D))
-        self.assertEqual(whole, {"https://short.test/": short})
-        self.assertEqual(partial, {"https://long.test/": "Acme Robotics was founded in 2014."})
+        self.assertEqual(whole, {"https://short.test/": (short, "nimble")})
+        self.assertEqual(partial, {"https://long.test/": ("Acme Robotics was founded in 2014.", "nimble")})
 
     def test_complete_prefix_never_cuts_a_sentence(self):
         self.assertEqual(complete_sentences_prefix("Acme raised $12M. Acme is based in Lisb"), "Acme raised $12M.")
@@ -154,8 +168,9 @@ class _Result:
 
 
 class _Response:
-    def __init__(self, results):
+    def __init__(self, results, provider="nimble"):
         self.results = results
+        self.provider = provider
 
 
 class _Doc:
@@ -174,7 +189,11 @@ class _Answer:
 
 
 class FakeGateway:
-    """Stands in for engine.gateway.Gateway: scripted searches, pages and one research answer."""
+    """Stands in for engine.gateway.Gateway: scripted searches, pages and one research answer.
+
+    Every build records what each provider served: served_prose[(url, provider)] is the prose
+    of the text that provider returned for the URL (a search snippet, or an extract's prose).
+    """
 
     script = {}  # query -> list of answers (None = refused), consumed in order
     calls = []
@@ -182,10 +201,16 @@ class FakeGateway:
     page_texts = {}  # url -> served text, returned by extract
     research_answer = None  # when set, the research run answers with it
     extracted = []
+    served_prose = {}
+    active = 0  # extracts in flight now
+    max_active = 0  # the most extracts ever in flight in one build
+    _lock = threading.Lock()
 
     def __init__(self, ledger, cancelled=None, tavily_base_url=None):
         self._ledger = ledger
         self.answered = 0
+        FakeGateway.served_prose = {}
+        FakeGateway.active = FakeGateway.max_active = 0
 
     def start_research(self, domain, name):
         return object() if FakeGateway.research_answer is not None else None
@@ -204,15 +229,27 @@ class FakeGateway:
             answer = _Response([])
         if answer is not None:
             self.answered += 1
+            for result in answer.results:
+                FakeGateway.served_prose.setdefault((result.url, answer.provider), result.description or "")
         return answer
 
     def reserve_extract(self, keep=0):
         return True
 
     def extract_reserved(self, url):
-        FakeGateway.extracted.append(url)
-        text = FakeGateway.page_texts.get(url)
-        return _Doc(text) if text is not None else None
+        with FakeGateway._lock:
+            FakeGateway.extracted.append(url)
+            FakeGateway.active += 1
+            FakeGateway.max_active = max(FakeGateway.max_active, FakeGateway.active)
+        try:
+            time.sleep(0.02)
+            text = FakeGateway.page_texts.get(url)
+            if text is not None:
+                FakeGateway.served_prose.setdefault((url, "nimble"), parse_page(text)[1])
+            return _Doc(text) if text is not None else None
+        finally:
+            with FakeGateway._lock:
+                FakeGateway.active -= 1
 
     @property
     def answered_calls(self):
@@ -247,13 +284,15 @@ class ClaimedP4IdTests(unittest.TestCase):
 
     def test_r1_3_every_citation_supports_its_value_verbatim(self):
         _, fields = build_module.build(D, _Ledger(80))
-        from engine.support import is_verbatim_in_prose
+        self.assertTrue(any(entry["citations"] for entry in fields.values()))
         for field, entry in fields.items():
             for citation in entry["citations"]:
                 self.assertEqual(supports(citation["excerpt"], D, field), entry["value"])
-                self.assertIn(citation["provider"], ("nimble", "tavily"))
                 self.assertTrue(1 <= len(citation["excerpt"]) <= 500)
-                self.assertTrue(is_verbatim_in_prose(citation["excerpt"], citation["excerpt"]))
+                # the excerpt is in the text that the labelled provider served for this URL
+                served = FakeGateway.served_prose.get((citation["url"], citation["provider"]))
+                self.assertIsNotNone(served, f"{citation['provider']} served no text for {citation['url']}")
+                self.assertTrue(is_verbatim_in_prose(citation["excerpt"], served), citation)
 
     def test_r1_4_and_r1_122_ledger_never_exceeds_the_budget(self):
         ledger = _Ledger(80)
@@ -317,16 +356,37 @@ class ClaimedP4IdTests(unittest.TestCase):
         self.assertGreaterEqual(g.CALL_TIMEOUT_S, 30)
         self.assertLessEqual(b.GATHER_LIMIT_S, 300)
 
-    def test_r1_110_119_unit_price_table(self):
-        from engine.costs import EXTRACT_COST_PER_URL, RESEARCH_START_COST, SEARCH_COST
+    def test_r1_110_every_provider_call_has_a_unit_cost_in_the_table(self):
+        self.assertEqual(set(SEARCH_COST), {("nimble", "lite"), ("nimble", "fast"), ("nimble", "deep"),
+                                            ("tavily", "lite"), ("tavily", "fast"), ("tavily", "deep")})
+        self.assertEqual(set(EXTRACT_COST_PER_URL), {"nimble", "tavily"})
+        self.assertEqual(set(RESEARCH_START_COST), {"nimble"})
+
+    def test_r1_111_nimble_lite_search_costs_one_unit(self):
         self.assertEqual(SEARCH_COST[("nimble", "lite")], 1)
+
+    def test_r1_112_nimble_fast_search_costs_five_units(self):
         self.assertEqual(SEARCH_COST[("nimble", "fast")], 5)
+
+    def test_r1_113_nimble_deep_search_costs_fifteen_units(self):
         self.assertEqual(SEARCH_COST[("nimble", "deep")], 15)
+
+    def test_r1_114_tavily_lite_search_costs_eight_units(self):
         self.assertEqual(SEARCH_COST[("tavily", "lite")], 8)
+
+    def test_r1_115_tavily_fast_search_costs_sixteen_units(self):
         self.assertEqual(SEARCH_COST[("tavily", "fast")], 16)
+
+    def test_r1_116_tavily_deep_search_costs_sixteen_units(self):
         self.assertEqual(SEARCH_COST[("tavily", "deep")], 16)
+
+    def test_r1_117_nimble_extract_costs_one_unit_per_url(self):
         self.assertEqual(EXTRACT_COST_PER_URL["nimble"], 1)
+
+    def test_r1_118_tavily_extract_costs_two_units_per_url(self):
         self.assertEqual(EXTRACT_COST_PER_URL["tavily"], 2)
+
+    def test_r1_119_nimble_research_run_costs_twenty_five_units_when_started(self):
         self.assertEqual(RESEARCH_START_COST["nimble"], 25)
 
     def test_r1_120_search_depth_is_the_web_router_search_depth(self):
@@ -336,6 +396,178 @@ class ClaimedP4IdTests(unittest.TestCase):
         from engine.gateway import RESEARCH_QUERY, RESEARCH_SCHEMA
         self.assertIn("{domain}", RESEARCH_QUERY)
         self.assertEqual(tuple(RESEARCH_SCHEMA["properties"]), FIELDS)
+
+
+class ProviderLabelTests(unittest.TestCase):
+    """RL29: a citation's provider is the provider whose served text holds its excerpt."""
+
+    URL = "https://acme-robotics.test/leadership"
+    CEO = "Dana Ruiz is CEO of Acme Robotics."
+
+    def setUp(self):
+        self._original = build_module.Gateway
+        build_module.Gateway = FakeGateway
+        FakeGateway.calls = []
+        FakeGateway.script = {}
+        FakeGateway.default_results = False
+        FakeGateway.page_texts = {}
+        FakeGateway.research_answer = None
+        self._env = {k: os.environ.get(k) for k in ("TAVILY_API_KEY", "TAVILY_BASE_URL")}
+        os.environ["TAVILY_API_KEY"] = "local"
+        os.environ["TAVILY_BASE_URL"] = "http://127.0.0.1:1/tavily"
+
+    def tearDown(self):
+        build_module.Gateway = self._original
+        FakeGateway.default_results = True
+        for key, value in self._env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    def test_r1_3_and_r1_43_fallback_citation_is_labelled_tavily_when_only_tavily_served_it(self):
+        # nimble's exact-domain search faults; tavily's answers and is the only provider with the text
+        FakeGateway.script = {D: [None, _Response([_Result(self.URL, "Acme Robotics", self.CEO)], provider="tavily")]}
+        _, fields = build_module.build(D, _Ledger(80))
+        self.assertEqual(FakeGateway.calls[:2], [("nimble", D), ("tavily", D)])
+        citation = fields["ceo"]["citations"][0]
+        self.assertEqual(citation["provider"], "tavily")
+        self.assertEqual(citation["excerpt"], self.CEO)
+        self.assertEqual(citation["url"], self.URL)
+        self.assertEqual(FakeGateway.served_prose[(self.URL, "tavily")], self.CEO)
+
+    def test_r1_3_and_r1_43_url_served_by_both_providers_is_labelled_nimble(self):
+        nimble_text = "Acme Robotics CEO: Sam Ortiz."
+        query_ceo = support_queries(D)[1]
+        FakeGateway.script = {
+            D: [None, _Response([_Result(self.URL, "Acme Robotics", self.CEO)], provider="tavily")],
+            query_ceo: [_Response([_Result(self.URL, "Acme Robotics", nimble_text)], provider="nimble")],
+        }
+        _, fields = build_module.build(D, _Ledger(80))
+        citation = fields["ceo"]["citations"][0]
+        self.assertEqual(fields["ceo"]["value"], "Sam Ortiz")
+        self.assertEqual(citation["provider"], "nimble")
+        self.assertEqual(citation["excerpt"], nimble_text)
+
+    def test_r1_3_and_r1_43_research_claim_on_a_nimble_extract_is_labelled_nimble(self):
+        text = "Acme Robotics was founded in 2014."
+        FakeGateway.page_texts = {self.URL: "X: y\n\n" + text}
+        FakeGateway.research_answer = _Answer({"founded_year": 2014}, [_Cite(self.URL, "$.founded_year", text)])
+        _, fields = build_module.build(D, _Ledger(80))
+        citation = fields["founded_year"]["citations"][0]
+        self.assertEqual(fields["founded_year"]["value"], 2014)
+        self.assertEqual(citation["provider"], "nimble")
+        self.assertEqual(citation["excerpt"], text)
+
+    def test_r1_3_and_r1_43_research_claim_on_a_tavily_snippet_is_labelled_tavily(self):
+        text = "Acme Robotics was founded in 2014."
+        FakeGateway.script = {D: [None, _Response([_Result(self.URL, "Acme Robotics", text)], provider="tavily")]}
+        FakeGateway.research_answer = _Answer({"founded_year": 2014}, [_Cite(self.URL, "$.founded_year", text)])
+        _, fields = build_module.build(D, _Ledger(80))
+        self.assertEqual(fields["founded_year"]["citations"][0]["provider"], "tavily")
+
+
+class ResearchZeroTests(unittest.TestCase):
+    """RL24: a research-only claim of $0 is asserted and gives a known funding_total of 0."""
+
+    URL = "https://zero-witness.test/finance"
+
+    def setUp(self):
+        self._original = build_module.Gateway
+        build_module.Gateway = FakeGateway
+        FakeGateway.script = {}
+        FakeGateway.default_results = False
+        FakeGateway.page_texts = {self.URL: "X: y\n\nZero Witness raised $0."}
+        FakeGateway.research_answer = _Answer({"funding_total": 0}, [_Cite(self.URL, "$.funding_total", "Zero Witness raised $0.")])
+
+    def tearDown(self):
+        build_module.Gateway = self._original
+        FakeGateway.research_answer = None
+        FakeGateway.default_results = True
+        FakeGateway.page_texts = {}
+
+    def test_r1_41_and_r1_45_research_only_zero_claim_gives_known_funding_total_zero(self):
+        _, fields = build_module.build("zero-witness.test", _Ledger(80))
+        self.assertEqual(fields["funding_total"]["value"], 0)
+        self.assertEqual(fields["funding_total"]["citations"][0]["excerpt"], "Zero Witness raised $0.")
+
+
+class ExtractPoolTests(unittest.TestCase):
+    """RL13 and RL19: at most eight extracts in flight; research-cited URLs take the first slots."""
+
+    def setUp(self):
+        self._original = build_module.Gateway
+        self._workers = build_module.EXTRACT_WORKERS
+        build_module.Gateway = FakeGateway
+        FakeGateway.script = {}
+        FakeGateway.default_results = False
+        FakeGateway.page_texts = {}
+        FakeGateway.research_answer = None
+
+    def tearDown(self):
+        build_module.Gateway = self._original
+        build_module.EXTRACT_WORKERS = self._workers
+        FakeGateway.default_results = True
+        FakeGateway.research_answer = None
+
+    def test_rl13_extracts_never_exceed_eight_in_flight(self):
+        self.assertLessEqual(build_module.EXTRACT_WORKERS, 8)
+        FakeGateway.extracted = []
+        results = [_Result(f"https://news.test/{i}", "Acme Robotics", "") for i in range(30)]
+        FakeGateway.script = {D: [_Response(results)]}
+        build_module.build(D, _Ledger(80))
+        self.assertEqual(len(FakeGateway.extracted), 30)
+        self.assertLessEqual(FakeGateway.max_active, 8)
+
+    def test_rl19_research_cited_url_is_extracted_before_search_candidates(self):
+        build_module.EXTRACT_WORKERS = 1  # sequential, so the extract order is the priority order
+        FakeGateway.extracted = []
+        results = [_Result(f"https://news.test/{i}", "Acme Robotics", "") for i in range(5)]
+        cited = "https://news.test/4"  # ranked last by discovery
+        FakeGateway.script = {D: [_Response(results)]}
+        FakeGateway.research_answer = _Answer({"founded_year": None}, [_Cite(cited, "$.founded_year", "x")])
+        FakeGateway.page_texts = {}
+        build_module.build(D, _Ledger(80))
+        self.assertEqual(FakeGateway.extracted[0], cited)
+
+
+class RefusalAndRetryTests(unittest.TestCase):
+    """R1.42 and R1.121: refused calls are retried until they answer and cost nothing."""
+
+    def setUp(self):
+        import web_router
+        import engine.gateway as gw
+        self._router, self._delay = web_router.WebRouter, gw.RETRY_DELAY_S
+        web_router.WebRouter = _FakeRouter
+        gw.RETRY_DELAY_S = 0
+        _FakeRouter.calls = []
+        _FakeRouter.outcomes = []
+
+    def tearDown(self):
+        import web_router
+        import engine.gateway as gw
+        web_router.WebRouter, gw.RETRY_DELAY_S = self._router, self._delay
+
+    def test_r1_42_refused_search_is_retried_until_it_answers(self):
+        from engine.gateway import Gateway
+        answer = _Response([])
+        _FakeRouter.outcomes = [("error", _refusal()), ("error", _refusal()), ("error", _refusal()), ("ok", answer)]
+        ledger = _Ledger(80)
+        self.assertIs(Gateway(ledger).search("nimble", D, "lite"), answer)
+        self.assertEqual(len(_FakeRouter.calls), 4)
+        self.assertEqual(ledger.spent, 1)
+
+    def test_r1_121_error_status_from_any_sdk_costs_nothing(self):
+        class HttpError(Exception):
+            def __init__(self, status):
+                super().__init__(f"HTTP {status}")
+                self.response = type("Response", (), {"status_code": status})()
+
+        self.assertEqual(charged_units(HttpError(429), 8), 0)
+        self.assertEqual(charged_units(HttpError(500), 8), 0)
+
+    def test_r1_121_timeout_from_any_sdk_costs_full_units(self):
+        self.assertEqual(charged_units(TimeoutError("read timed out"), 8), 8)
 
 
 class ZeroValueTests(unittest.TestCase):
@@ -489,13 +721,13 @@ class GatewayRetryTests(unittest.TestCase):
         self.assertEqual(_FakeRouter.calls, [D, D])
         self.assertEqual(ledger.spent, 1)
 
-    def test_r1_121_refused_twice_costs_nothing_and_gives_no_answer(self):
-        from engine.gateway import Gateway
-        _FakeRouter.outcomes = [("error", _refusal()), ("error", _refusal())]
+    def test_r1_121_refused_every_attempt_costs_nothing_and_gives_no_answer(self):
+        from engine.gateway import REFUSAL_ATTEMPTS, Gateway
+        _FakeRouter.outcomes = [("error", _refusal()) for _ in range(REFUSAL_ATTEMPTS)]
         ledger = _Ledger(80)
         self.assertIsNone(Gateway(ledger).search("nimble", D, "lite"))
         self.assertEqual(ledger.spent, 0)
-        self.assertEqual(len(_FakeRouter.calls), 2)
+        self.assertEqual(len(_FakeRouter.calls), REFUSAL_ATTEMPTS)
 
     def test_r1_121_a_timeout_is_charged_and_not_repeated(self):
         from engine.gateway import Gateway

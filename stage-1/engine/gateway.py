@@ -22,7 +22,7 @@ from .ledger import Ledger
 CALL_TIMEOUT_S = 45.0
 # A refused call (cost 0) is tried again after this wait: the same call within 1 s of a 429 is refused
 # again (stage-2 rate limits). A call that may have reached the provider is never repeated.
-REFUSAL_ATTEMPTS = 2
+REFUSAL_ATTEMPTS = 4  # a refused call is retried until it answers or these attempts run out (RL4)
 RETRY_DELAY_S = 1.1
 SEARCH_MAX_RESULTS = 10
 EXTRACT_FORMAT = "markdown"  # the served text, as the mock serves it for markdown and html
@@ -101,9 +101,9 @@ class Gateway:
             return answer, charged
         return None, charged
 
-    def _run(self, units: int, keep: int, call: Callable[[], object]):
+    def _run(self, units: int, call: Callable[[], object]):
         """Reserve, call (with the refusal retry), settle. Returns the answer, or None."""
-        if self._cancel_requested() or not self._ledger.reserve(units, keep=keep):
+        if self._cancel_requested() or not self._ledger.reserve(units):
             return None
         answer, charged = self._call_with_retry(units, call)
         self._ledger.settle(units, charged)
@@ -114,7 +114,6 @@ class Gateway:
         units = SEARCH_COST[(provider, depth)]
         return self._run(
             units,
-            0,
             lambda: self._router.search(
                 query,
                 provider=provider,
@@ -125,16 +124,9 @@ class Gateway:
             ),
         )
 
-    def reserve_extract(self, keep: int = 0) -> bool:
-        """Reserve the unit for one extract, keeping ``keep`` units free. Settle via extract_reserved."""
-        return self._ledger.reserve(EXTRACT_COST_PER_URL["nimble"], keep=keep)
-
-    def extract(self, url: str, keep: int = 0):
-        """Reserve one unit, then extract the URL. Returns the document, or None."""
-        units = EXTRACT_COST_PER_URL["nimble"]
-        if not self._ledger.reserve(units, keep=keep):
-            return None
-        return self.extract_reserved(url)
+    def reserve_extract(self) -> bool:
+        """Reserve the unit for one extract. Settle via extract_reserved."""
+        return self._ledger.reserve(EXTRACT_COST_PER_URL["nimble"])
 
     def extract_reserved(self, url: str):
         """Extract a URL whose unit the caller has already reserved. Settles the reservation."""
@@ -163,7 +155,6 @@ class Gateway:
         query = RESEARCH_QUERY.format(domain=domain, name=name)
         return self._run(
             units,
-            0,
             lambda: self._router.submit_research(
                 query, provider="nimble", output_schema=RESEARCH_SCHEMA
             ),

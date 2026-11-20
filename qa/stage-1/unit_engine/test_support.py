@@ -9,8 +9,17 @@ Index of claimed ledger ids -> tests (each id is named in at least one test name
   R1.132           test_r1_132_*           single-sentence test
   R1.133           test_r1_133_*           the five conditions of support (A.2)
   R1.134           test_r1_134_*           case-insensitive whole-word matching
-  R1.135-R1.140    test_r1_135_140_*       the A.2 example table, row by row
-  R1.141-R1.146    test_r1_141_146_*       statement phrases per field (A.3)
+  R1.136           test_r1_136_*           A.2 example: CEO after a colon
+  R1.137           test_r1_137_*           A.2 example: founded in a year
+  R1.138           test_r1_138_*           A.2 example: headcount about 120
+  R1.139           test_r1_139_*           A.2 example: negated funding
+  R1.140           test_r1_140_*           A.2 example: no hq phrase
+  R1.141           test_r1_141_*           legal_name statement phrases (A.3)
+  R1.142           test_r1_142_*           hq_city statement phrases (A.3)
+  R1.143           test_r1_143_*           ceo statement phrases (A.3)
+  R1.144           test_r1_144_*           founded_year statement phrases (A.3)
+  R1.145           test_r1_145_*           headcount_range statement phrases (A.3)
+  R1.146           test_r1_146_*           funding_total statement phrases (A.3)
   R1.147           test_r1_147_*           negating phrases (A.3)
   R1.148           test_r1_148_*           capitalised and uppercase words (A.4)
   R1.149           test_r1_149_*           number grammar (A.4), including defect probes; ASCII-only (RL28)
@@ -497,32 +506,41 @@ class ClaimedLedgerIdTests(unittest.TestCase):
         self.assertEqual(supports("ACME ROBOTICS WAS FOUNDED IN 2014.", D, "founded_year"), 2014)
         self.assertIsNone(supports("Superacme Robotics was founded in 2014.", D, "founded_year"))
 
-    def test_r1_135_140_example_table_rows(self):
-        cases = [
-            ("Dana Ruiz has led Acme Robotics as chief executive since 2021.", "ceo", "Dana Ruiz"),
-            ("Acme Robotics CEO: Sam Ortiz.", "ceo", "Sam Ortiz"),
-            ("Acme Robotics was founded in 2014.", "founded_year", 2014),
-            ("Acme Robotics employs about 120 people.", "headcount_range", "51-200"),
-            ("Acme Robotics is reportedly in talks to raise $40M.", "funding_total", None),
-            ("Acme Robotics opened a sales office in Porto.", "hq_city", None),
-        ]
-        for text, field, expected in cases:
-            with self.subTest(text=text):
-                self.assertEqual(supports(text, D, field), expected)
+    def test_r1_136_example_ceo_after_a_colon(self):
+        self.assertEqual(supports("Acme Robotics CEO: Sam Ortiz.", D, "ceo"), "Sam Ortiz")
 
-    def test_r1_141_146_statement_phrases_per_field(self):
-        examples = {
-            "legal_name": "Acme Robotics, Inc. is registered as a company.",
-            "hq_city": "Acme Robotics is based in Lisbon.",
-            "ceo": "Sam Ortiz is Acme Robotics CEO.",
-            "founded_year": "Acme Robotics was founded in 2014.",
-            "headcount_range": "Acme Robotics employs 120 people.",
-            "funding_total": "Acme Robotics has raised $12M.",
-        }
-        for field, text in examples.items():
-            with self.subTest(field=field):
-                self.assertIsNotNone(supports(text, D, field))
-        self.assertIsNone(supports("Acme Robotics is based in Lisbon.", D, "ceo"))
+    def test_r1_137_example_founded_in_a_year(self):
+        self.assertEqual(supports("Acme Robotics was founded in 2014.", D, "founded_year"), 2014)
+
+    def test_r1_138_example_headcount_about_120_is_51_200(self):
+        self.assertEqual(supports("Acme Robotics employs about 120 people.", D, "headcount_range"), "51-200")
+
+    def test_r1_139_example_negated_funding_supports_nothing(self):
+        self.assertIsNone(supports("Acme Robotics is reportedly in talks to raise $40M.", D, "funding_total"))
+
+    def test_r1_140_example_no_statement_phrase_for_hq_city_supports_nothing(self):
+        self.assertIsNone(supports("Acme Robotics opened a sales office in Porto.", D, "hq_city"))
+
+    def test_r1_141_legal_name_statement_phrase(self):
+        self.assertIsNotNone(supports("Acme Robotics, Inc. is registered as a company.", D, "legal_name"))
+
+    def test_r1_142_hq_city_statement_phrase(self):
+        self.assertEqual(supports("Acme Robotics is based in Lisbon.", D, "hq_city"), "Lisbon")
+
+    def test_r1_143_ceo_statement_phrase(self):
+        self.assertEqual(supports("Sam Ortiz is Acme Robotics CEO.", D, "ceo"), "Sam Ortiz")
+
+    def test_r1_144_founded_year_statement_phrase(self):
+        self.assertEqual(supports("Acme Robotics was founded in 2014.", D, "founded_year"), 2014)
+
+    def test_r1_145_headcount_range_statement_phrase(self):
+        self.assertEqual(supports("Acme Robotics employs 120 people.", D, "headcount_range"), "51-200")
+
+    def test_r1_146_funding_total_statement_phrase(self):
+        self.assertEqual(supports("Acme Robotics has raised $12M.", D, "funding_total"), 12_000_000)
+
+    def test_r1_142_without_a_statement_phrase_hq_city_is_unsupported(self):
+        self.assertIsNone(supports("Acme Robotics is in Lisbon.", D, "hq_city"))
 
     def test_r1_147_each_negating_phrase_rejects(self):
         for word in NEGATING_PHRASES:

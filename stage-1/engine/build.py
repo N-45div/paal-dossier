@@ -1,13 +1,14 @@
 """One build (RL4-RL7, RL13, RL14, RL19).
 
 Order of work:
-1. Start the nimble research run (25 units).
-2. Run the exact-domain search and the six support searches together.
+1. Start the nimble research run (25 units) and run the exact-domain search and the five
+   support searches together. Each hit keeps the provider that served it.
+2. Await the research answer, so its cited URLs can take the first extract slots.
 3. Free text: a lite snippet already held is page text. A snippet shorter than 300 characters
    is the whole prose, so its URL is not extracted. A longer snippet gives its complete sentences.
-4. Extract the remaining candidates in priority order (RL19), keeping the research reserve free.
-5. Read the research answer; extract cited URLs not held in full (reserve units) and assert
-   only the claims whose verbatim citation supports the claimed value.
+4. Extract the remaining URLs in priority order (RL19): research-cited URLs, then the candidates
+   in discovery order, at most EXTRACT_WORKERS at once (RL13).
+5. Assert each research claim only when its verbatim citation supports the claimed value.
 6. Decide each field from the gathered pages.
 """
 
@@ -18,16 +19,15 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Optional
 
-from .discovery import Hit, candidates, support_queries
+from .discovery import Hit, Candidate, candidates, support_queries
 from .evidence import Evidence
 from .gateway import Gateway
 from .ledger import Ledger
 from .support import complete_sentences_prefix, company_name
 
 GATHER_LIMIT_S = 240.0  # hard stop for gathering and waiting on the research run
-EXTRACT_WORKERS = 16  # wide enough that one refusal wait (1.1 s) covers a whole round of extracts
+EXTRACT_WORKERS = 8  # RL13: the extract pool has at most eight threads
 SEARCH_WORKERS = 8  # the research start and the seven searches run in one round
-CITATION_RESERVE_UNITS = 6  # kept for the research run's cited pages (one per field)
 SNIPPET_CHARS = 300  # the lite snippet length: a shorter one is the whole prose
 
 
@@ -45,29 +45,25 @@ def build(
             job_future = pool.submit(gateway.start_research, domain, company_name(domain).title())
             hits = _search(gateway, domain, tavily_allowed=tavily_url is not None, pool=pool)
             job = job_future.result()
-        keep = CITATION_RESERVE_UNITS if job is not None else 0
-
-        ranked = candidates(hits, domain)
-
-        free_pages, partial_pages = _free_text(ranked)
-        fetched = _extract_in_priority(
-            gateway, [c.url for c in ranked if c.url not in free_pages], keep, deadline
-        )
-
         answer = gateway.await_research(job, deadline) if job is not None else None
         cited = _cited_urls(answer)
-        missing = [u for u in cited if u not in fetched and u not in free_pages]
-        fetched.update(_extract_in_priority(gateway, missing, 0, deadline))
+
+        ranked = candidates(hits, domain)
+        free_pages, partial_pages = _free_text(ranked)
+        fetched = _extract_in_priority(gateway, _extraction_order(cited, ranked, free_pages), deadline)
 
         evidence = Evidence(domain)
         searched = {c.url for c in ranked}  # RL21: pages a search of this build returned
-        for url in [c.url for c in ranked]:
+        for candidate in ranked:
+            url = candidate.url
             if url in fetched:
                 evidence.add_served_text(url, fetched[url].content, "nimble", searched=True)
             elif url in free_pages:
-                evidence.add_prose(url, free_pages[url], "nimble", searched=True)
+                text, provider = free_pages[url]
+                evidence.add_prose(url, text, provider, searched=True)
             elif url in partial_pages:
-                evidence.add_prose(url, partial_pages[url], "nimble", searched=True)
+                text, provider = partial_pages[url]
+                evidence.add_prose(url, text, provider, searched=True)
         for url in cited:
             if url in fetched and url not in evidence.pages:
                 evidence.add_served_text(url, fetched[url].content, "nimble", searched=url in searched)
@@ -104,6 +100,7 @@ def _search(gateway: Gateway, domain: str, tavily_allowed: bool, pool: ThreadPoo
                     query=query_index,
                     title=result.title or "",
                     snippet=result.description or "",
+                    provider=response.provider,
                 )
             )
     return hits
@@ -111,7 +108,7 @@ def _search(gateway: Gateway, domain: str, tavily_allowed: bool, pool: ThreadPoo
 
 def _domain_search(gateway: Gateway, domain: str, tavily_allowed: bool):
     """The one search whose query is exactly the domain: nimble lite (the gateway retries a
-    refusal once), then tavily lite when nimble gives no answer."""
+    refusal), then tavily lite when nimble gives no answer."""
     response = gateway.search("nimble", domain, "lite")
     if response is not None:
         return response
@@ -120,24 +117,32 @@ def _domain_search(gateway: Gateway, domain: str, tavily_allowed: bool):
     return None
 
 
-def _free_text(ranked) -> tuple[dict, dict]:
-    """Page text already held in search snippets: (whole pages, partial pages by URL)."""
-    whole: dict[str, str] = {}
-    partial: dict[str, str] = {}
+def _free_text(ranked: list[Candidate]) -> tuple[dict, dict]:
+    """Page text already held in search snippets: (whole pages, partial pages), each url ->
+    (text, provider that served the snippet)."""
+    whole: dict[str, tuple[str, str]] = {}
+    partial: dict[str, tuple[str, str]] = {}
     for candidate in ranked:
         snippet = candidate.snippet
         if not snippet:
             continue
         if len(snippet) < SNIPPET_CHARS:
-            whole[candidate.url] = snippet
+            whole[candidate.url] = (snippet, candidate.provider)
         else:
             prefix = complete_sentences_prefix(snippet)
             if prefix:
-                partial[candidate.url] = prefix
+                partial[candidate.url] = (prefix, candidate.provider)
     return whole, partial
 
 
-def _extract_in_priority(gateway: Gateway, urls: list[str], keep: int, deadline: float) -> dict:
+def _extraction_order(cited: list[str], ranked: list[Candidate], free_pages: dict) -> list[str]:
+    """RL19: research-cited URLs first, then the candidates in discovery order. A URL whose
+    text a snippet already holds whole is not extracted."""
+    order = list(dict.fromkeys([*cited, *(candidate.url for candidate in ranked)]))
+    return [url for url in order if url not in free_pages]
+
+
+def _extract_in_priority(gateway: Gateway, urls: list[str], deadline: float) -> dict:
     """Reserve one unit per URL in priority order, then extract concurrently.
 
     Reservation happens here, in the calling thread, so the priority order decides which URLs
@@ -146,7 +151,7 @@ def _extract_in_priority(gateway: Gateway, urls: list[str], keep: int, deadline:
     futures = {}
     with ThreadPoolExecutor(EXTRACT_WORKERS) as pool:
         for url in urls:
-            if time.monotonic() >= deadline or not gateway.reserve_extract(keep=keep):
+            if time.monotonic() >= deadline or not gateway.reserve_extract():
                 break
             futures[url] = pool.submit(gateway.extract_reserved, url)
         documents = {url: future.result() for url, future in futures.items()}
