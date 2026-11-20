@@ -9,8 +9,9 @@ from .fields import headcount_range_for
 from .lexicon import LEGAL_SUFFIXES, SCALE_SUFFIXES, SCALE_WORDS, STATEMENT_PHRASES
 from .matching import is_capitalised, is_uppercase_word, whole_words, word_at
 
-# Marks an amount that does not come to a whole number of dollars. It is not a
-# value, so an excerpt containing one can never agree on a single value.
+# Marks an amount that does not come to a whole number of dollars. It is still an
+# amount (its digits are never a year or headcount), but it is not a value in
+# funding_total's format, so it is ignored for rule 5 (lead ruling G13).
 NOT_WHOLE = None
 
 _NUMBER_BODY = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
@@ -109,8 +110,8 @@ def headcount_ranges(sentence: str, amounts: Iterable[Amount]) -> set[str]:
     return values
 
 
-def funding_totals(amounts: Iterable[Amount]) -> set[int | None]:
-    return {dollars for _, dollars in amounts}
+def funding_totals(amounts: Iterable[Amount]) -> set[int]:
+    return {dollars for _, dollars in amounts if dollars is not NOT_WHOLE}
 
 
 def legal_names(sentence: str, company: re.Pattern[str]) -> set[str]:

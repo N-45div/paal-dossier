@@ -50,6 +50,17 @@ def test_non_whole_dollar_amount_is_not_a_value():
     assert supports("Acme Robotics has raised $1.5.", ACME) == []
 
 
+def test_non_whole_amount_is_ignored_for_agreement():
+    # lead ruling G13: a non-whole amount neither supports nor conflicts
+    assert supports("Acme Robotics raised $12M and $0.5 dollars.", ACME) == [("funding_total", 12_000_000)]
+
+
+def test_non_whole_amount_still_is_not_a_year_or_headcount():
+    assert supports("Acme Robotics was founded in 2014 with $1,500.5 raised.", ACME) == [
+        ("founded_year", 2014)
+    ]
+
+
 def test_other_currency_is_not_an_amount():
     assert supports("Acme Robotics has raised 12 million euros.", ACME) == []
 

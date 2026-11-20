@@ -35,8 +35,7 @@ def supports(excerpt: str, domain: str) -> list[tuple[str, object]]:
         values = _field_values(field, sentence, company, amounts)
         if len(values) == 1:
             (value,) = values
-            if value is not None:
-                supported.append((field, value))
+            supported.append((field, value))
     return supported
 
 
