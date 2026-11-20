@@ -144,11 +144,11 @@ def test_R1_25_R1_27_RL26_leap_seconds(api, seeded):
 
 
 @pytest.mark.parametrize('timestamp', [
-    '0001-01-01T00:00:00+23:59',
-    '9999-12-31T23:59:59-23:59',
+    '0001-01-02T00:00:00+23:59',
+    '9999-12-30T23:59:59-23:59',
 ])
-def test_R1_25_R1_27_R1_85_R1_96_extreme_offset_build_completes(api, mock, timestamp):
-    """R1.25 R1.27 R1.85 R1.96: valid boundary-offset clocks do not strand builds."""
+def test_R1_25_R1_27_R1_85_R1_96_RL27_boundary_offset_build_completes(api, mock, timestamp):
+    """R1.25 R1.27 R1.85 R1.96 RL27: representable boundary offsets do not strand builds."""
     fixture = {'now': timestamp, 'users': [{'id':'u', 'email':'seed@example.com',
                'password':'correct horse', 'display_name':'Seed'}]}
     assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
@@ -159,6 +159,21 @@ def test_R1_25_R1_27_R1_85_R1_96_extreme_offset_build_completes(api, mock, times
     dossier = done(api, token, 'ashgrove-solar.test')
     assert dossier['state'] == 'ready' and dossier['researched_at'] is not None
     assert any(call['status'] == 200 for call in mock.get('/_mock/log').json()['calls'])
+
+
+@pytest.mark.parametrize('timestamp', [
+    '0001-01-01T00:00:00+23:59',
+    '9999-12-31T23:59:59-23:59',
+])
+def test_R1_25_R1_27_RL27_unrepresentable_utc_offset_rejected_atomically(api, mock, timestamp):
+    """R1.25 R1.27 RL27: UTC-out-of-range instants are 422 and change nothing."""
+    fixture = {'now':'2026-03-01T09:00:00Z', 'users': [{'id':'u_ada', 'email':'ada@example.com',
+               'password':'correct horse', 'display_name':'Ada'}]}
+    assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+    response = api.post('/_test/reset', json={'now':timestamp, 'users':[]}, timeout=10)
+    error(response, 422, 'validation_failed')
+    login = api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'})
+    assert login.status_code == 200 and login.json()['user_id'] == 'u_ada'
 
 
 def test_R1_33_R1_125_R1_126_RL20_max_counter_export_after_signup_round_trips(api, mock):
@@ -176,6 +191,25 @@ def test_R1_33_R1_125_R1_126_RL20_max_counter_export_after_signup_round_trips(ap
     assert imported.status_code == 204
     assert api.post('/auth/login', json={'email':'rollover@example.com',
                     'password':'correct horse'}).status_code == 200
+
+
+@pytest.mark.parametrize('parameters', [(262144, 8, 16), (16384, 8, 1), (1024, 16, 1), (1024, 8, 2)])
+def test_R1_17_R1_70_R1_126_RL27_import_rejects_other_scrypt_parameters(api, mock, parameters):
+    """R1.17 R1.70 R1.126 RL27: import accepts only service-issued scrypt parameters."""
+    fixture = {'now':'2026-03-01T09:00:00Z', 'users': [{'id':'u_ada', 'email':'ada@example.com',
+               'password':'correct horse', 'display_name':'Ada'}]}
+    assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+    original = api.get('/_test/export', timeout=10).json()
+    altered = copy.deepcopy(original)
+    user = next(user for user in altered['state']['users'] if user['id'] == 'u_ada')
+    parts = user['password_hash'].split('$')
+    assert len(parts) == 6
+    parts[1:4] = map(str, parameters)
+    user['password_hash'] = '$'.join(parts)
+    response = api.post('/_test/import', json=altered, timeout=10)
+    error(response, 422, 'validation_failed')
+    if api.get('/_test/export', timeout=10).json() != original:
+        pytest.fail('invalid import changed the destination state')
 
 
 @pytest.mark.parametrize('timestamp', [
