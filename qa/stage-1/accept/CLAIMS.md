@@ -1,6 +1,6 @@
 # Acceptance claims and verbatim ledger entries
 
-Source: Stage 1 ledger at lead revision `f3d0e3c89ff0cf14f4a9a8c24c7ba5a6af638538`. Each referenced test names the ID; a reference is not a claim that every subclause has been fully verified. Optional call types and live-only requirements remain conditional. RL24 amends the funding_total range; RL25–RL46 were issued as binding room rulings after that ledger revision.
+Source: Stage 1 ledger at lead revision `f3d0e3c89ff0cf14f4a9a8c24c7ba5a6af638538`. Each referenced test names the ID; a reference is not a claim that every subclause has been fully verified. Optional call types and live-only requirements remain conditional. RL24 amends the funding_total range; RL25–RL50 were issued as binding room rulings after that ledger revision.
 
 Not claimed by individual tests: R1.1, R1.6, R1.10, R1.11, R1.13, R1.19, R1.88.
 
@@ -309,7 +309,7 @@ Referenced tests: `test_api.py::test_R1_29_R1_30_json_and_timestamp`
 
   > - Unknown fields in a request body are ignored, never an error.
 
-Referenced tests: `test_api.py::test_R1_31_R1_33_R1_64_signup_extra_fields`, `test_api.py::test_R1_31_R1_35_R1_36_R1_92_R1_100_normalisation`, `test_foundation.py::test_R1_17_R1_23_R1_31_body_size_boundary`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_body_has_413_envelope`, `test_foundation.py::test_R1_31_RL28_small_chunked_body_is_parsed`, `test_foundation.py::test_R1_31_R1_49_RL42_unframed_request_has_no_body_and_service_stays_healthy`, `test_foundation.py::test_R1_31_R1_49_RL30_keepalive_recovers_after_oversize`, `test_foundation.py::test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip`
+Referenced tests: `test_api.py::test_R1_31_R1_33_R1_64_signup_extra_fields`, `test_api.py::test_R1_31_R1_35_R1_36_R1_92_R1_100_normalisation`, `test_foundation.py::test_R1_17_R1_23_R1_31_body_size_boundary`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_body_has_413_envelope`, `test_foundation.py::test_R1_31_RL28_small_chunked_body_is_parsed`, `test_foundation.py::test_R1_31_R1_49_RL49_malformed_chunk_framing_is_atomic`, `test_foundation.py::test_R1_31_RL49_chunk_extension_and_trailer_are_parsed`, `test_foundation.py::test_R1_31_R1_49_RL42_unframed_request_has_no_body_and_service_stays_healthy`, `test_foundation.py::test_R1_31_R1_49_RL30_keepalive_recovers_after_oversize`, `test_foundation.py::test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip`
 
 ### R1.32
 - Section: 3.5 Conventions
@@ -574,7 +574,7 @@ Referenced tests: `test_api.py::test_R1_23_R1_48_R1_63_R1_65_R1_66_R1_69_auth_re
 
   > Every 4xx and 5xx response carries this body:
 
-Referenced tests: `test_api.py::test_R1_15_R1_21_R1_22_R1_49_health`, `test_api.py::test_R1_49_R1_50_R1_51_R1_56_R1_57_R1_64_R1_65_signup_validation`, `test_api.py::test_R1_49_R1_51_R1_56_malformed_body_types`, `test_foundation.py::test_R1_49_R1_50_R1_54_error_envelope_unknown_route`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_body_has_413_envelope`, `test_foundation.py::test_R1_31_R1_49_RL42_unframed_request_has_no_body_and_service_stays_healthy`, `test_foundation.py::test_R1_31_R1_49_RL30_keepalive_recovers_after_oversize`
+Referenced tests: `test_api.py::test_R1_15_R1_21_R1_22_R1_49_health`, `test_api.py::test_R1_49_R1_50_R1_51_R1_56_R1_57_R1_64_R1_65_signup_validation`, `test_api.py::test_R1_49_R1_51_R1_56_malformed_body_types`, `test_foundation.py::test_R1_49_R1_50_R1_54_error_envelope_unknown_route`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_body_has_413_envelope`, `test_foundation.py::test_R1_31_R1_49_RL49_malformed_chunk_framing_is_atomic`, `test_foundation.py::test_R1_31_R1_49_RL42_unframed_request_has_no_body_and_service_stays_healthy`, `test_foundation.py::test_R1_31_R1_49_RL30_keepalive_recovers_after_oversize`
 
 ### R1.50
 - Section: 5. Errors

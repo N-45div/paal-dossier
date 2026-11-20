@@ -290,6 +290,51 @@ def test_R1_31_RL28_small_chunked_body_is_parsed(direct_api, mock):
     assert response.status_code == 204
 
 
+def chunked_socket_request(direct_api, body):
+    endpoint = urlsplit(str(direct_api.base_url))
+    with socket.create_connection((endpoint.hostname, endpoint.port), timeout=10) as conn:
+        conn.settimeout(10)
+        conn.sendall(b'POST /_test/reset HTTP/1.1\r\nHost: localhost\r\n'
+                     b'Content-Type: application/json\r\nTransfer-Encoding: chunked\r\n'
+                     b'Connection: close\r\n\r\n' + body)
+        conn.shutdown(socket.SHUT_WR)
+        response = http.client.HTTPResponse(conn)
+        response.begin()
+        return response.status, response.read()
+
+
+@pytest.mark.parametrize('body', [
+    b'+1\r\nx\r\n0\r\n\r\n',
+    b'0x1\r\nx\r\n0\r\n\r\n',
+    b'1_0\r\n' + b'x' * 16 + b'\r\n0\r\n\r\n',
+    b'1\r\nx!!0\r\n\r\n',
+    b'0',
+    b'0\r\n',
+    b'0\r\ninvalid-trailer\r\n\r\n',
+], ids=['plus', 'hex-prefix', 'underscore', 'bad-data-crlf', 'eof-after-zero',
+        'missing-final-crlf', 'invalid-trailer'])
+def test_R1_31_R1_49_RL49_malformed_chunk_framing_is_atomic(api, direct_api, seeded, body):
+    """R1.31 R1.49 RL49: malformed chunk frames are 400 and leave state unchanged."""
+    snapshot = api.get('/_test/export', timeout=10).json()
+    status, payload = chunked_socket_request(direct_api, body)
+    assert status == 400
+    envelope = json.loads(payload)
+    assert envelope['error']['code'] == 'malformed_request'
+    assert isinstance(envelope['error']['message'], str)
+    if api.get('/_test/export', timeout=10).json() != snapshot:
+        pytest.fail('malformed chunk changed the destination state')
+    assert direct_api.get('/health').status_code == 200
+
+
+def test_R1_31_RL49_chunk_extension_and_trailer_are_parsed(direct_api, mock):
+    """R1.31 RL49: valid chunk extensions and trailers are accepted."""
+    body = b'{"now":"2026-03-01T09:00:00Z","users":[]}'
+    framed = f'{len(body):x};probe=ok\r\n'.encode() + body + b'\r\n0\r\nX-Probe: accepted\r\n\r\n'
+    status, _ = chunked_socket_request(direct_api, framed)
+    assert status == 204
+    assert direct_api.get('/health').status_code == 200
+
+
 def test_R1_31_R1_49_RL42_unframed_request_has_no_body_and_service_stays_healthy(direct_api, mock):
     """R1.31 R1.49 RL42: without framing headers there is no body and no server error."""
     endpoint = urlsplit(str(direct_api.base_url))
