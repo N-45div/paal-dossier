@@ -47,31 +47,58 @@ def new_record(dossier_id: str, domain: str) -> dict[str, Any]:
     }
 
 
-def fields_from_engine(raw: Any) -> dict[str, dict[str, Any]]:
-    """Turn a build's fields into stored fields; anything not well formed counts as unknown."""
+def fields_from_engine(raw: Any, retrieved_at: str | None = None) -> dict[str, dict[str, Any]]:
+    """Turn a build's fields into stored fields; anything not well formed counts as unknown.
+
+    retrieved_at is the build's time, stamped on candidates derived here (RL-P6 fallback).
+    """
     result = unknown_fields()
     if not isinstance(raw, dict):
         return result
     for name in FIELD_NAMES:
         entry = raw.get(name)
         if isinstance(entry, dict):
-            stored = _engine_field(name, entry)
+            stored = _engine_field(name, entry, retrieved_at)
             if stored is not None:
                 result[name] = stored
     return result
 
 
-def _engine_field(name: str, entry: dict) -> dict[str, Any] | None:
-    """One field as the engine assembled it, or None when it is not a usable known/contested field."""
+def _engine_field(name: str, entry: dict, retrieved_at: str | None) -> dict[str, Any] | None:
+    """One field as the engine returned it, or None when it is not a usable known/contested field.
+
+    A missing status is derived: known when the value is non-empty and has a citation. Missing
+    candidates are derived from the first citation (a single selected candidate) until the
+    selection rule is wired in for these fields.
+    """
     value = entry.get("value")
-    status = entry.get("status")
-    if not _is_value(name, value) or status not in ("known", "contested"):
-        return None
     citations = [_citation_from_engine(c) for c in (entry.get("citations") or []) if _is_citation(c)]
-    candidates = [_candidate_from_engine(c) for c in (entry.get("candidates") or []) if _is_candidate(name, c)]
-    if not citations or not candidates:
+    if not _is_value(name, value) or not citations:
+        return None
+    status = entry.get("status", "known")
+    if status not in ("known", "contested"):
+        return None
+    if "candidates" in entry:
+        candidates = [_candidate_from_engine(c) for c in (entry["candidates"] or []) if _is_candidate(name, c)]
+    else:
+        candidates = [_candidate_from_citation(value, citations[0], retrieved_at or "")]
+    if not candidates:
         return None
     return {"value": value, "status": status, "citations": citations, "candidates": candidates}
+
+
+def _candidate_from_citation(value: Any, citation: dict, retrieved_at: str) -> dict[str, Any]:
+    """The single candidate of a citation whose page kind and time are not known (kind null)."""
+    return {
+        "value": value,
+        "url": citation["url"],
+        "excerpt": citation["excerpt"],
+        "provider": citation["provider"],
+        "kind": None,
+        "published_at": None,
+        "retrieved_at": retrieved_at,
+        "selected": True,
+    }
 
 
 def render(record: dict[str, Any]) -> dict[str, Any]:
@@ -148,7 +175,7 @@ def dossier_from_json(entry: Any) -> dict[str, Any]:
     fields_raw = entry["fields"]
     if not isinstance(fields_raw, dict) or set(fields_raw) != set(FIELD_NAMES):
         raise validation("state holds dossier fields that are not the six fields")
-    fields = {name: _field_from_json(name, fields_raw[name]) for name in FIELD_NAMES}
+    fields = {name: _field_from_json(name, fields_raw[name], researched_at) for name in FIELD_NAMES}
     if researched_at is None and any(f["value"] is not None for f in fields.values()):
         raise validation("known fields need researched_at")
     return {
@@ -162,7 +189,7 @@ def dossier_from_json(entry: Any) -> dict[str, Any]:
     }
 
 
-def _field_from_json(name: str, entry: Any) -> dict[str, Any]:
+def _field_from_json(name: str, entry: Any, researched_at: str | None) -> dict[str, Any]:
     """Field check on import (RL22.4, RL32): {value, citations} with optional status and candidates.
 
     A present status must be one of the three and agree with the value: unknown exactly when there
@@ -191,13 +218,19 @@ def _field_from_json(name: str, entry: Any) -> dict[str, Any]:
         raise validation("state holds an invalid known field")
     if not all(isinstance(c, dict) and set(c) == CITATION_KEYS and _is_citation(c) for c in citations):
         raise validation("state holds an invalid citation")
-    if not all(_is_candidate(name, c) for c in candidates):
-        raise validation("state holds an invalid candidate")
+    if "candidates" in entry:
+        if not all(_is_candidate(name, c) for c in candidates):
+            raise validation("state holds an invalid candidate")
+        candidates = [_candidate_from_engine(c) for c in candidates]
+    else:
+        # An export without candidates (stage-1 form): one candidate per the first citation, until
+        # the selection rule derives them on import (RL59).
+        candidates = [_candidate_from_citation(value, citations[0], researched_at or "")]
     return {
         "value": value,
         "status": status,
         "citations": [dict(c) for c in citations],
-        "candidates": [_candidate_from_engine(c) for c in candidates],
+        "candidates": candidates,
     }
 
 

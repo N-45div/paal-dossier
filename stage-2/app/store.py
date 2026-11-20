@@ -143,8 +143,8 @@ class Store:
                 return
             # Prepare every new value before touching the record: a failure here must leave the
             # previous fields in place for the worker's fallback (RL27).
-            fields = fields_from_engine(result.fields)
             researched_at = format_ts(requested_at)
+            fields = fields_from_engine(result.fields, researched_at)
             spent = record["spent_units"] + max(0, int(result.spent) - reported)
             record["spent_units"] = spent
             record["fields"] = fields
