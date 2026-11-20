@@ -28,7 +28,15 @@ def instant(text):
             raise ValueError('invalid offset')
         offset = (zh * 60 + zm) * 60 * (1 if zone[0] == '+' else -1)
     whole = ordinal * 86400 + hour * 3600 + minute * 60 + second - offset
-    if not date(1, 1, 1).toordinal() * 86400 <= whole <= date(9999, 12, 31).toordinal() * 86400 + 86399:
+    minimum = date(1, 1, 1).toordinal() * 86400
+    maximum = date(9999, 12, 31).toordinal() * 86400 + 86399
+    if second == 60:
+        # RL70: :60 is valid only when the corresponding UTC :59 is 23:59:59.
+        # The leap second sorts one second after that UTC second.
+        before_leap = whole - 1
+        if before_leap % 86400 != 86399 or not minimum <= before_leap <= maximum:
+            raise ValueError('leap second is not at UTC 23:59:60')
+    elif not minimum <= whole <= maximum:
         raise ValueError('instant outside supported UTC range')
     fraction = Decimal('0.' + (match.group(7) or '0'))
     return whole, fraction

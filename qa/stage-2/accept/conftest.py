@@ -462,6 +462,8 @@ def metadata_deployment(request, tmp_path_factory):
         (f'https://{domain}/offset-b', 'own', '2024-01-01T00:00:00Z', 'Dina West'),
         (f'https://{domain}/invalid', 'nonsense', '2025-02-30T00:00:00Z', 'Elena Stone'),
         ('https://outside.test/metadata-labs', None, None, 'Frances Green'),
+        (f'https://{domain}/leap-invalid', 'filing', '2025-01-01T12:30:60Z', 'Invalid Leap'),
+        (f'https://{domain}/leap-valid', 'news', '2025-01-01T18:59:60-05:00', 'Valid Leap'),
     ]
     pages = [{'url':url, 'kind':kind, 'published_at':published, 'epochs':[0], 'searchable':True,
               'title':'Metadata Labs company', 'text':f'Metadata Labs CEO {ceo}.', 'facts':{},
@@ -472,6 +474,9 @@ def metadata_deployment(request, tmp_path_factory):
     claims = [{'field':field, 'value':value, 'url':pages[i]['url'],
                'excerpt':f'Metadata Labs CEO {definitions[i][3]}.'}
               for i,(field,value) in enumerate(fields)]
+    claims.extend({'field':'ceo', 'value':name, 'url':pages[i]['url'],
+                   'excerpt':f'Metadata Labs CEO {name}.'}
+                  for i,name in ((6, 'Invalid Leap'), (7, 'Valid Leap')))
     (corpus / (domain + '.json')).write_text(json.dumps({'domain':domain, 'names':['Metadata Labs'],
                       'pages':pages, 'research':{'nimble':{'0':claims}}}))
     yield from launch_deployment(request, corpus)

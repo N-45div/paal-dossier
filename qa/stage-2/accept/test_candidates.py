@@ -4,6 +4,7 @@ import time
 from urllib.parse import urlsplit
 
 import httpx
+import pytest
 
 from conftest import ADMIN
 from oracle import FIELDS, candidates as supported, prose
@@ -205,3 +206,12 @@ def test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind(
         assert values.index('Casey Reed') < values.index('Dina West')
         assert by_value['Elena Stone']['kind'] == 'own' and by_value['Elena Stone']['published_at'] is None
         assert by_value['Frances Green']['kind'] == 'aggregator' and by_value['Frances Green']['published_at'] is None
+        assert by_value['Invalid Leap']['published_at'] is None
+        assert by_value['Valid Leap']['published_at'] == '2025-01-01T18:59:60-05:00'
+
+
+def test_R2_7_RL70_leap_second_oracle_controls():
+    """Midday :60 is invalid; an offset-equivalent UTC 23:59:60 is valid."""
+    with pytest.raises(ValueError):
+        instant('2025-01-01T12:30:60Z')
+    assert instant('2025-01-01T18:59:60-05:00') == instant('2025-01-02T00:00:00Z')
