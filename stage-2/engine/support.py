@@ -587,28 +587,6 @@ def facts_from_header(header: dict[str, str]) -> dict:
     return facts if isinstance(facts, dict) else {}
 
 
-def complete_sentences_prefix(text: str) -> str:
-    """The part of a cut-off text up to the end of its last complete sentence.
-
-    A sentence is complete when a sentence end (A.1) is followed by whitespace inside the
-    text, so the cut is never inside a sentence. Returns '' when there is none.
-    """
-    end = 0
-    i = 0
-    n = len(text)
-    while i < n:
-        if text[i] in ".!?":
-            j = i + 1
-            while j < n and text[j] in _SENTENCE_CLOSERS:
-                j += 1
-            if j < n and text[j].isspace() and not (text[i] == "." and _ends_with_legal_suffix(text, i)):
-                end = j
-            i = j
-        else:
-            i += 1
-    return text[:end]
-
-
 MAX_EXCERPT_CHARS = 500  # R1.43: an excerpt is 1 to 500 characters long
 
 
