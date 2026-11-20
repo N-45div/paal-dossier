@@ -352,6 +352,128 @@ def test_R1_31_RL49_chunk_extension_and_trailer_are_parsed(api, direct_api, seed
     assert direct_api.get('/health').status_code == 200
 
 
+@pytest.mark.parametrize('extension', [b';=bad', b';bad name=value', b';name="unterminated', b';a=b;'])
+def test_R1_31_R1_49_RL53_invalid_chunk_extension_is_atomic(api, direct_api, seeded, extension):
+    """R1.31 R1.49 RL53: malformed extensions cannot execute a valid reset."""
+    payload = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    framed = f'{len(payload):x}'.encode() + extension + b'\r\n' + payload + b'\r\n0\r\n\r\n'
+    snapshot = api.get('/_test/export', timeout=10).json()
+    status, body = chunked_socket_request(direct_api, framed)
+    unchanged = api.get('/_test/export', timeout=10).json() == snapshot
+    assert status == 400, (status, unchanged)
+    envelope = json.loads(body)
+    assert envelope['error']['code'] == 'malformed_request'
+    assert isinstance(envelope['error']['message'], str)
+    if not unchanged:
+        pytest.fail('malformed extension changed the destination state')
+    assert direct_api.get('/health').status_code == 200
+
+
+@pytest.mark.parametrize('extension', [b';name=value', b';note="escaped\\"quote"', b';flag'])
+def test_R1_31_RL53_valid_chunk_extension_executes_reset(api, direct_api, seeded, extension):
+    """R1.31 RL53: token, escaped quoted and name-only extensions parse."""
+    payload = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    framed = f'{len(payload):x}'.encode() + extension + b'\r\n' + payload + b'\r\n0\r\n\r\n'
+    status, _ = chunked_socket_request(direct_api, framed)
+    assert status == 204
+    error(api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'}), 401, 'unauthenticated')
+
+
+def framed_socket_request(direct_api, headers, body=b'', finish=False):
+    endpoint = urlsplit(str(direct_api.base_url))
+    with socket.create_connection((endpoint.hostname, endpoint.port), timeout=15) as conn:
+        conn.settimeout(15)
+        conn.sendall(b'POST /_test/reset HTTP/1.1\r\nHost: localhost\r\n'
+                     b'Content-Type: application/json\r\nConnection: close\r\n' + headers + b'\r\n')
+        def upload():
+            try:
+                if body:
+                    conn.sendall(body)
+                if finish:
+                    conn.shutdown(socket.SHUT_WR)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
+        writer = None
+        if body or finish:
+            writer = threading.Thread(target=upload, daemon=True)
+            writer.start()
+        response = http.client.HTTPResponse(conn)
+        response.begin()
+        status, payload = response.status, response.read()
+        if writer:
+            writer.join(timeout=15)
+            assert not writer.is_alive(), 'upload did not stop after the response'
+        return status, payload
+
+
+@pytest.mark.parametrize('value', [b'9' * 5000, b'0' * 5000 + b'16777217'])
+def test_R1_31_R1_49_RL54_huge_overcap_content_length_is_413(api, direct_api, seeded, value):
+    """R1.31 R1.49 RL54: over-cap declarations are refused without a body."""
+    snapshot = api.get('/_test/export', timeout=10).json()
+    status, body = framed_socket_request(direct_api, b'Content-Length: ' + value + b'\r\n')
+    assert status == 413
+    envelope = json.loads(body)
+    assert envelope['error']['code'] == 'payload_too_large'
+    assert isinstance(envelope['error']['message'], str)
+    if api.get('/_test/export', timeout=10).json() != snapshot:
+        pytest.fail('oversized declaration changed state')
+
+
+def test_R1_31_RL54_zero_padded_exact_cap_reset_executes(api, direct_api, seeded):
+    """R1.31 RL54: a zero-padded 16 MiB length accepts a valid state-changing body."""
+    limit = 16 * 1024 * 1024
+    prefix = b'{"now":"2027-03-01T09:00:00Z","users":[],"ignored":"'
+    suffix = b'"}'
+    payload = prefix + b'x' * (limit - len(prefix) - len(suffix)) + suffix
+    status, _ = framed_socket_request(direct_api, b'Content-Length: ' + b'0' * 5000 + b'16777216\r\n', payload)
+    assert status == 204
+    error(api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'}), 401, 'unauthenticated')
+
+
+def test_R1_31_RL54_zero_padded_zero_is_empty_body(direct_api, mock):
+    """R1.31 RL54: a zero-padded zero length is an empty request body."""
+    status, body = framed_socket_request(direct_api, b'Content-Length: ' + b'0' * 5000 + b'0\r\n', finish=True)
+    assert status == 400
+    envelope = json.loads(body)
+    assert envelope['error']['code'] == 'malformed_request'
+    assert isinstance(envelope['error']['message'], str)
+
+
+@pytest.mark.parametrize('value', [b'+1', b'-1', b'1 0', b'0x10', b''])
+def test_R1_31_R1_49_RL54_invalid_content_length_is_400(direct_api, mock, value):
+    """R1.31 R1.49 RL54: non-digit Content-Length is malformed."""
+    status, body = framed_socket_request(direct_api, b'Content-Length: ' + value + b'\r\n', finish=True)
+    assert status == 400
+    envelope = json.loads(body)
+    assert envelope['error']['code'] == 'malformed_request'
+    assert isinstance(envelope['error']['message'], str)
+
+
+@pytest.mark.parametrize('framing', ['different-lengths-first', 'different-lengths-last',
+                                     'length-and-chunked', 'length-and-raw'])
+def test_R1_31_R1_49_RL54_conflicting_framing_is_atomic(api, direct_api, seeded, framing):
+    """R1.31 R1.49 RL54: conflicting framing cannot execute a valid reset."""
+    payload = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    snapshot = api.get('/_test/export', timeout=10).json()
+    if framing.startswith('different-lengths'):
+        first, second = ((len(payload), len(payload)+1) if framing.endswith('first')
+                         else (len(payload)+1, len(payload)))
+        headers = f'Content-Length: {first}\r\nContent-Length: {second}\r\n'.encode()
+        body = payload
+    else:
+        headers = f'Content-Length: {len(payload)}\r\nTransfer-Encoding: chunked\r\n'.encode()
+        body = (f'{len(payload):x}\r\n'.encode() + payload + b'\r\n0\r\n\r\n'
+                if framing == 'length-and-chunked' else payload)
+    status, response = framed_socket_request(direct_api, headers, body, finish=True)
+    unchanged = api.get('/_test/export', timeout=10).json() == snapshot
+    assert status == 400, (status, unchanged)
+    envelope = json.loads(response)
+    assert envelope['error']['code'] == 'malformed_request'
+    assert isinstance(envelope['error']['message'], str)
+    if not unchanged:
+        pytest.fail('conflicting framing changed state')
+
+
 def test_R1_31_R1_49_RL42_unframed_request_has_no_body_and_service_stays_healthy(direct_api, mock):
     """R1.31 R1.49 RL42: without framing headers there is no body and no server error."""
     endpoint = urlsplit(str(direct_api.base_url))
