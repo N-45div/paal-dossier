@@ -9,9 +9,10 @@ string or None), and retrieved_at (not used for ranking).
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from functools import cmp_to_key
 from typing import Any, Optional
+
+from .timestamps import instant
 
 # Authority of a page's kind; None (an imported candidate) has the authority of aggregator.
 AUTHORITY = {"own": 3, "filing": 3, "news": 2, "aggregator": 1}
@@ -38,16 +39,9 @@ def _authority(kind: Optional[str]) -> int:
     return AUTHORITY.get(kind, AUTHORITY["aggregator"])
 
 
-def _published(published_at: Optional[str]) -> Optional[datetime]:
-    if not published_at:
-        return None
-    try:
-        moment = datetime.fromisoformat(published_at)
-    except ValueError:
-        return None
-    if moment.tzinfo is None:
-        return None
-    return moment.astimezone(timezone.utc)
+def _published(published_at: Optional[str]) -> Optional[tuple]:
+    """The exact instant of an RFC 3339 publication time (RL66), or None."""
+    return instant(published_at)
 
 
 def _value_order(value: Any) -> tuple:

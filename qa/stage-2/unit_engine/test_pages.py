@@ -43,30 +43,33 @@ class KindTests(unittest.TestCase):
 
 
 class PublishedTests(unittest.TestCase):
-    def test_r2_7_valid_rfc3339_timestamps_are_kept_unchanged(self):
+    def test_r2_7_valid_rfc3339_timestamps_are_kept_as_written(self):
         for value in (
             "2026-01-10T00:00:00+00:00",
             "2026-01-10T00:00:00Z",
             "2026-01-10T12:30:59.123+05:30",
             "2024-02-29T23:59:59-00:00",
+            "2026-01-10T00:00:00.1234567890123Z",
         ):
             self.assertEqual(parse_published(value), value)
 
-    def test_r2_7_basic_format_is_not_rfc3339(self):
-        self.assertIsNone(parse_published("20260110T000000+00:00"))
+    def test_rl66_lowercase_t_and_z_are_accepted(self):
+        self.assertEqual(parse_published("2026-01-10t00:00:00+00:00"), "2026-01-10t00:00:00+00:00")
+        self.assertEqual(parse_published("2026-01-10T00:00:00z"), "2026-01-10T00:00:00z")
 
-    def test_r2_7_lowercase_t_or_z_is_refused(self):
-        self.assertIsNone(parse_published("2026-01-10t00:00:00+00:00"))
-        self.assertIsNone(parse_published("2026-01-10T00:00:00z"))
+    def test_r2_7_basic_format_is_refused(self):
+        self.assertIsNone(parse_published("20260110T000000+00:00"))
+        self.assertIsNone(parse_published("20260110T000000Z"))
 
     def test_r2_7_space_separator_is_refused(self):
         self.assertIsNone(parse_published("2026-01-10 00:00:00+00:00"))
 
-    def test_r2_7_offset_is_required(self):
+    def test_r2_7_offset_or_zone_is_required(self):
         self.assertIsNone(parse_published("2026-01-10T00:00:00"))
+        self.assertIsNone(parse_published("2026-01-10"))
 
-    def test_r2_7_leap_second_is_refused(self):
-        self.assertIsNone(parse_published("2016-12-31T23:59:60Z"))
+    def test_rl66_leap_second_is_accepted(self):
+        self.assertEqual(parse_published("2016-12-31T23:59:60Z"), "2016-12-31T23:59:60Z")
 
     def test_r2_7_out_of_range_fields_are_refused(self):
         self.assertIsNone(parse_published("2026-13-01T00:00:00Z"))
@@ -74,6 +77,7 @@ class PublishedTests(unittest.TestCase):
         self.assertIsNone(parse_published("2025-02-29T00:00:00Z"))
         self.assertIsNone(parse_published("2026-01-10T24:00:00Z"))
         self.assertIsNone(parse_published("2026-01-10T00:60:00Z"))
+        self.assertIsNone(parse_published("2026-01-10T00:00:61Z"))
         self.assertIsNone(parse_published("2026-01-10T00:00:00+24:00"))
         self.assertIsNone(parse_published("2026-01-10T00:00:00+05:60"))
 

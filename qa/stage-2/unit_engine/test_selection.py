@@ -91,6 +91,27 @@ class RankUrlAndProviderTests(unittest.TestCase):
 
 
 class RankValueTests(unittest.TestCase):
+    def test_rl66_publication_order_is_by_exact_instant_including_fraction(self):
+        ranked = rank([
+            cand("earlier-fraction", published_at="2026-01-01T00:00:00.100+00:00", url="https://a.test/1"),
+            cand("later-fraction", published_at="2026-01-01T00:00:00.9+00:00", url="https://z.test/2"),
+        ])
+        self.assertEqual(values(ranked), ["later-fraction", "earlier-fraction"])
+
+    def test_rl66_leap_second_orders_after_the_same_minute_second_59(self):
+        ranked = rank([
+            cand("second-59", published_at="2016-12-31T23:59:59Z", url="https://a.test/1"),
+            cand("leap", published_at="2016-12-31T23:59:60Z", url="https://z.test/2"),
+        ])
+        self.assertEqual(values(ranked), ["leap", "second-59"])
+
+    def test_rl66_lowercase_zone_is_the_same_instant_as_uppercase(self):
+        ranked = rank([
+            cand("lower", published_at="2026-01-01t00:00:00z", url="https://a.test/1"),
+            cand("upper", published_at="2026-01-01T00:00:00Z", url="https://z.test/2"),
+        ])
+        self.assertEqual(values(ranked)[0], "lower")
+
     def test_r2_44_same_url_and_provider_smaller_value_ranks_higher(self):
         ranked = rank([cand("Sam Ortiz"), cand("Dana Ruiz")])
         self.assertEqual(values(ranked), ["Dana Ruiz", "Sam Ortiz"])
