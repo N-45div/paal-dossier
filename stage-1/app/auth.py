@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from .context import App
-from .errors import email_taken, unauthenticated, validation_failed
+from .errors import email_taken, unauthenticated
 from .messages import Reply, Request, json_reply
 from .passwords import hash_password, verify_password
 from .store import Store, User

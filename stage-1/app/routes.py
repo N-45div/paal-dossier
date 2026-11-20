@@ -11,7 +11,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from . import auth, control, health
+from . import auth, control, dossier_api, health
 from .context import App
 from .errors import method_not_allowed, not_found
 from .messages import Reply, Request
@@ -41,6 +41,17 @@ ROUTES: tuple[Route, ...] = (
     route("POST", "/_test/clock", control.move_clock),
     route("POST", "/auth/signup", auth.signup),
     route("POST", "/auth/login", auth.login),
+    route("GET", "/_test/export", control.export_state),
+    route("POST", "/_test/import", control.import_state),
+    route("POST", "/dossiers", dossier_api.create_dossier, authenticated=True),
+    route("GET", "/dossiers", dossier_api.list_dossiers, authenticated=True),
+    route("GET", "/dossiers/{domain}", dossier_api.get_dossier, authenticated=True),
+    route(
+        "POST",
+        "/dossiers/{domain}/refresh",
+        dossier_api.refresh_dossier,
+        authenticated=True,
+    ),
 )
 
 

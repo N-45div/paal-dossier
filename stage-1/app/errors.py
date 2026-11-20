@@ -35,6 +35,16 @@ def email_taken(message: str = "email is already registered") -> ApiError:
     return ApiError(409, "email_taken", message)
 
 
+def missing_idempotency_key(message: str = "Idempotency-Key header is required") -> ApiError:
+    return ApiError(400, "missing_idempotency_key", message)
+
+
+def idempotency_key_reuse(
+    message: str = "Idempotency-Key was already used with a different request body"
+) -> ApiError:
+    return ApiError(409, "idempotency_key_reuse", message)
+
+
 def validation_failed(message: str = "validation failed") -> ApiError:
     return ApiError(422, "validation_failed", message)
 
