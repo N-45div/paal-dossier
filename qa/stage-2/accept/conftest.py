@@ -361,6 +361,7 @@ def launch_deployment(request, corpus, monitor_extracts=False, dual_provider=Fal
         docker('network', 'connect', network, relay)
         docker('run', '-d', '--name', mock, '--network', network, '--network-alias', 'mock',
                '-e', 'MOCK_ADMIN_TOKEN=prover-local-admin',
+               '-e', 'XDG_CONFIG_HOME=/tmp', '-e', 'XDG_CACHE_HOME=/tmp',
                '-v', f'{corpus}:/data/corpus:ro', web_image)
         healthy(f'http://127.0.0.1:{mock_port}/_mock/health')
         upstream = mock

@@ -1,6 +1,6 @@
 # Stage 2 acceptance claims and ledger text
 
-Source: lead ledger revision `8ec8b4103b9e420c78fa1b9b9a749d0282adbd38`. A named test identifies an exercised clause, not proof of every subclause. Screenshots require visual review. Optional vendor configuration (R2.20–R2.21) and the four-session cap (R2.29) are conditional on vendor use; the cap is not directly exercised when vendors are unused. R2.107 does not prohibit background synchronization.
+Source: lead ledger revision `8ec8b4103b9e420c78fa1b9b9a749d0282adbd38`. A named test identifies an exercised clause, not proof of every subclause. Screenshots require visual review. Optional vendor configuration (R2.20–R2.21) is conditional on vendor use; provider session cap and expiration (R2.29) are directly exercised against the mock. R2.107 does not prohibit background synchronization.
 
 IDs without an individually named test: none.
 
@@ -261,7 +261,7 @@ Referenced tests: `test_harness.py::test_R2_9_R2_10_R2_23_controlled_provider_se
 
   > | Open a session through `kernel` | 0 |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`, `test_rate_limits.py::test_R2_24_R2_25_R2_28_R2_29_exhausted_optional_sessions_do_not_block_build`
 
 ### R2.25
 - Section: Web access
@@ -271,7 +271,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | Open a session through `browserbase` | 2 |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`, `test_rate_limits.py::test_R2_24_R2_25_R2_28_R2_29_exhausted_optional_sessions_do_not_block_build`
 
 ### R2.26
 - Section: Web access
@@ -301,7 +301,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > A failed open, a failed page load and releasing a session cost nothing.
 
-Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost`
+Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost`, `test_rate_limits.py::test_R2_24_R2_25_R2_28_R2_29_exhausted_optional_sessions_do_not_block_build`, `test_rate_limits.py::test_R2_28_R2_29_idle_optional_provider_sessions_expire_after_one_minute`
 
 ### R2.29
 - Section: Web access
@@ -313,7 +313,7 @@ Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusa
   > error. A session that no client has been connected to for 60 seconds is closed by the
   > provider.
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`, `test_rate_limits.py::test_R2_24_R2_25_R2_28_R2_29_exhausted_optional_sessions_do_not_block_build`, `test_rate_limits.py::test_R2_28_R2_29_idle_optional_provider_sessions_expire_after_one_minute`
 
 ### R2.30
 - Section: Rate limits

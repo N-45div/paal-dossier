@@ -69,3 +69,65 @@ def test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost(timed_depl
                 merged.append((start, end))
         excluded_wait = sum(end - start for start, end in merged)
         assert elapsed - excluded_wait <= 10.5, (elapsed, excluded_wait)
+
+
+@pytest.mark.parametrize('provider', ['kernel', 'browserbase'])
+def test_R2_24_R2_25_R2_28_R2_29_exhausted_optional_sessions_do_not_block_build(api, mock, seeded, provider):
+    """Four provider sessions fill the cap; another open is refused without cost."""
+    endpoint = '/kernel/browsers' if provider == 'kernel' else '/browserbase/v1/sessions'
+    id_key = 'session_id' if provider == 'kernel' else 'id'
+    sessions = []
+    try:
+        for _ in range(4):
+            response = mock.post(endpoint, json={}, timeout=30)
+            assert response.status_code == 200
+            sessions.append(response.json()[id_key])
+        denied = mock.post(endpoint, json={}, timeout=30)
+        assert denied.status_code == 429
+        own_calls = mock.get('/_mock/log').json()['calls']
+        session_calls = [c for c in own_calls if c['provider'] == provider and c['method'] == 'session']
+        assert len(session_calls) == 5 and session_calls[-1]['cost'] == 0
+        assert sum(c['cost'] for c in session_calls[:4]) == (0 if provider == 'kernel' else 8)
+        domain = 'halvorsen-robotics.test'
+        assert api.post('/dossiers', json={'domain':domain}, headers={
+            'Authorization':'Bearer ' + seeded[0], 'Idempotency-Key':'session-cap-' + provider}).status_code == 202
+        result = wait_ready(api, seeded[0], domain, timeout=300)
+        assert result['state'] == 'ready'
+        after = mock.get('/_mock/log').json()['calls'][len(own_calls):]
+        assert result['spent_units'] == sum(c['cost'] for c in after) <= 80
+        assert all(c['cost'] == 0 for c in after if c['status'] == 429)
+    finally:
+        for session in sessions:
+            if provider == 'kernel':
+                mock.delete(endpoint + '/' + session, timeout=20)
+            else:
+                mock.post(endpoint + '/' + session, json={'status':'REQUEST_RELEASE'}, timeout=20)
+
+
+def test_R2_28_R2_29_idle_optional_provider_sessions_expire_after_one_minute(mock):
+    """Unconnected sessions from both browser vendors are closed after 60 seconds."""
+    sessions = []
+    try:
+        for endpoint, key in [('/kernel/browsers', 'session_id'), ('/browserbase/v1/sessions', 'id')]:
+            started = time.monotonic()
+            response = mock.post(endpoint, json={}, timeout=30)
+            assert response.status_code == 200
+            path = endpoint + '/' + response.json()[key]
+            assert mock.get(path).status_code == 200
+            sessions.append((endpoint, path, started))
+        expired = {}
+        deadline = time.monotonic() + 75
+        while time.monotonic() < deadline and len(expired) < len(sessions):
+            for _, path, started in sessions:
+                if path not in expired and mock.get(path).status_code == 404:
+                    expired[path] = time.monotonic() - started
+            if len(expired) < len(sessions):
+                time.sleep(1)
+        assert len(expired) == len(sessions), 'unconnected sessions must expire after one minute'
+        assert all(elapsed >= 59.9 for elapsed in expired.values()), expired
+    finally:
+        for endpoint, path, _ in sessions:
+            if endpoint.startswith('/kernel/'):
+                mock.delete(path, timeout=20)
+            else:
+                mock.post(path, json={'status':'REQUEST_RELEASE'}, timeout=20)

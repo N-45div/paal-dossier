@@ -5,10 +5,10 @@ does not import the submitted service. `CLAIMS.md` indexes named Stage 2 ledger
 requirements; a reference identifies exercised behavior, not complete proof of
 every subclause. Visual quality and the generated screenshots require review.
 The optional browser-vendor calls are checked if used; their use is not required.
-In particular, optional WebRouter configuration (R2.20–R2.21) and the four-session
-provider cap (R2.29) have no direct exercise when the service uses Nimble render
-alone. R2.107 does not prohibit background synchronization, so the suite does not
-assert its absence.
+Optional WebRouter configuration (R2.20–R2.21) is consequently conditional. The
+suite separately fills each mock provider's four-session cap and tests idle
+expiration. R2.107 does not prohibit background synchronization, so the suite does
+not assert its absence.
 
 From the prover worktree, run with the seat's Docker prefix and host port range:
 
