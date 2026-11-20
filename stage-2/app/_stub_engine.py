@@ -14,4 +14,5 @@ class BuildResult:
 
 
 def run_build(domain: str, *, budget: int = 80, on_spend=None, cancelled=None) -> BuildResult:
-    return BuildResult(ok=True, spent=0, fields={name: {"value": None, "citations": []} for name in FIELD_NAMES})
+    unknown = {"value": None, "status": "unknown", "citations": [], "candidates": []}
+    return BuildResult(ok=True, spent=0, fields={name: dict(unknown) for name in FIELD_NAMES})

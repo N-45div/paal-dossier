@@ -1,7 +1,10 @@
 """Dossier records: shape, rendering, import validation (§4, §8, RL17).
 
 A record keeps the fields of the last build that completed `ready`, the build state
-and the spending. Field values are stored as {"value", "citations"}.
+and the spending. A field is stored as {"value", "status", "citations", "candidates"}:
+`status` is one of known, contested, unknown (R2.47-R2.50); `candidates` lists the
+build's candidates in rank order, the selected one first (R2.32-R2.38). The selection
+itself is made by the engine (RL62); this module only stores and checks its result.
 """
 
 from typing import Any
@@ -15,13 +18,21 @@ FIELD_TYPES = {"legal_name": str, "hq_city": str, "ceo": str, "founded_year": in
 HEADCOUNT_RANGES = ("1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+")
 PROVIDERS = ("nimble", "tavily")
 IMPORTABLE_STATES = ("ready", "failed")
+STATUSES = ("known", "contested", "unknown")
+CANDIDATE_KINDS = ("own", "filing", "news", "aggregator", None)
 DOSSIER_KEYS = frozenset({"dossier_id", "domain", "state", "researched_at", "spent_units", "fields"})
-FIELD_KEYS = frozenset({"value", "status", "citations"})  # RL22.4: exactly these three
+FIELD_REQUIRED_KEYS = frozenset({"value", "citations"})
+FIELD_OPTIONAL_KEYS = frozenset({"status", "candidates"})
 CITATION_KEYS = frozenset({"url", "excerpt", "provider"})
+CANDIDATE_KEYS = frozenset({"value", "url", "excerpt", "provider", "kind", "published_at", "retrieved_at", "selected"})
+
+
+def unknown_field() -> dict[str, Any]:
+    return {"value": None, "status": "unknown", "citations": [], "candidates": []}
 
 
 def unknown_fields() -> dict[str, dict[str, Any]]:
-    return {name: {"value": None, "citations": []} for name in FIELD_NAMES}
+    return {name: unknown_field() for name in FIELD_NAMES}
 
 
 def new_record(dossier_id: str, domain: str) -> dict[str, Any]:
@@ -43,16 +54,24 @@ def fields_from_engine(raw: Any) -> dict[str, dict[str, Any]]:
         return result
     for name in FIELD_NAMES:
         entry = raw.get(name)
-        if not isinstance(entry, dict):
-            continue
-        value = entry.get("value")
-        if not _is_value(name, value):
-            continue
-        citations = [_citation_from_engine(c) for c in (entry.get("citations") or []) if _is_citation(c)]
-        if not citations:
-            continue
-        result[name] = {"value": value, "citations": citations}
+        if isinstance(entry, dict):
+            stored = _engine_field(name, entry)
+            if stored is not None:
+                result[name] = stored
     return result
+
+
+def _engine_field(name: str, entry: dict) -> dict[str, Any] | None:
+    """One field as the engine assembled it, or None when it is not a usable known/contested field."""
+    value = entry.get("value")
+    status = entry.get("status")
+    if not _is_value(name, value) or status not in ("known", "contested"):
+        return None
+    citations = [_citation_from_engine(c) for c in (entry.get("citations") or []) if _is_citation(c)]
+    candidates = [_candidate_from_engine(c) for c in (entry.get("candidates") or []) if _is_candidate(name, c)]
+    if not citations or not candidates:
+        return None
+    return {"value": value, "status": status, "citations": citations, "candidates": candidates}
 
 
 def render(record: dict[str, Any]) -> dict[str, Any]:
@@ -93,20 +112,11 @@ def export_dossier(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def _exported_fields(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {name: _exported_field(record["fields"][name]) for name in FIELD_NAMES}
+    return {name: _render_field(record["fields"][name]) for name in FIELD_NAMES}
 
 
 def _exported_unknown() -> dict[str, dict[str, Any]]:
-    return {name: _exported_field({"value": None, "citations": []}) for name in FIELD_NAMES}
-
-
-def _exported_field(field: dict[str, Any]) -> dict[str, Any]:
-    value = field["value"]
-    return {
-        "value": value,
-        "status": "known" if value is not None else "unknown",
-        "citations": [dict(c) for c in field["citations"]],
-    }
+    return {name: _render_field(unknown_field()) for name in FIELD_NAMES}
 
 
 def dossier_from_json(entry: Any) -> dict[str, Any]:
@@ -153,35 +163,50 @@ def dossier_from_json(entry: Any) -> dict[str, Any]:
 
 
 def _field_from_json(name: str, entry: Any) -> dict[str, Any]:
-    """Field check on import (RL22.4, RL32): status is derived from the value; the two-key export form imports.
+    """Field check on import (RL22.4, RL32): {value, citations} with optional status and candidates.
 
-    An entry is {value, citations} or {value, status, citations}; a present status must agree with the value.
+    A present status must be one of the three and agree with the value: unknown exactly when there
+    is no value. Candidates, when present, must be well formed candidates of this field.
     """
-    if not isinstance(entry, dict) or set(entry) not in (FIELD_KEYS, FIELD_KEYS - {"status"}):
+    if not isinstance(entry, dict):
+        raise validation("state holds an invalid field")
+    keys = set(entry)
+    if not FIELD_REQUIRED_KEYS <= keys <= FIELD_REQUIRED_KEYS | FIELD_OPTIONAL_KEYS:
         raise validation("state holds an invalid field")
     value = entry["value"]
     citations = entry["citations"]
-    if not isinstance(citations, list):
+    candidates = entry.get("candidates", [])
+    if not isinstance(citations, list) or not isinstance(candidates, list):
         raise validation("state holds an invalid citation list")
-    if "status" in entry and entry["status"] != ("known" if value is not None else "unknown"):
-        raise validation("state holds an invalid field status")
     if value is None:
-        if citations != []:
-            raise validation("an unknown field has no value and no citations")
-        return {"value": None, "citations": []}
+        if citations != [] or candidates != []:
+            raise validation("an unknown field has no value, citations or candidates")
+        if entry.get("status", "unknown") != "unknown":
+            raise validation("state holds an invalid field status")
+        return unknown_field()
+    status = entry.get("status", "known")
+    if status not in ("known", "contested"):
+        raise validation("state holds an invalid field status")
     if not _is_value(name, value) or not citations:
         raise validation("state holds an invalid known field")
     if not all(isinstance(c, dict) and set(c) == CITATION_KEYS and _is_citation(c) for c in citations):
         raise validation("state holds an invalid citation")
-    return {"value": value, "citations": [dict(c) for c in citations]}
+    if not all(_is_candidate(name, c) for c in candidates):
+        raise validation("state holds an invalid candidate")
+    return {
+        "value": value,
+        "status": status,
+        "citations": [dict(c) for c in citations],
+        "candidates": [_candidate_from_engine(c) for c in candidates],
+    }
 
 
 def _render_field(field: dict[str, Any]) -> dict[str, Any]:
-    value = field["value"]
     return {
-        "value": value,
-        "status": "known" if value is not None else "unknown",
+        "value": field["value"],
+        "status": field["status"],
         "citations": [dict(c) for c in field["citations"]],
+        "candidates": [dict(c) for c in field["candidates"]],
     }
 
 
@@ -217,3 +242,21 @@ def _is_citation(entry: Any) -> bool:
 
 def _citation_from_engine(entry: dict) -> dict[str, str]:
     return {"url": entry["url"], "excerpt": entry["excerpt"], "provider": entry["provider"]}
+
+
+def _is_candidate(name: str, entry: Any) -> bool:
+    """A candidate has exactly the Candidates keys (R2.33-R2.37); its value is a value of the field."""
+    return (
+        isinstance(entry, dict)
+        and set(entry) == CANDIDATE_KEYS
+        and _is_value(name, entry["value"])
+        and _is_citation(entry)
+        and entry["kind"] in CANDIDATE_KINDS
+        and (entry["published_at"] is None or isinstance(entry["published_at"], str))
+        and isinstance(entry["retrieved_at"], str)
+        and isinstance(entry["selected"], bool)
+    )
+
+
+def _candidate_from_engine(entry: dict) -> dict[str, Any]:
+    return {key: entry[key] for key in CANDIDATE_KEYS}
