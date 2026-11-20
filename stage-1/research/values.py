@@ -14,16 +14,17 @@ from .matching import is_capitalised, is_uppercase_word, whole_words, word_at
 # funding_total's format, so it is ignored for rule 5 (lead ruling G13).
 NOT_WHOLE = None
 
-_NUMBER_BODY = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
+# Numbers use ASCII digits only (lead ruling G14): Unicode digits are not numbers.
+_NUMBER_BODY = r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?"
 # A number is not joined to letters or digits, nor to digits by ',' or '.' in any other way.
-_NUMBER = re.compile(r"(?<![^\W_])(?<!\d[.,])(?P<body>" + _NUMBER_BODY + r")(?![^\W_])(?![.,]\d)")
+_NUMBER = re.compile(r"(?<![^\W_])(?<![0-9][.,])(?P<body>" + _NUMBER_BODY + r")(?![^\W_])(?![.,][0-9])")
 _AMOUNT_SYMBOL = re.compile(
     r"(?<![^\W_])(?:US\$|USD|\$) ?(?P<num>" + _NUMBER_BODY + r")"
     r"(?:(?P<suffix>mn|bn|k|m)|(?: (?P<word>thousand|million|billion)))?(?![^\W_])",
     re.IGNORECASE,
 )
 _AMOUNT_WORDS = re.compile(
-    r"(?<![^\W_])(?<!\d[.,])(?P<num>" + _NUMBER_BODY + r")"
+    r"(?<![^\W_])(?<![0-9][.,])(?P<num>" + _NUMBER_BODY + r")"
     r"(?: (?P<word>thousand|million|billion))? (?:US )?dollars(?![^\W_])",
     re.IGNORECASE,
 )
@@ -93,7 +94,7 @@ def founded_years(sentence: str, amounts: Iterable[Amount]) -> set[int]:
     values: set[int] = set()
     for match in _numbers_outside_amounts(sentence, amounts):
         text = match.group("body")
-        if re.fullmatch(r"\d{4}", text) and 1800 <= int(text) <= 2099:
+        if re.fullmatch(r"[0-9]{4}", text) and 1800 <= int(text) <= 2099:
             values.add(int(text))
     return values
 

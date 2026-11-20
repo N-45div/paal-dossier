@@ -14,13 +14,12 @@ _MAX_EXCERPT = 500
 def _ends_legal_suffix(line: str, index: int) -> bool:
     """True when the '.' at line[index] ends a legal-form suffix written as a whole word."""
     for suffix in LEGAL_SUFFIXES:
-        if suffix.endswith("."):
-            start = index + 1 - len(suffix)
-            matched = start >= 0 and line[start : index + 1] == suffix
-        else:
-            start = index - len(suffix)
-            matched = start >= 0 and line[start:index] == suffix
-        if matched and (start == 0 or not line[start - 1].isalnum()):
+        # Only a suffix that carries its own dot (e.g. "Inc.") can make the dot part of the suffix.
+        # A listed suffix without one ("Ltd") leaves the dot free to end the sentence (lead ruling G14).
+        if not suffix.endswith("."):
+            continue
+        start = index + 1 - len(suffix)
+        if start >= 0 and line[start : index + 1] == suffix and (start == 0 or not line[start - 1].isalnum()):
             return True
     return False
 
