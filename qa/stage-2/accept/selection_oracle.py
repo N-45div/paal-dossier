@@ -36,6 +36,8 @@ def instant(text):
         before_leap = whole - 1
         if before_leap % 86400 != 86399 or not minimum <= before_leap <= maximum:
             raise ValueError('leap second is not at UTC 23:59:60')
+        if whole > maximum:
+            raise ValueError('instant outside supported UTC range')
     elif not minimum <= whole <= maximum:
         raise ValueError('instant outside supported UTC range')
     fraction = Decimal('0.' + (match.group(7) or '0'))

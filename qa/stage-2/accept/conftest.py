@@ -464,6 +464,8 @@ def metadata_deployment(request, tmp_path_factory):
         ('https://outside.test/metadata-labs', None, None, 'Frances Green'),
         (f'https://{domain}/leap-invalid', 'filing', '2025-01-01T12:30:60Z', 'Invalid Leap'),
         (f'https://{domain}/leap-valid', 'news', '2025-01-01T18:59:60-05:00', 'Valid Leap'),
+        (f'https://{domain}/leap-upper-z', 'news', '9999-12-31T23:59:60Z', 'Upper Leap UTC'),
+        (f'https://{domain}/leap-upper-offset', 'news', '9999-12-31T18:59:60-05:00', 'Upper Leap Offset'),
     ]
     pages = [{'url':url, 'kind':kind, 'published_at':published, 'epochs':[0], 'searchable':True,
               'title':'Metadata Labs company', 'text':f'Metadata Labs CEO {ceo}.', 'facts':{},
@@ -477,6 +479,9 @@ def metadata_deployment(request, tmp_path_factory):
     claims.extend({'field':'ceo', 'value':name, 'url':pages[i]['url'],
                    'excerpt':f'Metadata Labs CEO {name}.'}
                   for i,name in ((6, 'Invalid Leap'), (7, 'Valid Leap')))
+    claims.extend({'field':'ceo', 'value':name, 'url':pages[i]['url'],
+                   'excerpt':f'Metadata Labs CEO {name}.'}
+                  for i,name in ((8, 'Upper Leap UTC'), (9, 'Upper Leap Offset')))
     (corpus / (domain + '.json')).write_text(json.dumps({'domain':domain, 'names':['Metadata Labs'],
                       'pages':pages, 'research':{'nimble':{'0':claims}}}))
     yield from launch_deployment(request, corpus)

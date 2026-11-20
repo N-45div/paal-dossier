@@ -208,10 +208,14 @@ def test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind(
         assert by_value['Frances Green']['kind'] == 'aggregator' and by_value['Frances Green']['published_at'] is None
         assert by_value['Invalid Leap']['published_at'] is None
         assert by_value['Valid Leap']['published_at'] == '2025-01-01T18:59:60-05:00'
+        assert by_value['Upper Leap UTC']['published_at'] is None
+        assert by_value['Upper Leap Offset']['published_at'] is None
 
 
 def test_R2_7_RL70_leap_second_oracle_controls():
-    """Midday :60 is invalid; an offset-equivalent UTC 23:59:60 is valid."""
-    with pytest.raises(ValueError):
-        instant('2025-01-01T12:30:60Z')
+    """Midday :60 and a leap instant beyond year 9999 are invalid."""
+    for invalid in ('2025-01-01T12:30:60Z', '9999-12-31T23:59:60Z',
+                    '9999-12-31T18:59:60-05:00'):
+        with pytest.raises(ValueError):
+            instant(invalid)
     assert instant('2025-01-01T18:59:60-05:00') == instant('2025-01-02T00:00:00Z')
