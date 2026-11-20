@@ -566,6 +566,12 @@ class RefusalAndRetryTests(unittest.TestCase):
         self.assertEqual(charged_units(HttpError(429), 8), 0)
         self.assertEqual(charged_units(HttpError(500), 8), 0)
 
+    def test_r1_121_statusless_tavily_rate_limit_costs_nothing(self):
+        # an SDK refusal with no HTTP status on the error: the kind alone says it was refused
+        refused = ProviderError("tavily", "rate limited", kind="rate_limit")
+        self.assertIsNone(refused.status_code)
+        self.assertEqual(charged_units(refused, SEARCH_COST[("tavily", "lite")]), 0)
+
     def test_r1_121_timeout_from_any_sdk_costs_full_units(self):
         self.assertEqual(charged_units(TimeoutError("read timed out"), 8), 8)
 
