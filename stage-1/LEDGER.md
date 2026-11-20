@@ -89,6 +89,11 @@ Until engine/ lands, builder-a uses a local stub (`app/_stub_engine.py`, try/exc
 - **RL50/RL52 P1/P3 head.** 05d050850d0e6b216bef50319a63fb86f685c3c3 then 13ba6d8093827ac1041dc83fa3801499216d3e00 (builder-a; supersedes 30efa2c and main 3dec36d).
 - **RL51 Trailer fields.** A trailer line needs a non-empty RFC 9110 token name, no whitespace before the colon, a colon, no NUL or bare CR in the value; otherwise 400 as RL49.
 - **Status log (update).** P4 builder-b 82100ce7da18ecad41b3028e872f565a38937980 ACCEPTED by the gatekeeper (combined P2/P4 review: 114/114 support, 79/79 mock-backed engine, 12/12 sample companies 69/69 values, 32-37 units, five unit-level mutants caught). P1/P3: 30efa2c acceptance withdrawn by RL49/RL51; current target 13ba6d8093827ac1041dc83fa3801499216d3e00 under review. Integrated build/start, event check and freeze pending.
+- **RL53 Chunk extensions.** Extensions may be ignored semantically but must follow RFC 9112 chunk-ext grammar (token names, token or closed quoted-string values, BWS); malformed -> 400 as RL49. Materiality rule: after this batch only crashes/5xx/hangs and executed requests that RFC 9112 forbids accepting reopen the stage.
+- **RL54 Content-Length.** 1*DIGIT only, no `int()` on unbounded strings; any value > 16 MiB (any length, any leading zeros) -> 413 before the body is read; zero-padded valid values accepted; sign/underscore/0x/empty/duplicate-differing/with-Transfer-Encoding -> 400, never executed.
+- **RL55/RL57 P1/P3 head.** 9b72a6949b5a2516d216c70b70e17c1e274153af, then ff5bee577530cd6a912a4a22c25c0c422be2c638 (builder-a); supersedes 13ba6d8 and earlier.
+- **RL56 Transfer-Encoding.** Comma list, case-insensitive, all header lines combined; only exactly `chunked` (once) accepted; anything else (not final, repeated, unsupported coding, substring match, empty) -> 400, connection closed, handler never runs.
+- **Status log (update 2).** P1/P3 builder-a ff5bee577530cd6a912a4a22c25c0c422be2c638 ACCEPTED by the gatekeeper (147 unit tests; prover suite 3af1f508 282/282 on ff5bee5 + 82100ce; five isolated HTTP mutants caught). P4 builder-b 82100ce7da18ecad41b3028e872f565a38937980 ACCEPTED. Integrated build/start, measures M1-M4 on the integrated tree, event check and freeze pending.
 
 ## Measures (every revision must be measurable)
 
