@@ -303,25 +303,34 @@ def chunked_socket_request(direct_api, body):
         return response.status, response.read()
 
 
-@pytest.mark.parametrize('body', [
-    b'+1\r\nx\r\n0\r\n\r\n',
-    b'0x1\r\nx\r\n0\r\n\r\n',
-    b'1_0\r\n' + b'x' * 16 + b'\r\n0\r\n\r\n',
-    b'1\r\nx!!0\r\n\r\n',
-    b'0',
-    b'0\r\n',
-    b'0\r\ninvalid-trailer\r\n\r\n',
-    b'0\r\n: value\r\n\r\n',
-    b'0\r\nBad Name: value\r\n\r\n',
-    b'0\r\nBad@Name: value\r\n\r\n',
-    b'0\r\nName : value\r\n\r\n',
-    b'0\r\nX-Value: bad\rvalue\r\n\r\n',
-    b'0\r\nX-Value: bad\x00value\r\n\r\n',
-], ids=['plus', 'hex-prefix', 'underscore', 'bad-data-crlf', 'eof-after-zero',
-        'missing-final-crlf', 'invalid-trailer', 'empty-name', 'space-in-name',
-        'invalid-name-character', 'space-before-colon', 'bare-cr-value', 'nul-value'])
-def test_R1_31_R1_49_RL49_malformed_chunk_framing_is_atomic(api, direct_api, seeded, body):
+@pytest.mark.parametrize('kind', [
+    'plus', 'hex-prefix', 'underscore', 'bad-data-crlf', 'eof-after-zero',
+    'missing-final-crlf', 'invalid-trailer', 'empty-name', 'space-in-name',
+    'invalid-name-character', 'space-before-colon', 'bare-cr-value', 'nul-value',
+])
+def test_R1_31_R1_49_RL49_malformed_chunk_framing_is_atomic(api, direct_api, seeded, kind):
     """R1.31 R1.49 RL49: malformed chunk frames are 400 and leave state unchanged."""
+    data = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    size = f'{len(data):x}'.encode()
+    prefix = size + b'\r\n' + data + b'\r\n'
+    trailers = {'invalid-trailer': b'invalid-trailer', 'empty-name': b': value',
+                'space-in-name': b'Bad Name: value', 'invalid-name-character': b'Bad@Name: value',
+                'space-before-colon': b'Name : value', 'bare-cr-value': b'X-Value: bad\rvalue',
+                'nul-value': b'X-Value: bad\x00value'}
+    if kind == 'plus':
+        body = b'+' + size + b'\r\n' + data + b'\r\n0\r\n\r\n'
+    elif kind == 'hex-prefix':
+        body = b'0x' + size + b'\r\n' + data + b'\r\n0\r\n\r\n'
+    elif kind == 'underscore':
+        body = size[:1] + b'_' + size[1:] + b'\r\n' + data + b'\r\n0\r\n\r\n'
+    elif kind == 'bad-data-crlf':
+        body = size + b'\r\n' + data + b'!!0\r\n\r\n'
+    elif kind == 'eof-after-zero':
+        body = prefix + b'0'
+    elif kind == 'missing-final-crlf':
+        body = prefix + b'0\r\n'
+    else:
+        body = prefix + b'0\r\n' + trailers[kind] + b'\r\n\r\n'
     snapshot = api.get('/_test/export', timeout=10).json()
     status, payload = chunked_socket_request(direct_api, body)
     assert status == 400
@@ -333,12 +342,13 @@ def test_R1_31_R1_49_RL49_malformed_chunk_framing_is_atomic(api, direct_api, see
     assert direct_api.get('/health').status_code == 200
 
 
-def test_R1_31_RL49_chunk_extension_and_trailer_are_parsed(direct_api, mock):
-    """R1.31 RL49: valid chunk extensions and trailers are accepted."""
-    body = b'{"now":"2026-03-01T09:00:00Z","users":[]}'
+def test_R1_31_RL49_chunk_extension_and_trailer_are_parsed(api, direct_api, seeded):
+    """R1.31 RL49: valid chunk extensions and trailers execute the state-changing reset."""
+    body = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
     framed = f'{len(body):x};probe=ok\r\n'.encode() + body + b'\r\n0\r\nX-Probe: accepted\r\n\r\n'
     status, _ = chunked_socket_request(direct_api, framed)
     assert status == 204
+    error(api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'}), 401, 'unauthenticated')
     assert direct_api.get('/health').status_code == 200
 
 
