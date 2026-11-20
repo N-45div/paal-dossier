@@ -202,7 +202,6 @@ class ReviewFindingTests(unittest.TestCase):
             "unknown provider": lambda f: f["founded_year"]["citations"][0].update(provider="bing"),
             "unknown field carries citations": lambda f: f.update(ceo={"value": None, "status": "unknown", "citations": [cite]}),
             "known field without citations": lambda f: f["founded_year"].update(citations=[]),
-            "field without status": lambda f: f["founded_year"].pop("status"),
             "field with an extra key": lambda f: f["founded_year"].update(score=1),
         }
         for why, mutate in cases.items():
@@ -211,6 +210,37 @@ class ReviewFindingTests(unittest.TestCase):
                 self.assertEqual(call(self.app, "GET", "/_test/export")[1], before)
         valid = fields(lambda f: f.update(headcount_range={"value": "51-200", "status": "known", "citations": [cite]}))
         self.assertEqual(call(self.app, "POST", "/_test/import", valid)[0], 204)
+
+    def test_r1_126_two_key_export_form_imports_unchanged(self):
+        """Covers R1.126, R1.40, RL22: the opaque {value, citations} export form imports; status is derived (RL32)."""
+        call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(self.headers, **{"idempotency-key": "t"}))
+        self.settle("acme-robotics.test")
+        exported = call(self.app, "GET", "/_test/export")[1]
+        two_key = copy.deepcopy(exported)
+        for entry in two_key["state"]["dossiers"][0]["fields"].values():
+            entry.pop("status")
+        self.assertEqual(call(self.app, "POST", "/_test/import", two_key)[0], 204)
+        self.assertEqual(call(self.app, "GET", "/_test/export")[1], exported)
+
+    def test_r1_40_and_r1_126_and_rl22_whitespace_padded_identity_fields_are_422_and_unchanged(self):
+        """Covers R1.40, R1.126, RL22: legal_name, hq_city and ceo with surrounding whitespace are 422 with state unchanged (RL32)."""
+        call(self.app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(self.headers, **{"idempotency-key": "w"}))
+        self.settle("acme-robotics.test")
+        exported = call(self.app, "GET", "/_test/export")[1]
+        before = copy.deepcopy(exported)
+        cite = {"url": "https://acme-robotics.test/about", "excerpt": "Acme Robotics is in Lisbon.", "provider": "nimble"}
+        padded = {
+            ("legal_name", " Acme Robotics, Inc."): {"value": " Acme Robotics, Inc.", "status": "known", "citations": [cite]},
+            ("legal_name", "Acme Robotics, Inc. "): {"value": "Acme Robotics, Inc. ", "status": "known", "citations": [cite]},
+            ("hq_city", "Lisbon "): {"value": "Lisbon ", "status": "known", "citations": [cite]},
+            ("ceo", " Mira Santos"): {"value": " Mira Santos", "status": "known", "citations": [cite]},
+        }
+        for (name, value), entry in padded.items():
+            with self.subTest(field=name, value=value):
+                bad = copy.deepcopy(exported)
+                bad["state"]["dossiers"][0]["fields"][name] = entry
+                self.assertEqual(call(self.app, "POST", "/_test/import", bad)[0], 422)
+                self.assertEqual(call(self.app, "GET", "/_test/export")[1], before)
 
     def test_r1_40_funding_total_zero_is_a_valid_known_value(self):
         """Covers R1.40, R1.126: $0 is an amount (RL24); funding_total 0 imports as known and round-trips."""

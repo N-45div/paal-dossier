@@ -153,19 +153,23 @@ def dossier_from_json(entry: Any) -> dict[str, Any]:
 
 
 def _field_from_json(name: str, entry: Any) -> dict[str, Any]:
-    """Strict field check (RL22.4): exact keys, status iff value, typed value, well-formed citations."""
-    if not isinstance(entry, dict) or set(entry) != FIELD_KEYS:
+    """Field check on import (RL22.4, RL32): status is derived from the value; the two-key export form imports.
+
+    An entry is {value, citations} or {value, status, citations}; a present status must agree with the value.
+    """
+    if not isinstance(entry, dict) or set(entry) not in (FIELD_KEYS, FIELD_KEYS - {"status"}):
         raise validation("state holds an invalid field")
     value = entry["value"]
-    status = entry["status"]
     citations = entry["citations"]
     if not isinstance(citations, list):
         raise validation("state holds an invalid citation list")
+    if "status" in entry and entry["status"] != ("known" if value is not None else "unknown"):
+        raise validation("state holds an invalid field status")
     if value is None:
-        if status != "unknown" or citations != []:
-            raise validation("an unknown field has no value, no citations and status unknown")
+        if citations != []:
+            raise validation("an unknown field has no value and no citations")
         return {"value": None, "citations": []}
-    if status != "known" or not _is_value(name, value) or not citations:
+    if not _is_value(name, value) or not citations:
         raise validation("state holds an invalid known field")
     if not all(isinstance(c, dict) and set(c) == CITATION_KEYS and _is_citation(c) for c in citations):
         raise validation("state holds an invalid citation")
