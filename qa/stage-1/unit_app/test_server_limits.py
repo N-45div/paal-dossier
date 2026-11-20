@@ -22,6 +22,7 @@ Index of claimed ids covered in this module:
     RL49  -> ServerLimitTests.test_rl56_valid_transfer_encoding_chunked_is_parsed
     RL56  -> ServerLimitTests.test_rl56_transfer_encoding_gzip_then_chunked_is_400_and_changes_nothing
     RL56  -> ServerLimitTests.test_rl56_two_transfer_encoding_header_lines_are_400_and_change_nothing
+    RL56  -> ServerLimitTests.test_rl56_transfer_encoding_with_a_trailing_empty_coding_is_400_and_changes_nothing
     RL56  -> ServerLimitTests.test_rl56_transfer_encoding_case_and_trailing_space_positive_controls_are_204
     RL56  -> ServerLimitTests.test_rl56_transfer_encoding_chunked_then_gzip_is_400_and_never_executes
     RL56  -> ServerLimitTests.test_rl56_transfer_encoding_chunked_twice_is_400_and_never_executes
@@ -233,6 +234,10 @@ class ServerLimitTests(unittest.TestCase):
     def test_rl56_two_transfer_encoding_header_lines_are_400_and_change_nothing(self):
         """Covers R1.31, RL49, RL56: 'chunked' then 'gzip' on two Transfer-Encoding lines combine to an unsupported list; 400, export unchanged."""
         self.assert_rl56_refused_and_unchanged("Transfer-Encoding: chunked\r\nTransfer-Encoding: gzip\r\n")
+
+    def test_rl56_transfer_encoding_with_a_trailing_empty_coding_is_400_and_changes_nothing(self):
+        """Covers R1.31, RL49, RL56: 'chunked,' ends with an empty coding, which is not the chunked coding; 400, export unchanged."""
+        self.assert_rl56_refused_and_unchanged("Transfer-Encoding: chunked,\r\n")
 
     def test_rl56_transfer_encoding_case_and_trailing_space_positive_controls_are_204(self):
         """Covers R1.31, RL49, RL56: 'Chunked' and 'chunked ' (trailing space) are the chunked coding; both reset (204)."""
