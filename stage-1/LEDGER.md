@@ -111,7 +111,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Dossier — Stage 1: company profiles
 - Spec lines: 5-7
 - Package: all / prover
-- Status: open
+- Status: accepted
 - Text:
 
   > Build from the supplied requirements. Source code, API documentation and schemas from
@@ -122,7 +122,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 1. Scope
 - Spec lines: 16-16
 - Package: all / prover
-- Status: open
+- Status: accepted
 - Text:
 
   > The following apply to all operations, including concurrent requests and retries:
@@ -131,7 +131,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 1. Scope
 - Spec lines: 18-20
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > 1. Every value the service asserts cites at least one excerpt that a provider endpoint served
@@ -142,7 +142,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 1. Scope
 - Spec lines: 21-21
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > 2. No build of a dossier spends more than 80 units (§9).
@@ -151,7 +151,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 1. Scope
 - Spec lines: 23-23
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > Contact data, people search, and fields other than the six in §4 are out of scope.
@@ -160,7 +160,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 2. Delivery and deployment
 - Spec lines: 27-29
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Deliver an HTTP service, a `Dockerfile` and a `RUN.md` with a command that builds and
@@ -171,7 +171,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 2. Delivery and deployment
 - Spec lines: 31-35
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > The submission is a containerized HTTP service, not a Python package. Python is not
@@ -184,7 +184,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 2. Delivery and deployment
 - Spec lines: 37-39
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > The image must run on its own with `-e PORT=<port>` and a port mapping. All runtime
@@ -195,7 +195,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Web access
 - Spec lines: 43-46
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > Two providers are available: `nimble` and `tavily`. Nimble is the default provider: every
@@ -207,7 +207,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Web access
 - Spec lines: 48-52
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > The service reaches the providers only through WebRouter, the Python package `webrouter`
@@ -220,7 +220,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Web access
 - Spec lines: 53-57
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Install it and the provider SDK dependencies from PyPI, including in the service's Docker build:
@@ -233,7 +233,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Web access
 - Spec lines: 60-68
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > The deployment provides these environment variables:
@@ -250,7 +250,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Web access
 - Spec lines: 70-76
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > Keys are opaque non-empty strings. WebRouter's `nimble` provider reads `NIMBLE_API_KEY` and
@@ -265,7 +265,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Resource limits
 - Spec lines: 84-85
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | CPU | 2 vCPU |
@@ -275,7 +275,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Resource limits
 - Spec lines: 86-86
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Start to first healthy response | 60 s |
@@ -284,7 +284,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Resource limits
 - Spec lines: 87-87
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Concurrent requests | up to 50 in flight |
@@ -293,7 +293,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Resource limits
 - Spec lines: 88-88
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Per-request timeout | 5 s (10 s for `POST /_test/reset`) |
@@ -302,7 +302,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Resource limits
 - Spec lines: 89-89
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Outbound network | available during `docker build`; at run time, **only the provider endpoints this specification lists** |
@@ -311,7 +311,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Resource limits
 - Spec lines: 90-90
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Disk | ephemeral; state need not survive a container restart |
@@ -320,7 +320,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Resource limits
 - Spec lines: 92-94
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Runtime assets and dependencies must be included in the image. This includes fonts,
@@ -331,7 +331,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.1 Listening
 - Spec lines: 100-100
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Listen on `0.0.0.0` using the `PORT` environment variable, default `8080`.
@@ -340,7 +340,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.2 Health
 - Spec lines: 108-110
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Return 200 once the service and its data store can serve requests, within 60 seconds
@@ -351,7 +351,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.3 Reset and seed
 - Spec lines: 123-127
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Replace all service state with the fixture in the request body (§4). When reset returns
@@ -364,7 +364,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.4 Clock
 - Spec lines: 131-132
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > The service keeps a clock that only reset and `POST /_test/clock` move. Every timestamp
@@ -374,7 +374,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.4 Clock
 - Spec lines: 143-144
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - Reset sets the clock to the fixture's `now`. Before the first reset the clock follows the
@@ -384,7 +384,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.4 Clock
 - Spec lines: 145-146
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - The clock stands still between calls: two requests with no clock call between them read
@@ -394,7 +394,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.4 Clock
 - Spec lines: 147-148
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `now` is an RFC 3339 timestamp with an explicit offset. A `now` earlier than the clock's
@@ -404,7 +404,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.4 Clock
 - Spec lines: 149-149
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `POST /_test/clock` requires no authentication.
@@ -413,7 +413,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.5 Conventions
 - Spec lines: 153-153
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - Requests and responses are `application/json; charset=utf-8`.
@@ -422,7 +422,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.5 Conventions
 - Spec lines: 154-154
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - Timestamps in responses are RFC 3339 with an explicit offset, e.g. `2026-09-24T19:00:00+02:00`.
@@ -431,7 +431,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.5 Conventions
 - Spec lines: 155-155
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - Unknown fields in a request body are ignored, never an error.
@@ -440,7 +440,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.5 Conventions
 - Spec lines: 156-156
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - Unknown query parameters are ignored.
@@ -449,7 +449,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 3.5 Conventions
 - Spec lines: 157-157
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - IDs are opaque strings of at most 64 characters. Their format is yours.
@@ -458,7 +458,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Users
 - Spec lines: 163-163
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Users sign up and log in (§6). Every authenticated user sees the same dossiers.
@@ -467,7 +467,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Domains
 - Spec lines: 167-172
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > A company is identified by its domain. Every domain the API takes, in a body or a path, is
@@ -481,7 +481,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Domains
 - Spec lines: 174-175
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > `Acme-Robotics.TEST.`, `www.acme-robotics.test` and `acme-robotics.test` name the same
@@ -491,7 +491,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Fields
 - Spec lines: 179-179
 - Package: all / prover
-- Status: open
+- Status: accepted
 - Text:
 
   > A dossier has exactly these six fields:
@@ -500,7 +500,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Fields
 - Spec lines: 183-188
 - Package: all / prover
-- Status: open
+- Status: accepted
 - Text:
 
   > | `legal_name` | String: the company's registered name, e.g. `Acme Robotics, Inc.` |
@@ -514,7 +514,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Fields
 - Spec lines: 190-192
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A string value is written as the supporting excerpt writes it, without surrounding
@@ -525,7 +525,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Fields
 - Spec lines: 194-207
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Each field in a response has this shape:
@@ -547,7 +547,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Evidence and support
 - Spec lines: 211-213
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > The **evidence** for a company is every page that some search, through any provider and for
@@ -558,7 +558,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Evidence and support
 - Spec lines: 215-218
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > Of the searches that a provider answers without an error, every build makes exactly one whose
@@ -570,7 +570,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Evidence and support
 - Spec lines: 220-224
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A **citation** is an excerpt of text a provider served for the page at `url`:
@@ -583,7 +583,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Evidence and support
 - Spec lines: 226-230
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > An excerpt **supports** a value when, read on its own, it states that value for that field
@@ -596,7 +596,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Evidence and support
 - Spec lines: 232-234
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A research answer carries a claimed value for a field and a citation for the claim. The
@@ -607,7 +607,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Evidence and support
 - Spec lines: 236-237
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > When the evidence supports more than one value for a field, the field holds one of them and
@@ -617,7 +617,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Pages
 - Spec lines: 241-249
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > Every page has a URL, a title and a text. A text may begin with **header lines**, each of
@@ -634,7 +634,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Fixture format
 - Spec lines: 251-268
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > ### Fixture format
@@ -660,7 +660,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 272-272
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Every 4xx and 5xx response carries this body:
@@ -669,7 +669,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 278-279
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Use the specified HTTP status and `code`. The human-readable `message` may use any wording.
@@ -679,7 +679,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 283-283
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | 400 | `malformed_request` | Unparseable body, or a field of the wrong JSON type |
@@ -688,7 +688,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 284-284
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | 400 | `missing_idempotency_key` | Required `Idempotency-Key` header absent or empty |
@@ -697,7 +697,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 285-285
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | 401 | `unauthenticated` | Missing, malformed or unknown bearer token |
@@ -706,7 +706,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 286-286
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | 404 | `not_found` | No such resource, or not visible to this caller |
@@ -715,7 +715,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 287-287
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | 409 | `idempotency_key_reuse` | Key already used by this caller with a different request body |
@@ -724,7 +724,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 288-288
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | 422 | `validation_failed` | A required field or query parameter is missing, or a stated rule is violated with no more specific code |
@@ -733,7 +733,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 290-291
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > A field of the correct JSON type with an invalid format or out-of-range value gives
@@ -743,7 +743,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 293-295
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - An integer-valued **query parameter** is written as plain decimal digits: `1e9`, `4.0` and `+4`
@@ -754,7 +754,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 297-297
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Shared ranges, enforced on every endpoint that takes them:
@@ -763,7 +763,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 301-301
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `Idempotency-Key` | 1 to 255 characters | 422 `validation_failed` |
@@ -772,7 +772,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 302-303
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `limit` | integer 1 to 200 | 422 `validation_failed` |
@@ -782,7 +782,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 5. Errors
 - Spec lines: 305-306
 - Package: all / prover
-- Status: open
+- Status: accepted
 - Text:
 
   > Requests must not produce 5xx responses, including under concurrent load and when a
@@ -792,7 +792,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 310-311
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Authentication supports signup and login. Email verification, password reset, refresh
@@ -802,7 +802,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 313-325
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > ```http
@@ -823,7 +823,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 329-333
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Email already registered | 409 `email_taken` |
@@ -836,7 +836,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 335-335
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > For a user seeded by the fixture (§3.3), `user_id` is that user's `id` in the fixture.
@@ -845,7 +845,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 337-339
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Every other endpoint requires a bearer token, except `/health`, the `/_test/*` endpoints and
@@ -856,7 +856,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 341-343
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > ```http
@@ -867,7 +867,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 345-345
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Tokens do not expire. An account may have multiple valid tokens and concurrent sessions.
@@ -876,7 +876,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 6. Authentication
 - Spec lines: 347-348
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Passwords must be stored using a password-hashing function such as bcrypt, scrypt or
@@ -886,7 +886,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 352-354
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Two write paths require an idempotency key (§8): **`POST /dossiers`** and
@@ -897,7 +897,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 360-361
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > The key is scoped to **the authenticated user**. Two different users may use the same key string
@@ -907,7 +907,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 363-366
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > A replay means the same user sending the **same method, the same path and the same body**. The
@@ -919,7 +919,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 370-370
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Header absent or empty | 400 `missing_idempotency_key` |
@@ -928,7 +928,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 371-371
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | First use of the key | The normal response (§8) |
@@ -937,7 +937,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 372-372
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Replay: same key, same body | **200**, body identical to the original response as a JSON value |
@@ -946,7 +946,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 373-373
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Same key, different body | 409 `idempotency_key_reuse` |
@@ -955,7 +955,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 374-374
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Key reused after the original request failed with 4xx | Treated as a first use |
@@ -964,7 +964,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 376-380
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > "Same body" means the same JSON value after parsing — key order and whitespace do not matter.
@@ -977,7 +977,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 382-383
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > For concurrent identical requests with an unused key, exactly one returns the normal
@@ -987,7 +987,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 385-386
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > A successful replay returns the original response, even after the dossier has changed. It
@@ -997,7 +997,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 7. Idempotency
 - Spec lines: 388-390
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > After the body has parsed as a JSON object and the caller is authenticated, an already
@@ -1008,7 +1008,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Builds
 - Spec lines: 396-399
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > A **build** researches one dossier: it calls the providers, decides each field, and replaces
@@ -1020,7 +1020,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Builds
 - Spec lines: 401-401
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - A dossier has at most one build running at a time.
@@ -1029,7 +1029,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Builds
 - Spec lines: 402-403
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - A build ends in `ready` when it completed, or `failed` when none of its provider calls
@@ -1039,7 +1039,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Builds
 - Spec lines: 404-405
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > - When a build completes `ready`, each field is `known` exactly when the evidence (§4)
@@ -1049,7 +1049,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Builds
 - Spec lines: 406-407
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > - A build whose provider calls each answer within one second ends within 10 seconds of the
@@ -1059,7 +1059,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Builds
 - Spec lines: 408-412
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > - That bound is not a deadline for slower providers. Against the live providers
@@ -1072,7 +1072,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Builds
 - Spec lines: 413-414
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - Reading a dossier, listing dossiers and every other request except `POST /dossiers` and
@@ -1082,7 +1082,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers`
 - Spec lines: 418-418
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > **An idempotent write path.** `Idempotency-Key` is required; see §7.
@@ -1091,7 +1091,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers`
 - Spec lines: 420-431
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > ```http
@@ -1111,7 +1111,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers`
 - Spec lines: 433-435
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > When no dossier exists for the domain, the service creates one, starts its first build and
@@ -1122,7 +1122,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers`
 - Spec lines: 437-438
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Concurrent requests for the same domain create one dossier and start one build, whatever
@@ -1132,7 +1132,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers`
 - Spec lines: 442-443
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `domain` missing | 422 `validation_failed` |
@@ -1142,7 +1142,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers/{domain}`
 - Spec lines: 447-463
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > ```json
@@ -1167,7 +1167,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers/{domain}`
 - Spec lines: 465-466
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `state` is `building` while a build runs, otherwise the outcome of the latest build,
@@ -1177,7 +1177,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers/{domain}`
 - Spec lines: 467-469
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `fields` always holds all six fields. Before the first build completes `ready`, every
@@ -1188,7 +1188,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers/{domain}`
 - Spec lines: 470-470
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `researched_at` is the time of the last build that completed `ready`, or null.
@@ -1197,7 +1197,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers/{domain}`
 - Spec lines: 471-472
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `spent_units` is the total cost (§9) of every provider call made for this dossier, by
@@ -1207,7 +1207,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers/{domain}`
 - Spec lines: 473-473
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - The domain in the path is normalised (§4). No dossier for it is 404 `not_found`.
@@ -1216,7 +1216,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers/{domain}/refresh`
 - Spec lines: 477-477
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > **An idempotent write path.** `Idempotency-Key` is required; see §7. No body.
@@ -1225,7 +1225,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers/{domain}/refresh`
 - Spec lines: 479-481
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Starts a new build of the dossier and returns 202 with
@@ -1236,7 +1236,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers/{domain}/refresh`
 - Spec lines: 483-484
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > A refresh researches again: its build makes provider calls whether or not anything has
@@ -1246,7 +1246,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `POST /dossiers/{domain}/refresh`
 - Spec lines: 488-488
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > | No dossier for the domain | 404 `not_found` |
@@ -1255,7 +1255,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers`
 - Spec lines: 492-501
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > ```http
@@ -1273,7 +1273,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers`
 - Spec lines: 503-503
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `legal_name` is the value of the dossier's `legal_name` field, or null.
@@ -1282,7 +1282,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers`
 - Spec lines: 504-505
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `q` is optional. When present, only dossiers whose domain or `legal_name` contains `q`,
@@ -1292,7 +1292,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers`
 - Spec lines: 506-506
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - Dossiers are ordered by domain ascending.
@@ -1301,7 +1301,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: `GET /dossiers`
 - Spec lines: 507-508
 - Package: P3 dossier API (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `limit` defaults to 50, range 1 to 200. `offset` defaults to 0. `has_more` is true when
@@ -1311,7 +1311,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 512-512
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > Each provider call has a cost in **units**:
@@ -1320,7 +1320,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 516-516
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Search through `nimble`, depth `lite` (title, URL and snippet) | 1 |
@@ -1329,7 +1329,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 517-517
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Search through `nimble`, depth `fast` (a truncated page body) | 5 |
@@ -1338,7 +1338,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 518-518
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Search through `nimble`, depth `deep` (the full page) | 15 |
@@ -1347,7 +1347,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 519-519
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Search through `tavily`, depth `lite` (title, URL and snippet) | 8 |
@@ -1356,7 +1356,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 520-520
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Search through `tavily`, depth `fast` (title, URL and a longer snippet) | 16 |
@@ -1365,7 +1365,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 521-521
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Search through `tavily`, depth `deep` (the full page) | 16 |
@@ -1374,7 +1374,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 522-522
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Extract through `nimble` | 1 per URL requested, including a URL for which no page is returned |
@@ -1383,7 +1383,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 523-523
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Extract through `tavily` | 2 per URL requested, including a URL for which no page is returned |
@@ -1392,7 +1392,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 524-524
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | Research run through `nimble` | 25 when the run is started; checking on or collecting a run costs nothing |
@@ -1401,7 +1401,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 526-526
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A search's depth is WebRouter's `search_depth`.
@@ -1410,7 +1410,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 528-533
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A search returns at most 10 results, whatever number it asks for. A call that a provider
@@ -1424,7 +1424,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 535-536
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A build stops making provider calls before its spending would exceed 80 units, and completes
@@ -1434,7 +1434,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 9. Providers and cost
 - Spec lines: 538-539
 - Package: P4 research engine (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A research request names the company by its domain in its query, and names the fields it
@@ -1444,7 +1444,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 10. Export and import
 - Spec lines: 543-544
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > The service must support `GET /_test/export` and `POST /_test/import`. Like reset, these
@@ -1454,7 +1454,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 10. Export and import
 - Spec lines: 545-548
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Exports may contain credentials and session tokens; handle them as private artifacts.
@@ -1466,7 +1466,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 10. Export and import
 - Spec lines: 550-556
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Import takes that entire object and atomically replaces the service's state, returning
@@ -1481,7 +1481,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 10. Export and import
 - Spec lines: 558-566
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > Preserve accounts and hashed-password login, existing bearer tokens, dossiers with their
@@ -1498,7 +1498,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 10. Export and import
 - Spec lines: 568-570
 - Package: P1 foundation (builder-a)
-- Status: open
+- Status: accepted
 - Text:
 
   > An export taken while a build is running holds the dossier as it was before that build;
@@ -1509,7 +1509,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: 11. Concurrency
 - Spec lines: 574-575
 - Package: all / prover
-- Status: open
+- Status: accepted
 - Text:
 
   > Concurrent requests must produce the same results as executing them one at a time in some
@@ -1519,7 +1519,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: Appendix A. When an excerpt supports a value
 - Spec lines: 579-580
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > This appendix is the whole definition of "supports" used in §4. The service decides support
@@ -1529,7 +1529,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.1 Sentences
 - Spec lines: 584-588
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A page's prose is split into lines at each line break, and each line into sentences. A
@@ -1542,7 +1542,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.1 Sentences
 - Spec lines: 590-591
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > An excerpt is a **single sentence** when, with every run of whitespace written as one space,
@@ -1552,7 +1552,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 595-604
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > An excerpt supports the value V for the field F of a company exactly when all of these hold:
@@ -1570,7 +1570,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 606-608
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > The company's name, its domain and every phrase are matched without regard to case and as
@@ -1581,7 +1581,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 614-614
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `Dana Ruiz has led Acme Robotics as chief executive since 2021.` | `ceo` `Dana Ruiz` |
@@ -1590,7 +1590,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 615-615
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `Acme Robotics CEO: Sam Ortiz.` | `ceo` `Sam Ortiz` |
@@ -1599,7 +1599,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 616-616
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `Acme Robotics was founded in 2014.` | `founded_year` `2014` |
@@ -1608,7 +1608,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 617-617
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `Acme Robotics employs about 120 people.` | `headcount_range` `51-200` |
@@ -1617,7 +1617,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 618-618
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `Acme Robotics is reportedly in talks to raise $40M.` | nothing: a negating phrase |
@@ -1626,7 +1626,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.2 The rule
 - Spec lines: 619-619
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `Acme Robotics opened a sales office in Porto.` | nothing: no statement phrase for `hq_city` |
@@ -1635,7 +1635,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.3 Phrases
 - Spec lines: 625-625
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `legal_name` | `legal name`, `registered name`, `registered as`, `registered company`, `legal entity`, `name of record` |
@@ -1644,7 +1644,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.3 Phrases
 - Spec lines: 626-626
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `hq_city` | `headquartered in`, `headquarters in`, `head office in`, `based in`, `registered office in`, `registered seat in` |
@@ -1653,7 +1653,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.3 Phrases
 - Spec lines: 627-627
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `ceo` | `chief executive officer`, `chief executive`, `CEO` |
@@ -1662,7 +1662,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.3 Phrases
 - Spec lines: 628-628
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `founded_year` | `founded`, `founding`, `established`, `incorporated` |
@@ -1671,7 +1671,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.3 Phrases
 - Spec lines: 629-629
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `headcount_range` | `employs`, `employees`, `staff`, `people`, `headcount`, `workforce` |
@@ -1680,7 +1680,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.3 Phrases
 - Spec lines: 630-630
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `funding_total` | `raised`, `funding`, `invested`, `investment` |
@@ -1689,7 +1689,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.3 Phrases
 - Spec lines: 632-634
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > The negating phrases are: `in talks to`, `plans to`, `planning to`, `wants to`,
@@ -1700,7 +1700,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 638-641
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A **capitalised word** is an uppercase letter followed by one or more lowercase letters,
@@ -1712,7 +1712,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 643-645
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > A **number** is written in digits, optionally with a `,` before each group of three digits
@@ -1723,7 +1723,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 649-649
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `legal_name` | The company's name or its domain (matched as in A.2), then zero or more capitalised or uppercase words each after one space, then an optional `,`, one space, and a legal-form suffix with no letter or digit directly after it. Where several such texts start at the same place, the shortest counts |
@@ -1732,7 +1732,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 650-650
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `hq_city` | A place name directly after a statement phrase for `hq_city` and one space: the longest run of capitalised words joined by single spaces or by `-` that starts there, not part of a longer such run |
@@ -1741,7 +1741,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 651-651
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `ceo` | A person's name: a run of two or three capitalised words joined by single spaces that is not part of a longer such run. Occurrences of the company's name and of the statement phrases for `ceo` are first taken out of the sentence and separate the words around them |
@@ -1750,7 +1750,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 652-652
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `founded_year` | A number of exactly four digits, from 1800 to 2099, that is not part of an amount |
@@ -1759,7 +1759,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 653-653
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `headcount_range` | A number with no decimal part, 1 or more, that is not part of an amount. Words before it, such as `about` or `roughly`, do not change it. A stated range such as `51-200 employees` holds two numbers |
@@ -1768,7 +1768,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 654-654
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `funding_total` | An amount (below) |
@@ -1777,7 +1777,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 656-659
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > The legal-form suffixes, matched exactly as written here: `Inc.`, `Corp.`, `LLC`, `LLP`,
@@ -1789,7 +1789,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 661-662
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > An **amount** is written in one of these forms, matched without regard to case, with no
@@ -1799,7 +1799,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 664-667
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > - `$`, `US$` or `USD`, an optional space, a number, and optionally a scale: `k`, `m`, `mn` or
@@ -1811,7 +1811,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 668-669
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > - A number, optionally one space and `thousand`, `million` or `billion`, then one space and
@@ -1821,7 +1821,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.4 Value formats
 - Spec lines: 671-671
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > Amounts in other currencies are not amounts.
@@ -1830,7 +1830,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.5 Normalisation
 - Spec lines: 677-677
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `legal_name`, `hq_city`, `ceo` | The text as the excerpt writes it |
@@ -1839,7 +1839,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.5 Normalisation
 - Spec lines: 678-678
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `founded_year` | The number as an integer |
@@ -1848,7 +1848,7 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.5 Normalisation
 - Spec lines: 679-679
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `headcount_range` | The range of §4 that contains the number |
@@ -1857,8 +1857,16 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Section: A.5 Normalisation
 - Spec lines: 680-680
 - Package: P2 support rules (builder-b)
-- Status: open
+- Status: accepted
 - Text:
 
   > | `funding_total` | The number times the scale (`k` and `thousand` 1,000; `m`, `mn` and `million` 1,000,000; `bn` and `billion` 1,000,000,000) in US dollars. An amount that does not come to a whole number of dollars is not a value |
 
+
+## Stage 1 freeze
+
+- Frozen product revision: 3bacfc826adb44ecc76d47307eed5a3d9bc63164 (main after P1/P3 ff5bee5, P4 82100ce, P2, prover suite 3af1f508). Later main commits (RL58 ledger b0c962c) differ only in stage-1/LEDGER.md.
+- Final acceptance by the gatekeeper: integrated prover suite 282/282; M1-M4 measures passed (12/12 sample builds ready in 0.167-1.333 s, 32-37 units, costs equal provider logs; 50 simultaneous logins all 200, slowest 0.138 s; 33.5 MiB of 3 GiB, 2 CPUs).
+- Event check (isolated Stage 1): 122/122 passed, 0 failed, 0 skipped (report: band-work/gatekeeper-rl58-f26e80470eb8/report-2).
+- Ledger status at freeze: 164 entries accepted, 0 open.
+- Stage 1 frozen: 2026-11-20.
