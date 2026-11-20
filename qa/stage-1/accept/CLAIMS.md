@@ -241,7 +241,7 @@ Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test
   > - Reset sets the clock to the fixture's `now`. Before the first reset the clock follows the
   >   system time.
 
-Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_23_R1_25_reset_can_move_clock_backwards`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
+Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_23_R1_25_reset_can_move_clock_backwards`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_extreme_offset_build_completes`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
 
 ### R1.26
 - Section: 3.4 Clock
@@ -265,7 +265,7 @@ Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`
   > - `now` is an RFC 3339 timestamp with an explicit offset. A `now` earlier than the clock's
   >   current time is 422 `validation_failed` and changes nothing.
 
-Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_27_fractional_clock_precision`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_27_invalid_rfc3339_offsets`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
+Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_27_fractional_clock_precision`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_extreme_offset_build_completes`, `test_foundation.py::test_R1_27_invalid_rfc3339_offsets`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
 
 ### R1.28
 - Section: 3.4 Clock
@@ -331,7 +331,7 @@ Referenced tests: `test_api.py::test_R1_32_R1_34_R1_105_R1_107_R1_108_R1_109_ord
 
   > - IDs are opaque strings of at most 64 characters. Their format is yours.
 
-Referenced tests: `test_api.py::test_R1_31_R1_33_R1_64_signup_extra_fields`, `test_foundation.py::test_R1_23_R1_33_R1_48_fixture_validation_atomic`
+Referenced tests: `test_api.py::test_R1_31_R1_33_R1_64_signup_extra_fields`, `test_foundation.py::test_R1_23_R1_33_R1_48_fixture_validation_atomic`, `test_foundation.py::test_R1_33_R1_125_R1_126_RL20_max_counter_export_after_signup_round_trips`
 
 ### R1.34
 - Section: Users
@@ -1016,7 +1016,7 @@ Referenced tests: `test_state_faults.py::test_R1_84_R1_102_concurrent_refresh_on
   > - A build ends in `ready` when it completed, or `failed` when none of its provider calls
   >   succeeded. A failed build leaves the fields as they were.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_9_R1_62_R1_85_provider_errors`, `test_state_faults.py::test_R1_9_R1_62_R1_85_nimble_failure`, `test_state_faults.py::test_R1_62_R1_85_R1_87_rate_limits`, `test_state_faults.py::test_R1_85_failed_refresh_preserves_ready_fields`, `test_state_faults.py::test_R1_85_R1_125_R1_126_R1_128_snapshot_failed_and_running_refresh`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_extreme_offset_build_completes`, `test_state_faults.py::test_R1_9_R1_62_R1_85_provider_errors`, `test_state_faults.py::test_R1_9_R1_62_R1_85_nimble_failure`, `test_state_faults.py::test_R1_62_R1_85_R1_87_rate_limits`, `test_state_faults.py::test_R1_85_failed_refresh_preserves_ready_fields`, `test_state_faults.py::test_R1_85_R1_125_R1_126_R1_128_snapshot_failed_and_running_refresh`
 
 ### R1.86
 - Section: Builds
@@ -1161,7 +1161,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   > - `state` is `building` while a build runs, otherwise the outcome of the latest build,
   >   `ready` or `failed`.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_extreme_offset_build_completes`
 
 ### R1.97
 - Section: `GET /dossiers/{domain}`
@@ -1508,7 +1508,7 @@ Referenced tests: `test_foundation.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_fo
   > `format_version: 1` and `state` (an implementation-defined JSON object). The state format
   > is opaque to the caller and must be accepted unchanged by import.
 
-Referenced tests: `test_foundation.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_foundation_snapshot`, `test_state_faults.py::test_R1_85_R1_125_R1_126_R1_128_snapshot_failed_and_running_refresh`, `test_state_faults.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip`
+Referenced tests: `test_foundation.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_foundation_snapshot`, `test_foundation.py::test_R1_33_R1_125_R1_126_RL20_max_counter_export_after_signup_round_trips`, `test_state_faults.py::test_R1_85_R1_125_R1_126_R1_128_snapshot_failed_and_running_refresh`, `test_state_faults.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip`
 
 ### R1.126
 - Section: 10. Export and import
@@ -1525,7 +1525,7 @@ Referenced tests: `test_foundation.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_fo
   > `validation_failed` without changing the destination. These control calls have a 10-second
   > timeout. Export is an atomic, read-only snapshot; subsequent source writes do not change it.
 
-Referenced tests: `test_foundation.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_foundation_snapshot`, `test_foundation.py::test_R1_126_missing_export_sections_rejected_atomically`, `test_foundation.py::test_R1_70_R1_126_R1_127_invalid_snapshot_entries_are_atomic`, `test_state_faults.py::test_R1_85_R1_125_R1_126_R1_128_snapshot_failed_and_running_refresh`, `test_state_faults.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip`, `test_state_faults.py::test_R1_126_invalid_import_does_not_replace_state`, `test_synthetic.py::test_R1_40_R1_45_R1_86_R1_126_research_zero_is_known_and_importable`, `test_synthetic.py::test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic`, `test_synthetic.py::test_R1_38_R1_40_R1_126_invalid_import_field_values`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
+Referenced tests: `test_foundation.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_foundation_snapshot`, `test_foundation.py::test_R1_33_R1_125_R1_126_RL20_max_counter_export_after_signup_round_trips`, `test_foundation.py::test_R1_126_missing_export_sections_rejected_atomically`, `test_foundation.py::test_R1_70_R1_126_R1_127_invalid_snapshot_entries_are_atomic`, `test_state_faults.py::test_R1_85_R1_125_R1_126_R1_128_snapshot_failed_and_running_refresh`, `test_state_faults.py::test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip`, `test_state_faults.py::test_R1_126_invalid_import_does_not_replace_state`, `test_synthetic.py::test_R1_40_R1_45_R1_86_R1_126_research_zero_is_known_and_importable`, `test_synthetic.py::test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic`, `test_synthetic.py::test_R1_38_R1_40_R1_126_invalid_import_field_values`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
 
 ### R1.127
 - Section: 10. Export and import

@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from test_api import auth, error
+from test_api import auth, create, done, error
 
 
 def test_R1_23_R1_48_R1_63_R1_66_seed_and_reset(api, seeded):
@@ -38,7 +38,8 @@ def test_R1_70_R1_124_R1_125_R1_126_R1_127_foundation_snapshot(api, seeded):
     assert snapshot['track'] == 'dossier' and snapshot['format_version'] == 1 and isinstance(snapshot['state'], dict)
     assert 'correct horse' not in exported.text
     assert api.post('/_test/reset', json={'now':'2026-04-01T00:00:00+00:00','users':[]}, timeout=10).status_code == 204
-    assert api.post('/_test/import', json=snapshot, timeout=10).status_code == 204
+    imported = api.post('/_test/import', json=snapshot, timeout=10)
+    assert imported.status_code == 204
     login = api.post('/auth/login', json={'email':'ada@example.com','password':'correct horse'})
     assert login.status_code == 200 and login.json()['user_id'] == 'u_ada'
     assert api.post('/_test/import', json=snapshot, timeout=10).status_code == 204
@@ -140,6 +141,41 @@ def test_R1_25_R1_27_RL26_leap_seconds(api, seeded):
     assert api.post('/_test/reset', json={'now':'2016-12-31T23:59:60Z', 'users':[]}, timeout=10).status_code == 204
     for timestamp in ('2016-12-31T12:00:60Z', '2016-12-31T23:59:61Z'):
         error(api.post('/_test/clock', json={'now':timestamp}), 422, 'validation_failed')
+
+
+@pytest.mark.parametrize('timestamp', [
+    '0001-01-01T00:00:00+23:59',
+    '9999-12-31T23:59:59-23:59',
+])
+def test_R1_25_R1_27_R1_85_R1_96_extreme_offset_build_completes(api, mock, timestamp):
+    """R1.25 R1.27 R1.85 R1.96: valid boundary-offset clocks do not strand builds."""
+    fixture = {'now': timestamp, 'users': [{'id':'u', 'email':'seed@example.com',
+               'password':'correct horse', 'display_name':'Seed'}]}
+    assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+    login = api.post('/auth/login', json={'email':'seed@example.com', 'password':'correct horse'})
+    assert login.status_code == 200
+    token = login.json()['token']
+    assert create(api, token, 'ashgrove-solar.test', 'boundary-clock').status_code == 202
+    dossier = done(api, token, 'ashgrove-solar.test')
+    assert dossier['state'] == 'ready' and dossier['researched_at'] is not None
+    assert any(call['status'] == 200 for call in mock.get('/_mock/log').json()['calls'])
+
+
+def test_R1_33_R1_125_R1_126_RL20_max_counter_export_after_signup_round_trips(api, mock):
+    """R1.33 R1.125 R1.126: a valid max counter followed by signup exports importably."""
+    assert api.post('/_test/reset', json={'now':'2026-03-01T09:00:00Z', 'users':[]}, timeout=10).status_code == 204
+    snapshot = api.get('/_test/export', timeout=10).json()
+    snapshot['state']['counters']['user'] = 10**12
+    imported = api.post('/_test/import', json=snapshot, timeout=10)
+    assert imported.status_code == 204
+    signup = api.post('/auth/signup', json={'email':'rollover@example.com',
+                      'password':'correct horse', 'display_name':'Rollover'})
+    assert signup.status_code == 201 and len(signup.json()['user_id']) <= 64
+    exported = api.get('/_test/export', timeout=10).json()
+    imported = api.post('/_test/import', json=exported, timeout=10)
+    assert imported.status_code == 204
+    assert api.post('/auth/login', json={'email':'rollover@example.com',
+                    'password':'correct horse'}).status_code == 200
 
 
 @pytest.mark.parametrize('timestamp', [
