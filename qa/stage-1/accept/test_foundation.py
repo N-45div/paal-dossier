@@ -430,6 +430,32 @@ def test_R1_31_RL54_zero_padded_exact_cap_reset_executes(api, direct_api, seeded
     error(api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'}), 401, 'unauthenticated')
 
 
+def test_R1_31_RL54_zero_padded_small_reset_executes(api, direct_api, seeded):
+    """R1.31 RL54: a small valid body with a long zero-padded length is parsed."""
+    payload = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    length = b'0' * 5000 + str(len(payload)).encode()
+    status, _ = framed_socket_request(direct_api, b'Content-Length: ' + length + b'\r\n', payload)
+    assert status == 204
+    error(api.post('/auth/login', json={'email':'ada@example.com', 'password':'correct horse'}), 401, 'unauthenticated')
+
+
+@pytest.mark.parametrize('style', ['plus', 'underscore'])
+def test_R1_31_R1_49_RL54_invalid_length_cannot_execute_reset(api, direct_api, seeded, style):
+    """R1.31 R1.49 RL54: signed or underscored lengths cannot execute a valid reset."""
+    payload = b'{"now":"2027-03-01T09:00:00Z","users":[]}'
+    digits = str(len(payload)).encode()
+    length = b'+' + digits if style == 'plus' else digits[:1] + b'_' + digits[1:]
+    snapshot = api.get('/_test/export', timeout=10).json()
+    status, body = framed_socket_request(direct_api, b'Content-Length: ' + length + b'\r\n', payload, finish=True)
+    unchanged = api.get('/_test/export', timeout=10).json() == snapshot
+    assert status == 400, (status, unchanged)
+    envelope = json.loads(body)
+    assert envelope['error']['code'] == 'malformed_request'
+    assert isinstance(envelope['error']['message'], str)
+    if not unchanged:
+        pytest.fail('invalid Content-Length changed state')
+
+
 def test_R1_31_RL54_zero_padded_zero_is_empty_body(direct_api, mock):
     """R1.31 RL54: a zero-padded zero length is an empty request body."""
     status, body = framed_socket_request(direct_api, b'Content-Length: ' + b'0' * 5000 + b'0\r\n', finish=True)
