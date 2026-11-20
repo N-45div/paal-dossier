@@ -107,7 +107,11 @@ class _Handler(BaseHTTPRequestHandler):
             raise _BadFraming("Content-Length with Transfer-Encoding")
         if len({value.strip() for value in lengths}) > 1:
             raise _BadFraming("conflicting Content-Length headers")
-        if "chunked" in ",".join(encodings).lower():
+        if encodings:
+            # RFC 9112 6.1: the only coding this server frames is a single final chunked (RL56).
+            codings = [coding.strip().lower() for coding in ",".join(encodings).split(",")]
+            if codings != ["chunked"]:
+                raise _BadFraming("unsupported Transfer-Encoding")
             return self._read_chunked()
         length = _content_length(lengths[0] if lengths else None)
         if length > MAX_BODY_BYTES:

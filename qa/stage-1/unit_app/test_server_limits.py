@@ -19,6 +19,13 @@ Index of claimed ids covered in this module:
     R1.31 -> ServerLimitTests.test_r1_31_rl54_underscore_content_length_is_400_and_changes_nothing
     R1.31 -> ServerLimitTests.test_r1_31_rl54_conflicting_content_length_values_are_400_and_never_execute
     R1.31 -> ServerLimitTests.test_r1_31_rl54_content_length_with_transfer_encoding_is_400_and_never_executes
+    RL49  -> ServerLimitTests.test_rl56_valid_transfer_encoding_chunked_is_parsed
+    RL56  -> ServerLimitTests.test_rl56_transfer_encoding_gzip_then_chunked_is_400_and_changes_nothing
+    RL56  -> ServerLimitTests.test_rl56_two_transfer_encoding_header_lines_are_400_and_change_nothing
+    RL56  -> ServerLimitTests.test_rl56_transfer_encoding_case_and_trailing_space_positive_controls_are_204
+    RL56  -> ServerLimitTests.test_rl56_transfer_encoding_chunked_then_gzip_is_400_and_never_executes
+    RL56  -> ServerLimitTests.test_rl56_transfer_encoding_chunked_twice_is_400_and_never_executes
+    RL56  -> ServerLimitTests.test_rl56_transfer_encoding_xchunked_is_400_and_never_executes
     R1.32 -> ServerLimitTests.test_r1_31_body_up_to_16_mib_with_unknown_field_is_accepted
 """
 
@@ -39,7 +46,8 @@ RESET_BODY = json.dumps({"now": "2026-03-01T09:00:00+00:00", "users": []}).encod
 class ServerLimitTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server = make_server("127.0.0.1", 0, App(Clock()))
+        cls.app = App(Clock())
+        cls.server = make_server("127.0.0.1", 0, cls.app)
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -203,6 +211,56 @@ class ServerLimitTests(unittest.TestCase):
     def test_r1_31_rl54_conflicting_content_length_values_are_400_and_never_execute(self):
         """Covers R1.31, RL54: two Content-Length headers with different values are malformed; 400, the request never runs."""
         status, buf = self.raw_request("Content-Length: 5\r\nContent-Length: 7\r\n", b"abcde")
+        self.assertEqual(status, 400, buf[:200])
+        self.assertIn(b"malformed_request", buf)
+
+    def chunked_reset(self) -> bytes:
+        return f"{len(RESET_BODY):x}".encode() + b"\r\n" + RESET_BODY + b"\r\n0\r\n\r\n"
+
+    def assert_rl56_refused_and_unchanged(self, header_lines: str):
+        """A malformed framing answers 400 malformed_request, the handler never runs, the export is unchanged."""
+        self.app.handle("POST", "/_test/reset", {}, RESET_BODY)
+        before = self.app.handle("GET", "/_test/export", {}, b"").body
+        status, buf = self.raw_request(header_lines, self.chunked_reset())
+        self.assertEqual(status, 400, buf[:200])
+        self.assertIn(b"malformed_request", buf)
+        self.assertEqual(self.app.handle("GET", "/_test/export", {}, b"").body, before)
+
+    def test_rl56_transfer_encoding_gzip_then_chunked_is_400_and_changes_nothing(self):
+        """Covers R1.31, RL49, RL56: 'gzip, chunked' names an unsupported coding first; 400, export unchanged."""
+        self.assert_rl56_refused_and_unchanged("Transfer-Encoding: gzip, chunked\r\n")
+
+    def test_rl56_two_transfer_encoding_header_lines_are_400_and_change_nothing(self):
+        """Covers R1.31, RL49, RL56: 'chunked' then 'gzip' on two Transfer-Encoding lines combine to an unsupported list; 400, export unchanged."""
+        self.assert_rl56_refused_and_unchanged("Transfer-Encoding: chunked\r\nTransfer-Encoding: gzip\r\n")
+
+    def test_rl56_transfer_encoding_case_and_trailing_space_positive_controls_are_204(self):
+        """Covers R1.31, RL49, RL56: 'Chunked' and 'chunked ' (trailing space) are the chunked coding; both reset (204)."""
+        for value in ("Chunked", "chunked "):
+            with self.subTest(value=value):
+                status, buf = self.raw_request(f"Transfer-Encoding: {value}\r\n", self.chunked_reset())
+                self.assertEqual(status, 204, buf[:200])
+
+    def test_rl56_valid_transfer_encoding_chunked_is_parsed(self):
+        """Covers R1.31, RL49, RL56: a sole 'Transfer-Encoding: chunked' with a valid reset body is parsed (204)."""
+        status, buf = self.raw_request("Transfer-Encoding: chunked\r\n", self.chunked_reset())
+        self.assertEqual(status, 204, buf[:200])
+
+    def test_rl56_transfer_encoding_chunked_then_gzip_is_400_and_never_executes(self):
+        """Covers R1.31, RL56: final coding 'gzip' is not chunked; 400 malformed_request, the request never runs."""
+        status, buf = self.raw_request("Transfer-Encoding: chunked, gzip\r\n", self.chunked_reset())
+        self.assertEqual(status, 400, buf[:200])
+        self.assertIn(b"malformed_request", buf)
+
+    def test_rl56_transfer_encoding_chunked_twice_is_400_and_never_executes(self):
+        """Covers R1.31, RL56: chunked applied twice is not allowed; 400 malformed_request, the request never runs."""
+        status, buf = self.raw_request("Transfer-Encoding: chunked, chunked\r\n", self.chunked_reset())
+        self.assertEqual(status, 400, buf[:200])
+        self.assertIn(b"malformed_request", buf)
+
+    def test_rl56_transfer_encoding_xchunked_is_400_and_never_executes(self):
+        """Covers R1.31, RL56: 'xchunked' is not the chunked coding; 400 malformed_request, the request never runs."""
+        status, buf = self.raw_request("Transfer-Encoding: xchunked\r\n", self.chunked_reset())
         self.assertEqual(status, 400, buf[:200])
         self.assertIn(b"malformed_request", buf)
 
