@@ -2,7 +2,8 @@
 
 Separator T or t, zone designator Z or z, and an explicit numeric offset are required. A space
 separator, date-only, no offset and basic form are refused. Fractions of any length are accepted.
-Ranges are checked; a leap second (:60) is accepted. The engine must not import from app/, so
+Ranges are checked; a leap second (:60) is accepted only where the UTC instant is 23:59:60 (RL70),
+and the UTC instant must lie within years 1 to 9999. The engine must not import from app/, so
 this module mirrors the grammar. Callers keep the timestamp text as written and use the instant
 only for ordering.
 """
@@ -52,9 +53,18 @@ def instant(value: Optional[str]) -> Optional[tuple]:
         zone = datetime.timezone.utc
     leap = second == 60
     local = datetime.datetime(day.year, day.month, day.day, hour, minute, 59 if leap else second, tzinfo=zone)
-    moment = local.astimezone(datetime.timezone.utc)
+    try:
+        moment = local.astimezone(datetime.timezone.utc)
+    except (OverflowError, ValueError):
+        return None  # the UTC instant lies outside years 1 to 9999
     if leap:
-        moment += datetime.timedelta(seconds=1)
+        # RL70: a leap second is valid only where the UTC instant is 23:59:60.
+        if (moment.hour, moment.minute, moment.second) != (23, 59, 59):
+            return None
+        try:
+            moment += datetime.timedelta(seconds=1)
+        except OverflowError:
+            return None
     fraction = Decimal("0" + parts["fraction"]) if parts["fraction"] else Decimal(0)
     return (moment, fraction)
 

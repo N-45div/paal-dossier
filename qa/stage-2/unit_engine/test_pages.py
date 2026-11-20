@@ -71,6 +71,13 @@ class PublishedTests(unittest.TestCase):
     def test_rl66_leap_second_is_accepted(self):
         self.assertEqual(parse_published("2016-12-31T23:59:60Z"), "2016-12-31T23:59:60Z")
 
+    def test_r2_7_midday_leap_second_is_not_a_timestamp_rl70(self):
+        self.assertIsNone(parse_published("2016-12-31T12:30:60Z"))
+
+    def test_r2_7_offset_equivalent_of_utc_23_59_60_is_accepted_rl70(self):
+        self.assertEqual(parse_published("2016-12-31T18:59:60-05:00"), "2016-12-31T18:59:60-05:00")
+        self.assertEqual(parse_published("2017-01-01T00:29:60+00:30"), "2017-01-01T00:29:60+00:30")
+
     def test_r2_7_out_of_range_fields_are_refused(self):
         self.assertIsNone(parse_published("2026-13-01T00:00:00Z"))
         self.assertIsNone(parse_published("2026-02-30T00:00:00Z"))
