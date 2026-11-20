@@ -18,6 +18,11 @@ Index of claimed ids covered in this module:
     RL51  -> ChunkedFramingTests.test_rl51_trailer_with_whitespace_before_the_colon_is_400_and_changes_nothing
     RL51  -> ChunkedFramingTests.test_rl51_trailer_with_a_bare_cr_in_the_value_is_400_and_changes_nothing
     RL51  -> ChunkedFramingTests.test_rl51_valid_checksum_trailer_is_parsed
+    RL53  -> ChunkedFramingTests.test_rl53_extension_with_empty_name_is_400_and_changes_nothing
+    RL53  -> ChunkedFramingTests.test_rl53_extension_name_with_a_space_is_400_and_changes_nothing
+    RL53  -> ChunkedFramingTests.test_rl53_unterminated_quoted_extension_value_is_400_and_changes_nothing
+    RL53  -> ChunkedFramingTests.test_rl53_trailing_semicolon_with_no_extension_is_400_and_changes_nothing
+    RL53  -> ChunkedFramingTests.test_rl53_valid_extensions_token_quoted_and_name_only_are_parsed
     RL49  -> ChunkedFramingTests.test_rl49_slow_chunked_upload_completes_and_health_answers_meanwhile
 
 Run from the repository root:  PYTHONPATH=stage-1 python3 -m unittest discover -s qa/stage-1/unit_app -t qa/stage-1/unit_app
@@ -148,6 +153,32 @@ class ChunkedFramingTests(unittest.TestCase):
     def test_rl49_trailer_with_an_at_sign_in_the_name_is_400_and_changes_nothing(self):
         """Covers RL49: '@' is not a token character, so 'Bad@Name' is malformed; 400 and no reset."""
         self.assert_malformed_and_unchanged(hex_size(RESET) + b"\r\n" + RESET + b"\r\n0\r\nBad@Name: value\r\n\r\n")
+
+    def ext_body(self, extension: bytes, data: bytes = RESET) -> bytes:
+        return hex_size(data) + extension + b"\r\n" + data + b"\r\n0\r\n\r\n"
+
+    def test_rl53_extension_with_empty_name_is_400_and_changes_nothing(self):
+        """Covers RL53: ';=bad' has an empty extension name; 400 malformed_request, no reset."""
+        self.assert_malformed_and_unchanged(self.ext_body(b";=bad"))
+
+    def test_rl53_extension_name_with_a_space_is_400_and_changes_nothing(self):
+        """Covers RL53: ';bad name=value' has a space in the name, which is not a token; 400, no reset."""
+        self.assert_malformed_and_unchanged(self.ext_body(b";bad name=value"))
+
+    def test_rl53_unterminated_quoted_extension_value_is_400_and_changes_nothing(self):
+        """Covers RL53: ';name=\"unterminated' never closes its quoted-string; 400, no reset."""
+        self.assert_malformed_and_unchanged(self.ext_body(b';name="unterminated'))
+
+    def test_rl53_trailing_semicolon_with_no_extension_is_400_and_changes_nothing(self):
+        """Covers RL53: ';a=b;' ends with a semicolon and no extension name; 400, no reset."""
+        self.assert_malformed_and_unchanged(self.ext_body(b";a=b;"))
+
+    def test_rl53_valid_extensions_token_quoted_and_name_only_are_parsed(self):
+        """Covers RL53, R1.31: a token value, a quoted value with an escaped quote and a name-only extension each parse (204)."""
+        for extension in (b";a=b", b';a="x\\"y"', b";flag"):
+            with self.subTest(extension=extension):
+                status, payload = self.send_raw(self.ext_body(extension, OTHER_RESET))
+                self.assertEqual(status, 204, payload)
 
     def test_rl49_slow_chunked_upload_completes_and_health_answers_meanwhile(self):
         """Covers RL49: a slow chunked upload completes (204) and the server answers /health during it."""
