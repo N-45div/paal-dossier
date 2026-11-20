@@ -311,8 +311,15 @@ def chunked_socket_request(direct_api, body):
     b'0',
     b'0\r\n',
     b'0\r\ninvalid-trailer\r\n\r\n',
+    b'0\r\n: value\r\n\r\n',
+    b'0\r\nBad Name: value\r\n\r\n',
+    b'0\r\nBad@Name: value\r\n\r\n',
+    b'0\r\nName : value\r\n\r\n',
+    b'0\r\nX-Value: bad\rvalue\r\n\r\n',
+    b'0\r\nX-Value: bad\x00value\r\n\r\n',
 ], ids=['plus', 'hex-prefix', 'underscore', 'bad-data-crlf', 'eof-after-zero',
-        'missing-final-crlf', 'invalid-trailer'])
+        'missing-final-crlf', 'invalid-trailer', 'empty-name', 'space-in-name',
+        'invalid-name-character', 'space-before-colon', 'bare-cr-value', 'nul-value'])
 def test_R1_31_R1_49_RL49_malformed_chunk_framing_is_atomic(api, direct_api, seeded, body):
     """R1.31 R1.49 RL49: malformed chunk frames are 400 and leave state unchanged."""
     snapshot = api.get('/_test/export', timeout=10).json()
