@@ -1,6 +1,7 @@
 """HTTP transport: a threaded stdlib server that hands every request to App.handle."""
 
 import logging
+import re
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -11,6 +12,7 @@ MAX_BODY_BYTES = 16 * 1024 * 1024  # RL20: bodies above this are 413 payload_too
 DRAIN_BYTES = 2 * MAX_BODY_BYTES  # RL28: most of an over-cap body read after the 413, then close
 REQUEST_QUEUE_SIZE = 128
 _JSON_TYPE = "application/json; charset=utf-8"
+_CHUNK_SIZE = re.compile(rb"[0-9A-Fa-f]+")  # RFC 9112: chunk-size is bare hex digits, no sign or prefix
 
 
 class _TooLarge(Exception):
@@ -64,32 +66,38 @@ class _Handler(BaseHTTPRequestHandler):
             raise _TooLarge(unread=length)
         return self.rfile.read(length) if length else b""
 
+    def _read_chunk_line(self) -> bytes:
+        """One CRLF-terminated chunk-framing line, without the CRLF; EOF, a bare LF or an overlong line is malformed."""
+        line = self.rfile.readline(65537)
+        if not line.endswith(b"\r\n") or len(line) > 65536:
+            raise _BadFraming("malformed chunk framing")
+        return line[:-2]
+
     def _read_chunked(self) -> bytes:
+        """A strictly framed chunked body (RFC 9112 section 7.1): hex size, optional extension, CRLF-terminated data."""
         chunks: list[bytes] = []
         total = 0
         while True:
-            line = self.rfile.readline(65537)
-            if not line:
-                raise _BadFraming("truncated chunked body")
-            try:
-                size = int(line.split(b";", 1)[0].strip(), 16)
-            except ValueError:
-                raise _BadFraming("invalid chunk size") from None
-            if size < 0:
+            size_text, _, _extension = self._read_chunk_line().partition(b";")
+            if _CHUNK_SIZE.fullmatch(size_text) is None:
                 raise _BadFraming("invalid chunk size")
+            size = int(size_text, 16)
             if size == 0:
-                while True:  # trailers, then the blank line that ends the body
-                    trailer = self.rfile.readline(65537)
-                    if trailer in (b"\r\n", b"\n", b""):
+                while True:  # trailer fields, then the empty line that ends the body
+                    trailer = self._read_chunk_line()
+                    if trailer == b"":
                         return b"".join(chunks)
+                    if b":" not in trailer:
+                        raise _BadFraming("malformed trailer field")
             total += size
             if total > MAX_BODY_BYTES:
                 raise _TooLarge(unread=None)  # the rest of the stream is drained, bounded, after the 413
             data = self.rfile.read(size)
             if len(data) != size:
                 raise _BadFraming("truncated chunk")
+            if self.rfile.read(2) != b"\r\n":
+                raise _BadFraming("chunk data is not followed by CRLF")
             chunks.append(data)
-            self.rfile.readline(65537)  # the CRLF that ends each chunk
 
     def _reject_too_large(self, unread: int | None) -> None:
         """Answer 413 first, then drain a bounded amount of the body still in flight, then close.
