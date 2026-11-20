@@ -1,0 +1,6 @@
+LEDGER.md
+RUN.md
+Dockerfile
+.dockerignore
+**/__pycache__
+**/*.pyc
