@@ -80,6 +80,21 @@ def test_R1_62_R1_85_R1_87_rate_limits(api, mock, seeded):
     assert dossier['spent_units'] == sum(c['cost'] for c in calls), Counter((c['provider'], c['method'], c['status'], c['cost']) for c in calls)
 
 
+def test_R1_99_R1_121_R1_122_tavily_rate_limit_refusal_costs_zero(api, mock, seeded):
+    """R1.99 R1.121 R1.122: refused Tavily search calls cost zero in the mock log."""
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'error')
+    fault(mock, 'tavily', ['search'], 'rate_limit')
+    domain = 'ashgrove-solar.test'
+    assert create(api, seeded[0], domain, 'tavily-refusal').status_code == 202
+    dossier = done(api, seeded[0], domain, timeout=30)
+    calls = mock.get('/_mock/log').json()['calls']
+    refusals = [c for c in calls if c['provider'] == 'tavily' and c['method'] == 'search' and c['status'] == 429]
+    assert refusals, 'the test must exercise a Tavily 429 refusal'
+    assert all(c['cost'] == 0 for c in refusals)
+    assert dossier['spent_units'] == sum(c['cost'] for c in calls)
+    assert dossier['spent_units'] <= 80
+
+
 def test_R1_87_delay_under_one_second(api, mock, seeded):
     'R1.87'
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=.2)

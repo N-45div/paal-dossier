@@ -1197,7 +1197,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   > - `spent_units` is the total cost (§9) of every provider call made for this dossier, by
   >   every build, since it was created.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_99_R1_121_refusals_cost_nothing`, `test_synthetic.py::test_R1_99_R1_117_R1_118_missing_extract_is_charged`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_99_R1_121_R1_122_tavily_rate_limit_refusal_costs_zero`, `test_synthetic.py::test_R1_99_R1_121_refusals_cost_nothing`, `test_synthetic.py::test_R1_99_R1_117_R1_118_missing_extract_is_charged`
 
 ### R1.100
 - Section: `GET /dossiers/{domain}`
@@ -1458,7 +1458,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   > for the URL is not refused: it costs its units, as in the table, whatever status says so. An
   > extract through `nimble` does not set `render`.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_99_R1_121_refusals_cost_nothing`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_99_R1_121_R1_122_tavily_rate_limit_refusal_costs_zero`, `test_synthetic.py::test_R1_99_R1_121_refusals_cost_nothing`
 
 ### R1.122
 - Section: 9. Providers and cost
@@ -1470,7 +1470,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   > A build stops making provider calls before its spending would exceed 80 units, and completes
   > with the pages and research claims it has obtained.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_99_R1_121_R1_122_tavily_rate_limit_refusal_costs_zero`
 
 ### R1.123
 - Section: 9. Providers and cost
