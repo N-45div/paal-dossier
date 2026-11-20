@@ -79,6 +79,10 @@ Until engine/ lands, builder-a uses a local stub (`app/_stub_engine.py`, try/exc
 - **RL38 Review targets (RL23).** P1/P3: builder-a 30efa2ced616d9d6fd38b080431e0b272353b759 (contains f0d166e, 8b00f504, 32daaae; adds RL32 two-key import and whitespace validation). P4: builder-b a29de9e7644a5349daa8d7e999cb7c49c9498578 (base 0313b69 + 26e890f). All earlier hashes (cd5d5cb, 164ea92, 0313b69, e1236a7, 795c457) are superseded and not reviewed or reported against.
 - **RL39 Event harness.** The event check may be run unchanged by the gatekeeper (hardcoded `df-*` names are the harness's own); take `/tmp/factory-heavy.lock`, check read-only that no foreign `df-*` resources exist (wait/poll; blocker after 15 minutes), remove only the exact resources the run created. Only on a revision that passed review and the gatekeeper's isolated check.
 - **RL42 Body framing.** The 16 MiB cap (413 `payload_too_large`) covers Content-Length and chunked framing. A request with neither header has no body (RFC 9112): a 400 `malformed_request` or the route's own validation envelope is acceptable (never 5xx or reset; server stays healthy). "Without Content-Length" in earlier messages means chunked.
+- **RL43 Refusal cost forms.** A refused call costs 0 whether the refusal arrives as an HTTP status or as an SDK error with `status_code=None` and a refusal kind; unanswered calls cost full units. (test gap, closed by builder-b e608a2f.)
+- **RL44/RL46 P4 head.** e608a2f3ef5bcaa0842d7a0f4a4f2656700aa99f then 990d0b7fcea33db764d11584f9264a508d9a615c (builder-b) is the review target; earlier P4 hashes are superseded.
+- **RL45 Dual-provider texts.** One gathered text per (url, provider); candidates come from every kept text; a citation's provider is the provider whose served text holds the excerpt (nimble when both do). Fixed in 990d0b7.
+- **Status log.** P1/P3 builder-a 30efa2ced616d9d6fd38b080431e0b272353b759 ACCEPTED by the gatekeeper (combined P1/P3 review RL14-RL38, RL42). P4 builder-b 990d0b7 under review. Integrated build/start, event check and freeze pending.
 
 ## Measures (every revision must be measurable)
 
