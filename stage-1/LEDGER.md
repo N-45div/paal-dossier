@@ -83,6 +83,12 @@ Until engine/ lands, builder-a uses a local stub (`app/_stub_engine.py`, try/exc
 - **RL44/RL46 P4 head.** e608a2f3ef5bcaa0842d7a0f4a4f2656700aa99f then 990d0b7fcea33db764d11584f9264a508d9a615c (builder-b) is the review target; earlier P4 hashes are superseded.
 - **RL45 Dual-provider texts.** One gathered text per (url, provider); candidates come from every kept text; a citation's provider is the provider whose served text holds the excerpt (nimble when both do). Fixed in 990d0b7.
 - **Status log.** P1/P3 builder-a 30efa2ced616d9d6fd38b080431e0b272353b759 ACCEPTED by the gatekeeper (combined P1/P3 review RL14-RL38, RL42). P4 builder-b 990d0b7 under review. Integrated build/start, event check and freeze pending.
+- **RL47 R1.121 mock-backed test and R1.135 name.** A build ending `ready` after refused calls that cost 0 and a later answered call is correct under RL3; the mock-backed rate-limit test asserts the mock log (ok == any 200; spend == logged; every 429 costs 0). R1.135 has its own named test.
+- **RL48 P4 head.** builder-b 82100ce7da18ecad41b3028e872f565a38937980 (engine code = 990d0b7).
+- **RL49 Chunked framing.** Chunk size = ASCII hex digits only; chunk data followed by exactly CRLF; message ends at the blank line after the last chunk; EOF anywhere in the framing is malformed -> 400 `malformed_request`, handler never runs, state unchanged. Valid extensions/trailers parse (204).
+- **RL50/RL52 P1/P3 head.** 05d050850d0e6b216bef50319a63fb86f685c3c3 then 13ba6d8093827ac1041dc83fa3801499216d3e00 (builder-a; supersedes 30efa2c and main 3dec36d).
+- **RL51 Trailer fields.** A trailer line needs a non-empty RFC 9110 token name, no whitespace before the colon, a colon, no NUL or bare CR in the value; otherwise 400 as RL49.
+- **Status log (update).** P4 builder-b 82100ce7da18ecad41b3028e872f565a38937980 ACCEPTED by the gatekeeper (combined P2/P4 review: 114/114 support, 79/79 mock-backed engine, 12/12 sample companies 69/69 values, 32-37 units, five unit-level mutants caught). P1/P3: 30efa2c acceptance withdrawn by RL49/RL51; current target 13ba6d8093827ac1041dc83fa3801499216d3e00 under review. Integrated build/start, event check and freeze pending.
 
 ## Measures (every revision must be measurable)
 
