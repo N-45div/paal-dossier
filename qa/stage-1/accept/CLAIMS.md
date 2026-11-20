@@ -26,7 +26,7 @@ Referenced tests: `test_api.py::test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_c
   >    to this service, and that excerpt supports the value. No citation is invented, reworded, or
   >    attached to a value it does not support.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server`, `test_synthetic.py::test_R1_3_R1_41_R1_43_R1_86_dual_provider_texts_at_one_url`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`
 
 ### R1.4
 - Section: 1. Scope
@@ -447,7 +447,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   > any query naming the company (as in Appendix A.2), returns, with its full text, and every
   > claim that a `nimble` research run for the company asking for all six fields answers with.
 
-Referenced tests: `test_evidence.py::test_R1_41_R1_45_R1_86_cross_company_and_research_evidence`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_41_R1_45_R1_86_unsearchable_page_only_claimed_field`
+Referenced tests: `test_evidence.py::test_R1_41_R1_45_R1_86_cross_company_and_research_evidence`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_3_R1_41_R1_43_R1_86_dual_provider_texts_at_one_url`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_41_R1_45_R1_86_unsearchable_page_only_claimed_field`
 
 ### R1.42
 - Section: Evidence and support
@@ -476,7 +476,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   >   of whitespace may be written as a single space. It is 1 to 500 characters long.
   > - It is taken from the page's prose (below), not from its header.
 
-Referenced tests: `test_evidence.py::test_R1_43_R1_44_R1_133_long_sentence_full_support`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`, `test_synthetic.py::test_R1_43_R1_44_R1_86_long_sentence_full_context`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
+Referenced tests: `test_evidence.py::test_R1_43_R1_44_R1_133_long_sentence_full_support`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server`, `test_synthetic.py::test_R1_3_R1_41_R1_43_R1_86_dual_provider_texts_at_one_url`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`, `test_synthetic.py::test_R1_43_R1_44_R1_86_long_sentence_full_context`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
 
 ### R1.44
 - Section: Evidence and support
@@ -1028,7 +1028,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   > - When a build completes `ready`, each field is `known` exactly when the evidence (§4)
   >   supports a value for it.
 
-Referenced tests: `test_evidence.py::test_R1_41_R1_45_R1_86_cross_company_and_research_evidence`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_41_R1_45_R1_86_unsearchable_page_only_claimed_field`, `test_synthetic.py::test_R1_40_R1_45_R1_86_R1_126_research_zero_is_known_and_importable`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`, `test_synthetic.py::test_R1_43_R1_44_R1_86_long_sentence_full_context`
+Referenced tests: `test_evidence.py::test_R1_41_R1_45_R1_86_cross_company_and_research_evidence`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_3_R1_41_R1_43_R1_86_dual_provider_texts_at_one_url`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_41_R1_45_R1_86_unsearchable_page_only_claimed_field`, `test_synthetic.py::test_R1_40_R1_45_R1_86_R1_126_research_zero_is_known_and_importable`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`, `test_synthetic.py::test_R1_43_R1_44_R1_86_long_sentence_full_context`
 
 ### R1.87
 - Section: Builds

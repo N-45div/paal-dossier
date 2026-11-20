@@ -37,6 +37,35 @@ def test_R1_18_RL13_extract_concurrency_at_most_eight(concurrency_deployment):
         assert metrics['peak'] <= 8, metrics
 
 
+def test_R1_3_R1_41_R1_43_R1_86_dual_provider_texts_at_one_url(dual_provider_deployment):
+    """R1.3 R1.41 R1.43 R1.86: retain different provider texts at one URL."""
+    deployment = dual_provider_deployment
+    monitor_address = docker('inspect', '--format', '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
+                             deployment['monitor'], timeout=10).stdout.strip()
+    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as api, \
+         httpx.Client(base_url=deployment['mock'], headers=ADMIN, timeout=10, trust_env=False) as mock, \
+         httpx.Client(base_url=f'http://{monitor_address}:8080', timeout=5, trust_env=False) as provider:
+        assert mock.post('/_mock/reset', json={'epoch':0}).status_code == 204
+        fixture = {'now':'2026-03-01T09:00:00Z', 'users':[
+            {'id':'u', 'email':'test@example.com', 'password':'correct horse', 'display_name':'Test'}]}
+        assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+        login = api.post('/auth/login', json={'email':'test@example.com', 'password':'correct horse'})
+        assert login.status_code == 200
+        token = login.json()['token']
+        assert create(api, token, 'dual-witness.test', 'dual-provider').status_code == 202
+        dossier = done(api, token, 'dual-witness.test', timeout=20)
+        records = provider.get('/_probe/served').json()
+        assert {'nimble', 'tavily'} <= {record['provider'] for record in records}, 'scenario must deliver both provider texts'
+        for field, value in [('founded_year', 2014), ('ceo', 'Dana Ruiz')]:
+            result = dossier['fields'][field]
+            assert result['status'] == 'known' and result['value'] == value, (field, result)
+            assert result['citations']
+            for citation in result['citations']:
+                excerpt = re.sub(r'\s+', ' ', citation['excerpt']).strip()
+                assert any(record['provider'] == citation['provider'] and record['url'] == citation['url'] and
+                           excerpt in re.sub(r'\s+', ' ', prose(record['text'])).strip() for record in records)
+
+
 def test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant(synthetic):
     """R1.41 R1.43 R1.86 RL25: the actual provider text defines evidence."""
     api, mock, token = synthetic

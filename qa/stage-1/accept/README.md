@@ -22,4 +22,6 @@ The mock and oracle default to the sample corpus. To run against a different moc
 
 The controlled-corpus cases start separate deployments with synthetic company pages. One uses a transparent HTTP proxy to measure simultaneous provider extracts during a delayed build (RL13). To select them, add `--test-path qa/stage-1/accept/test_synthetic.py -q` to the runner command. Additional unrecognized options are passed to pytest; for example, `-s -q -k evidence_and_cost` prints per-company measurements. Ledger IDs and verbatim requirement text are indexed in [CLAIMS.md](CLAIMS.md).
 
+The same-URL dual-provider case uses a controlled provider endpoint in front of the mock: it serves different text for each provider and records the texts actually delivered. Its citations are checked against that endpoint's served-text records.
+
 RL42 treats a request without Content-Length or Transfer-Encoding as having no body; the socket test checks the resulting error envelope and continued service health.

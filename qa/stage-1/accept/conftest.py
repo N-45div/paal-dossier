@@ -83,6 +83,59 @@ class Handler(http.server.BaseHTTPRequestHandler):
 http.server.ThreadingHTTPServer(('0.0.0.0', 8080), Handler).serve_forever()
 '''
 
+# An independent provider endpoint serves different observed texts for one URL.
+DUAL_PROVIDER_PROXY = r'''
+import http.client, http.server, json, threading
+lock = threading.Lock()
+served = []
+url = 'https://dual-witness.test/about'
+texts = {'nimble': 'Dual Witness was founded in 2014.',
+         'tavily': 'Dual Witness CEO Dana Ruiz.'}
+class Handler(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *args): pass
+    def do_GET(self):
+        if self.path == '/_probe/served':
+            with lock: payload = json.dumps(served).encode()
+            self.send_response(200); self.send_header('Content-Length', str(len(payload))); self.end_headers(); self.wfile.write(payload)
+        else: self.forward()
+    def do_POST(self): self.forward()
+    def forward(self):
+        body = self.rfile.read(int(self.headers.get('Content-Length', '0')))
+        request = json.loads(body) if body else {}
+        if self.path == '/nimble/v2/search' and request.get('query') == 'dual-witness.test':
+            data = b'{"error":{"message":"forced search refusal"}}'
+            self.send_response(500); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data)
+            return
+        conn = http.client.HTTPConnection('mock', 8080, timeout=60)
+        headers = {k:v for k,v in self.headers.items() if k.lower() not in ('host','connection')}
+        conn.request(self.command, self.path, body, headers)
+        response = conn.getresponse(); data = response.read()
+        provider = 'nimble' if self.path.startswith('/nimble/') else 'tavily'
+        if response.status == 200 and self.path in ('/nimble/v2/search','/tavily/search','/nimble/v2/extract','/tavily/extract'):
+            payload = json.loads(data)
+            records = []
+            for item in payload.get('results', []):
+                if item.get('url') != url: continue
+                if self.path == '/nimble/v2/search':
+                    item['description'] = texts[provider]; item['content'] = ''
+                elif self.path == '/tavily/search':
+                    item['content'] = texts[provider]; item['raw_content'] = None
+                else:
+                    item['raw_content'] = texts[provider]
+                records.append({'provider':provider, 'url':url, 'text':texts[provider]})
+            if self.path == '/nimble/v2/extract' and payload.get('url') == url and payload.get('status') == 'success':
+                payload['data'] = {key:texts[provider] for key in payload['data']}
+                records.append({'provider':provider, 'url':url, 'text':texts[provider]})
+            with lock: served.extend(records)
+            data = json.dumps(payload).encode()
+        self.send_response(response.status)
+        for key, value in response.getheaders():
+            if key.lower() not in ('connection','transfer-encoding','content-length'):
+                self.send_header(key,value)
+        self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data)
+http.server.ThreadingHTTPServer(('0.0.0.0', 8080), Handler).serve_forever()
+'''
+
 
 def pytest_addoption(parser):
     parser.addoption('--service-root', default=os.environ.get('DOSSIER_ROOT'),
@@ -175,7 +228,7 @@ def healthy(url, seconds=60):
     raise AssertionError(f'health endpoint did not become ready in {seconds}s: {url}')
 
 
-def launch_deployment(request, corpus, monitor_extracts=False):
+def launch_deployment(request, corpus, monitor_extracts=False, dual_provider=False):
     root = request.config.getoption('--service-root')
     if not root:
         pytest.fail('Set DOSSIER_ROOT or pass --service-root to a worktree containing stage-1')
@@ -210,9 +263,10 @@ def launch_deployment(request, corpus, monitor_extracts=False):
                '-v', f'{corpus}:/data/corpus:ro', web_image)
         healthy(f'http://127.0.0.1:{mock_port}/_mock/health')
         upstream = mock
-        if monitor_extracts:
+        if monitor_extracts or dual_provider:
             docker('run', '-d', '--name', monitor, '--network', network,
-                   '--entrypoint', 'python', web_image, '-u', '-c', EXTRACT_MONITOR)
+                   '--entrypoint', 'python', web_image, '-u', '-c',
+                   DUAL_PROVIDER_PROXY if dual_provider else EXTRACT_MONITOR)
             upstream = monitor
         docker('run', '-d', '--name', app, '--network', network, '--network-alias', 'app',
                '--cpus', '2', '--memory', '3g',
@@ -222,7 +276,7 @@ def launch_deployment(request, corpus, monitor_extracts=False):
                '-e', f'TAVILY_BASE_URL=http://{upstream}:8080/tavily', app_image)
         healthy(f'http://127.0.0.1:{app_port}/health')
         yield {'app': f'http://127.0.0.1:{app_port}', 'mock': f'http://127.0.0.1:{mock_port}',
-               'container': app, 'monitor': monitor if monitor_extracts else None}
+               'container': app, 'monitor': monitor if monitor_extracts or dual_provider else None}
     finally:
         for name in (app, monitor, mock, relay):
             docker('rm', '-f', name, timeout=20, check=False)
@@ -302,6 +356,19 @@ def concurrency_deployment(request, tmp_path_factory):
     company = {'domain': domain, 'names': ['Concurrency Probe'], 'pages': pages, 'research': {}}
     (corpus / (domain + '.json')).write_text(json.dumps(company))
     yield from launch_deployment(request, corpus, monitor_extracts=True)
+
+
+@pytest.fixture(scope='session')
+def dual_provider_deployment(request, tmp_path_factory):
+    corpus = tmp_path_factory.mktemp('prover-dual-provider')
+    domain = 'dual-witness.test'
+    page = {'url':f'https://{domain}/about', 'kind':'own', 'epochs':[0], 'searchable':True,
+            'published_at':None, 'true_from':None, 'title':'Dual Witness company',
+            'text':'Dual Witness was founded in 2014.', 'facts':{},
+            'lineage':{'canonical':None, 'first_published_by':None, 'registrant':domain}}
+    company = {'domain':domain, 'names':['Dual Witness'], 'pages':[page], 'research':{}}
+    (corpus / (domain + '.json')).write_text(json.dumps(company))
+    yield from launch_deployment(request, corpus, dual_provider=True)
 
 
 @pytest.fixture
