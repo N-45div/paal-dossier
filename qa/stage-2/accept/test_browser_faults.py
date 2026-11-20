@@ -1,4 +1,5 @@
 """Browser retry and read ordering with provider and transport faults."""
+import base64
 import json
 from pathlib import Path
 import tempfile
@@ -39,6 +40,23 @@ def assert_same_write(requests):
     assert requests[0][1] == requests[1][1], 'retry must reuse the request body'
 
 
+def test_R2_71_R2_72_R2_79_R2_107_existing_dossier_created_by_another_client_does_not_rebuild(api, mock, seeded, browser_page):
+    """A browser opens a dossier created after its list was loaded, without another build."""
+    domain = 'halvorsen-robotics.test'
+    login(browser_page)
+    browser_page.navigate('/')
+    browser_page.wait(present('empty-dossiers'))
+    assert api.post('/dossiers', json={'domain':domain}, headers={
+        'Authorization':'Bearer ' + seeded[1], 'Idempotency-Key':'other-client-create'}).status_code == 202
+    assert wait_ready(api, seeded[1], domain)['state'] == 'ready'
+    before = len(mock.get('/_mock/log').json()['calls'])
+    browser_page.fill('research-domain', domain.upper())
+    browser_page.click('research-submit')
+    browser_page.wait(present('dossier-domain'))
+    assert browser_page.evaluate(node('dossier-domain') + '.innerText.trim()') == domain
+    assert mock.get('/_mock/log').json()['calls'][before:] == [], 'existing dossier must not rebuild'
+
+
 def test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key(api, mock, seeded, browser_page):
     """A lost post-commit response is uncertain and an identical retry starts only one build."""
     domain = 'halvorsen-robotics.test'
@@ -50,7 +68,7 @@ def test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reus
     browser_page.wait(present('research-uncertain'), timeout=20)
     assert browser_page.evaluate(node('research-uncertain') + '.innerText.trim().length > 0')
     assert not browser_page.evaluate(present('research-error'))
-    browser_page.screenshot(Path(tempfile.gettempdir()) / 'prover-stage2-research-uncertain.png')
+    browser_page.screenshot(Path(tempfile.gettempdir()) / f'{browser_page.artifact_prefix}-stage2-research-uncertain.png')
     browser_page.click('research-submit')
     browser_page.wait(present('dossier-domain'), timeout=30)
     assert_same_write(requests)
@@ -77,7 +95,7 @@ def test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key(api, m
     browser_page.wait(present('refresh-uncertain'), timeout=20)
     assert browser_page.evaluate(node('refresh-uncertain') + '.innerText.trim().length > 0')
     assert not browser_page.evaluate(present('refresh-error'))
-    browser_page.screenshot(Path(tempfile.gettempdir()) / 'prover-stage2-refresh-uncertain.png')
+    browser_page.screenshot(Path(tempfile.gettempdir()) / f'{browser_page.artifact_prefix}-stage2-refresh-uncertain.png')
     browser_page.click('dossier-refresh')
     browser_page.wait('!' + present('refresh-uncertain'), timeout=30)
     assert_same_write(requests)
@@ -85,6 +103,31 @@ def test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key(api, m
     assert wait_ready(api, seeded[0], domain)['state'] == 'ready'
     calls = mock.get('/_mock/log').json()['calls'][before:]
     assert sum(c['method'] == 'search' and c['query'] == domain and c['status'] == 200 for c in calls) == 1
+    browser_page.call('Fetch.disable')
+
+
+def test_R2_90_R2_91_confirmed_refresh_refusal_is_not_uncertain(api, seeded, browser_page):
+    """A confirmed 4xx refresh response shows an error, not an unknown outcome."""
+    domain = 'halvorsen-robotics.test'
+    headers = {'Authorization':'Bearer ' + seeded[0], 'Idempotency-Key':'refusal-create'}
+    assert api.post('/dossiers', headers=headers, json={'domain':domain}).status_code == 202
+    assert wait_ready(api, seeded[0], domain)['state'] == 'ready'
+    login(browser_page)
+    browser_page.navigate('/dossiers/' + domain)
+    browser_page.wait(present('dossier-refresh'))
+    def refuse(event):
+        if event['request']['method'] == 'POST' and urlsplit(event['request']['url']).path.endswith('/refresh'):
+            body = json.dumps({'error':{'code':'idempotency_key_reuse', 'message':'The refresh was refused.'}}).encode()
+            browser_page.call('Fetch.fulfillRequest', {'requestId':event['requestId'], 'responseCode':409,
+                'responseHeaders':[{'name':'Content-Type', 'value':'application/json; charset=utf-8'}],
+                'body':base64.b64encode(body).decode()})
+        else:
+            browser_page.call('Fetch.continueRequest', {'requestId':event['requestId']})
+    browser_page.on('Fetch.requestPaused', refuse)
+    browser_page.call('Fetch.enable', {'patterns':[{'urlPattern':'*/dossiers/*/refresh', 'requestStage':'Request'}]})
+    browser_page.click('dossier-refresh')
+    browser_page.wait(present('refresh-error'))
+    assert not browser_page.evaluate(present('refresh-uncertain'))
     browser_page.call('Fetch.disable')
 
 
@@ -164,7 +207,7 @@ def test_R2_90_R2_96_R2_103_R2_105_browser_follows_another_clients_refresh(api, 
     browser_page.click('dossier-refresh')
     browser_page.wait(present('dossier-state') + ' && ' + node('dossier-state') +
                       '.innerText.trim() === "building"', timeout=15)
-    browser_page.screenshot(Path(tempfile.gettempdir()) / 'prover-stage2-building.png')
+    browser_page.screenshot(Path(tempfile.gettempdir()) / f'{browser_page.artifact_prefix}-stage2-building.png')
     browser_page.wait(present('dossier-state') + ' && ' + node('dossier-state') +
                       '.innerText.trim() === "ready"', timeout=45)
     newest = wait_ready(api, seeded[0], domain)

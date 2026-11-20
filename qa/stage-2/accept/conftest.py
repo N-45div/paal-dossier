@@ -588,6 +588,7 @@ def browser_factory():
         target = httpx.put(f'http://{address}:9222/json/new?about:blank', timeout=10, trust_env=False).json()
         page = BrowserPage(address, 9222, target['id'], width=width, origin=origin)
         page.container_name = name
+        page.artifact_prefix = deployment['prefix']
         running[-1] = (name, page)
         return page
     try:

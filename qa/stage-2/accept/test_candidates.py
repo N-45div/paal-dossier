@@ -82,7 +82,8 @@ def test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R
         assert len(unique) == len(set(unique)), 'one candidate per page and value'
         for candidate in fields[name]['candidates']:
             assert instant(candidate['retrieved_at']) == instant(dossier['researched_at'])
-            assert len(candidate['excerpt']) <= 500
+            assert candidate['kind'] in ('own','filing','news','aggregator')
+            assert 1 <= len(candidate['excerpt']) <= 500
             assert candidate['value'] in supported('selection-labs.test', name, candidate['excerpt'])
             assert any(call['provider'] == candidate['provider'] and call['status'] == 200 and
                        any(page['url'] == candidate['url'] and norm(candidate['excerpt']) in norm(prose(page['text']))
@@ -135,7 +136,7 @@ def test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata(s
                     assert candidate['published_at'] == published
 
 
-def test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs(selection_deployment):
+def test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs(selection_deployment):
     """Optional vendors may be unused; if called, their provider logs define cost."""
     dossier, calls = build_controlled(selection_deployment)
     assert dossier['state'] == 'ready'
@@ -151,6 +152,29 @@ def test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26
             assert call['cost'] == 1
         elif call['method'] == 'browse':
             assert call['provider'] == 'browserbase' and call['cost'] in (0, 4)
+
+
+def test_R2_36_R2_38_failed_refresh_keeps_last_ready_candidates(api, mock, seeded):
+    """An unsuccessful refresh leaves the prior candidate set and retrieval time intact."""
+    domain = 'halvorsen-robotics.test'
+    auth = {'Authorization':'Bearer ' + seeded[0]}
+    assert api.post('/dossiers', headers={**auth, 'Idempotency-Key':'candidate-first'},
+                    json={'domain':domain}).status_code == 202
+    initial = wait_ready(api, seeded[0], domain)
+    assert initial['state'] == 'ready'
+    assert any(field['candidates'] for field in initial['fields'].values())
+    before = len(mock.get('/_mock/log').json()['calls'])
+    assert api.post('/_test/clock', json={'now':'2026-03-02T09:00:00Z'}).status_code == 204
+    for provider, methods in [('nimble',['search','extract','research']), ('tavily',['search','extract'])]:
+        assert mock.post('/_mock/faults', json={'provider':provider,'methods':methods,'mode':'error'}).status_code == 204
+    assert api.post('/dossiers/' + domain + '/refresh',
+                    headers={**auth, 'Idempotency-Key':'candidate-failed'}).status_code == 202
+    failed = wait_ready(api, seeded[0], domain)
+    assert failed['state'] == 'failed'
+    assert failed['fields'] == initial['fields']
+    assert failed['researched_at'] == initial['researched_at']
+    assert all(call['cost'] == 0 for call in mock.get('/_mock/log').json()['calls'][before:])
+    assert failed['spent_units'] == initial['spent_units']
 
 
 def test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind(metadata_deployment):

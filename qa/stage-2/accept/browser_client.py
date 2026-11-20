@@ -82,6 +82,7 @@ class BrowserPage:
         result = self.call('Page.navigate', {'url': url})
         assert not result.get('errorText'), result.get('errorText')
         self.wait('location.origin === ' + json.dumps(self.origin) +
+                  ' && location.pathname.toLowerCase() === ' + json.dumps(path.split('?',1)[0].lower()) +
                   " && document.readyState === 'complete'")
 
     def fill(self, testid, value):

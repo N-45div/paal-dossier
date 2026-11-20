@@ -5,6 +5,7 @@ import threading
 from urllib.parse import urlsplit
 
 import httpx
+import pytest
 
 from conftest import ADMIN
 from selection_oracle import assert_field, instant
@@ -139,8 +140,9 @@ def test_R2_69_R2_93_R2_108_RL59_browser_session_survives_stage1_import(frozen_d
         page.call('Network.disable')
 
 
-def test_R2_74_R2_79_R2_106_R2_108_lost_stage1_create_retries_after_import(frozen_deployment, deployment, upgrade_browser):
-    """A live browser retries the original lost Stage 1 write after Stage 2 import."""
+@pytest.mark.parametrize('operation', ['create', 'refresh'])
+def test_R2_74_R2_79_R2_92_R2_106_R2_108_lost_stage1_write_retries_after_import(frozen_deployment, deployment, upgrade_browser, operation):
+    """A live browser retries a lost Stage 1 create or refresh after Stage 2 import."""
     page, proxy = upgrade_browser
     domain = 'halvorsen-robotics.test'
     identity = {'now':'2026-03-01T09:00:00Z', 'users':[
@@ -156,20 +158,36 @@ def test_R2_74_R2_79_R2_106_R2_108_lost_stage1_create_retries_after_import(froze
         old_login = old.post('/auth/login', json={'email':'upgrade@example.com', 'password':'correct horse'})
         assert old_login.status_code == 200
         old_token = old_login.json()['token']
+        if operation == 'refresh':
+            assert old.post('/dossiers', json={'domain':domain}, headers={
+                'Authorization':'Bearer ' + old_token, 'Idempotency-Key':'pre-upgrade-create'}).status_code == 202
+            assert wait_ready(old, old_token, domain)['state'] == 'ready'
         login(page, 'upgrade@example.com')
-        page.navigate('/')
-        writes = records_after_commit(page, '/dossiers')
-        page.fill('research-domain', domain)
-        page.click('research-submit')
-        page.wait(present('research-uncertain'), timeout=20)
-        assert not page.evaluate(present('research-error'))
+        if operation == 'create':
+            page.navigate('/')
+            writes = records_after_commit(page, '/dossiers')
+            page.fill('research-domain', domain)
+            page.click('research-submit')
+            page.wait(present('research-uncertain'), timeout=20)
+            assert not page.evaluate(present('research-error'))
+        else:
+            page.navigate('/dossiers/' + domain)
+            page.wait(present('dossier-refresh'))
+            writes = records_after_commit(page, '/dossiers/' + domain + '/refresh')
+            page.click('dossier-refresh')
+            page.wait(present('refresh-uncertain'), timeout=20)
+            assert not page.evaluate(present('refresh-error'))
         assert wait_ready(old, old_token, domain)['state'] == 'ready'
         snapshot = old.get('/_test/export', timeout=10).json()
         before = new_mock.get('/_mock/log').json()['calls']
         assert new.post('/_test/import', json=snapshot, timeout=10).status_code == 204
         assert bridge.post('/_probe/switch').status_code == 204
-        page.click('research-submit')
-        page.wait(present('dossier-domain'), timeout=30)
+        if operation == 'create':
+            page.click('research-submit')
+            page.wait(present('dossier-domain'), timeout=30)
+        else:
+            page.click('dossier-refresh')
+            page.wait('!' + present('refresh-uncertain'), timeout=30)
         assert_same_write(writes)
         assert page.evaluate(node('dossier-domain') + '.innerText.trim()') == domain
         page.wait(present('current-user'))

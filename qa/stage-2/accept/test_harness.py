@@ -21,6 +21,20 @@ def test_R2_9_R2_10_R2_23_controlled_provider_serves_distinct_browser_text(selec
         assert 'Phantom Smith' not in browser
 
 
+def test_R2_5_R2_6_R2_7_R2_8_RL66_controlled_provider_serves_metadata_variants(metadata_deployment):
+    """The provider actually emits long fractions and malformed metadata for this corpus."""
+    with httpx.Client(base_url=metadata_deployment['mock'], headers=ADMIN, timeout=10, trust_env=False) as mock:
+        assert mock.post('/_mock/reset', json={'epoch':0}).status_code == 204
+        for path in ('/z', '/invalid'):
+            assert mock.post('/nimble/v2/extract', json={'url':'https://metadata-labs.test' + path,
+                             'formats':['markdown'], 'render':True}).status_code == 200
+        pages = {page['url']:page['text'] for call in mock.get('/_mock/log').json()['calls']
+                 for page in call['served']}
+        assert 'Published: 2025-01-01T00:00:00.12345678901234567891Z' in pages['https://metadata-labs.test/z']
+        assert 'Kind: nonsense' in pages['https://metadata-labs.test/invalid']
+        assert 'Published: 2025-02-30T00:00:00Z' in pages['https://metadata-labs.test/invalid']
+
+
 def test_R2_108_upgrade_bridge_routes_api_before_and_after_switch(frozen_deployment, deployment, upgrade_browser):
     """The test bridge switches API traffic while the browser origin stays unchanged."""
     page, bridge_url = upgrade_browser

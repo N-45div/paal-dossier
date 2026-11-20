@@ -1,8 +1,8 @@
 # Stage 2 acceptance claims and ledger text
 
-Source: lead ledger revision `8ec8b4103b9e420c78fa1b9b9a749d0282adbd38`. A named test identifies an exercised clause, not proof of every subclause. Screenshots provide evidence for visual review, not an automated aesthetic verdict. Optional vendors may be unused.
+Source: lead ledger revision `8ec8b4103b9e420c78fa1b9b9a749d0282adbd38`. A named test identifies an exercised clause, not proof of every subclause. Screenshots require visual review. Optional vendor configuration (R2.20–R2.21) and the four-session cap (R2.29) are conditional on vendor use; the cap is not directly exercised when vendors are unused. R2.107 does not prohibit background synchronization.
 
-IDs without an individually named test: R2.20, R2.21, R2.29, R2.107.
+IDs without an individually named test: none.
 
 ### R2.1
 - Section: (preamble)
@@ -25,7 +25,7 @@ Referenced tests: `test_candidates.py::test_R2_1_R2_3_stage1_auth_and_idempotenc
   > selects one per field by a fixed rule. Researchers read dossiers, their evidence and the
   > fields in dispute in a browser.
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.3
 - Section: (preamble)
@@ -46,7 +46,7 @@ Referenced tests: `test_candidates.py::test_R2_1_R2_3_stage1_auth_and_idempotenc
   > 3. A field's selected value is the one the selection rule below picks from the field's
   >    candidates; the same candidates always yield the same value.
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.5
 - Section: Page kind and publication time
@@ -56,7 +56,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
 
   > Two header lines (§4, Pages) now carry requirements:
 
-Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`
+Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_harness.py::test_R2_5_R2_6_R2_7_R2_8_RL66_controlled_provider_serves_metadata_variants`
 
 ### R2.6
 - Section: Page kind and publication time
@@ -66,7 +66,7 @@ Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34
 
   > | `Kind: own`, `Kind: filing`, `Kind: news`, `Kind: aggregator` | The page's **kind**: the company's own site, a filing registry, a news report, or an aggregator of company data |
 
-Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_candidates.py::test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind`
+Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_candidates.py::test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind`, `test_harness.py::test_R2_5_R2_6_R2_7_R2_8_RL66_controlled_provider_serves_metadata_variants`
 
 ### R2.7
 - Section: Page kind and publication time
@@ -76,7 +76,7 @@ Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34
 
   > | `Published: <RFC 3339 timestamp>` | When the page was published |
 
-Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_candidates.py::test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind`
+Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_candidates.py::test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind`, `test_harness.py::test_R2_5_R2_6_R2_7_R2_8_RL66_controlled_provider_serves_metadata_variants`
 
 ### R2.8
 - Section: Page kind and publication time
@@ -89,7 +89,7 @@ Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34
   > and of kind `aggregator` otherwise. A page with no `Published` line, or with a value that is not an RFC 3339 timestamp, has no
   > publication time.
 
-Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_candidates.py::test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind`
+Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_candidates.py::test_R2_6_R2_7_R2_8_R2_41_R2_42_R2_43_RL66_fraction_offset_and_default_kind`, `test_harness.py::test_R2_5_R2_6_R2_7_R2_8_RL66_controlled_provider_serves_metadata_variants`
 
 ### R2.9
 - Section: Page text
@@ -104,7 +104,7 @@ Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34
   > page's text. A citation's `provider` is the provider that served the text the excerpt was
   > copied from.
 
-Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_harness.py::test_R2_9_R2_10_R2_23_controlled_provider_serves_distinct_browser_text`
+Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_harness.py::test_R2_9_R2_10_R2_23_controlled_provider_serves_distinct_browser_text`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.10
 - Section: Web access
@@ -126,7 +126,7 @@ Referenced tests: `test_harness.py::test_R2_9_R2_10_R2_23_controlled_provider_se
 
   > Two optional browser vendors are also available, in addition to the providers in §2:
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.12
 - Section: Web access
@@ -136,7 +136,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > - `kernel`, through `open_browser`;
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.13
 - Section: Web access
@@ -146,7 +146,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > - `browserbase`, through `open_browser` and `browse`.
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.14
 - Section: Web access
@@ -157,7 +157,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
   > A service may use Nimble's rendered extract alone to obtain every page's browser text;
   > neither browser vendor is required.
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.15
 - Section: Web access
@@ -167,7 +167,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > The deployment provides these environment variables in addition to those in §2:
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.16
 - Section: Web access
@@ -177,7 +177,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | `KERNEL_API_KEY` | Credential for the `kernel` provider |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.17
 - Section: Web access
@@ -187,7 +187,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | `KERNEL_BASE_URL` | Base URL of the `kernel` provider endpoint |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.18
 - Section: Web access
@@ -197,7 +197,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | `BROWSERBASE_API_KEY` | Credential for the `browserbase` provider |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.19
 - Section: Web access
@@ -207,7 +207,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | `BROWSERBASE_BASE_URL` | Base URL of the `browserbase` provider endpoint |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.20
 - Section: Web access
@@ -218,7 +218,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
   > WebRouter reads the keys from the environment. A service that uses these vendors passes their
   > base URLs to WebRouter in `provider_config`, beside those of §2:
 
-Referenced tests: none
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.21
 - Section: Web access
@@ -231,7 +231,7 @@ Referenced tests: none
   >                  "browserbase": {"base_url": <BROWSERBASE_BASE_URL>}}
   > ```
 
-Referenced tests: none
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.22
 - Section: Web access
@@ -241,7 +241,7 @@ Referenced tests: none
 
   > These calls cost, in the units of §9:
 
-Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost`
+Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.23
 - Section: Web access
@@ -251,7 +251,7 @@ Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusa
 
   > | Extract through `nimble` that loads the page in a browser | 3 per URL requested, including a URL for which no page is returned |
 
-Referenced tests: `test_harness.py::test_R2_9_R2_10_R2_23_controlled_provider_serves_distinct_browser_text`, `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost`
+Referenced tests: `test_harness.py::test_R2_9_R2_10_R2_23_controlled_provider_serves_distinct_browser_text`, `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusal_spacing_and_logged_cost`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.24
 - Section: Web access
@@ -261,7 +261,7 @@ Referenced tests: `test_harness.py::test_R2_9_R2_10_R2_23_controlled_provider_se
 
   > | Open a session through `kernel` | 0 |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.25
 - Section: Web access
@@ -271,7 +271,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | Open a session through `browserbase` | 2 |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.26
 - Section: Web access
@@ -281,7 +281,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | Each page served to a session, through either | 1 |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.27
 - Section: Web access
@@ -291,7 +291,7 @@ Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_
 
   > | Browse run through `browserbase` | 4 |
 
-Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_24_R2_25_R2_26_R2_27_optional_browser_vendor_costs`
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.28
 - Section: Web access
@@ -313,7 +313,7 @@ Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusa
   > error. A session that no client has been connected to for 60 seconds is closed by the
   > provider.
 
-Referenced tests: none
+Referenced tests: `test_candidates.py::test_R2_11_R2_12_R2_13_R2_14_R2_15_R2_16_R2_17_R2_18_R2_19_R2_20_R2_21_R2_24_R2_25_R2_26_R2_27_R2_29_optional_browser_vendor_costs`
 
 ### R2.30
 - Section: Rate limits
@@ -344,7 +344,7 @@ Referenced tests: `test_rate_limits.py::test_R2_22_R2_23_R2_28_R2_30_RL61_refusa
   > candidate. A candidate's `provider` is a provider that served the text
   > its excerpt is taken from; when several did, any of them may be given.
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.32
 - Section: Candidates
@@ -392,7 +392,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
 
   > - `url`, `excerpt` and `provider` follow the citation rules in §4.
 
-Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`
+Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.35
 - Section: Candidates
@@ -403,7 +403,7 @@ Referenced tests: `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34
   > - `kind` is the page's kind, and `published_at` its publication time or null. Only an
   >   imported candidate (below) has a null `kind`; it has the authority of `aggregator`.
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_candidates.py::test_R2_5_R2_6_R2_7_R2_8_R2_9_R2_31_R2_34_R2_35_rendered_text_and_metadata`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.36
 - Section: Candidates
@@ -413,7 +413,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
 
   > - `retrieved_at` is the time of the build that gathered the candidate (§8, Builds).
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_candidates.py::test_R2_36_R2_38_failed_refresh_keeps_last_ready_candidates`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.37
 - Section: Candidates
@@ -424,7 +424,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
   > - `selected` is true on exactly one candidate of a field that has candidates, the one the
   >   rule picks, and false on the others.
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.38
 - Section: Candidates
@@ -436,7 +436,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
   >   the selection rule ranks them, the selected one first. A field with no candidate has
   >   `"candidates": []` and is `unknown`.
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_candidates.py::test_R2_36_R2_38_failed_refresh_keeps_last_ready_candidates`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.39
 - Section: Candidates
@@ -457,7 +457,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
 
   > Rank a field's candidates, highest first, by:
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.41
 - Section: The selection rule
@@ -516,7 +516,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
   > candidate's value, and its `citations` are the `url`, `excerpt` and `provider` of every
   > candidate with that value, in rank order.
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.46
 - Section: The selection rule
@@ -537,7 +537,7 @@ Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2
 
   > `status` is now one of three values:
 
-Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`
+Referenced tests: `test_candidates.py::test_R2_2_R2_4_R2_31_R2_32_R2_33_R2_35_R2_36_R2_37_R2_38_R2_39_R2_40_R2_41_R2_42_R2_43_R2_44_R2_45_R2_46_R2_47_R2_48_R2_49_R2_50_R2_51_selection_and_evidence`, `test_sample_evidence.py::test_R2_2_R2_4_R2_9_R2_22_R2_23_R2_31_R2_34_R2_35_R2_36_R2_37_R2_38_R2_40_R2_45_R2_47_sample_evidence_and_cost`
 
 ### R2.48
 - Section: Status
@@ -799,7 +799,7 @@ Referenced tests: `test_browser.py::test_R2_53_R2_54_R2_58_R2_59_R2_64_R2_65_R2_
 
   > | `research-domain` | Input for the domain to research |
 
-Referenced tests: `test_browser.py::test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_94_R2_102_empty_not_found_and_refused_research`, `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`
+Referenced tests: `test_browser.py::test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_94_R2_102_empty_not_found_and_refused_research`, `test_browser_faults.py::test_R2_71_R2_72_R2_79_R2_107_existing_dossier_created_by_another_client_does_not_rebuild`, `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`
 
 ### R2.72
 - Section: Dossier list — `/`
@@ -809,7 +809,7 @@ Referenced tests: `test_browser.py::test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_
 
   > | `research-submit` | Button. Sends `POST /dossiers` |
 
-Referenced tests: `test_browser.py::test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_94_R2_102_empty_not_found_and_refused_research`, `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`
+Referenced tests: `test_browser.py::test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_94_R2_102_empty_not_found_and_refused_research`, `test_browser_faults.py::test_R2_71_R2_72_R2_79_R2_107_existing_dossier_created_by_another_client_does_not_rebuild`, `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`
 
 ### R2.73
 - Section: Dossier list — `/`
@@ -829,7 +829,7 @@ Referenced tests: `test_browser.py::test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_
 
   > | `research-uncertain` | Shown when the outcome of a research request is unknown (below) |
 
-Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`, `test_upgrade.py::test_R2_74_R2_79_R2_106_R2_108_lost_stage1_create_retries_after_import`
+Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`, `test_upgrade.py::test_R2_74_R2_79_R2_92_R2_106_R2_108_lost_stage1_write_retries_after_import`
 
 ### R2.75
 - Section: Dossier list — `/`
@@ -881,7 +881,7 @@ Referenced tests: `test_browser.py::test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_
   > normalised domain. A domain that already has a dossier, including one created by another
   > client after this browser read the list, opens that dossier and starts no build.
 
-Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`, `test_upgrade.py::test_R2_74_R2_79_R2_106_R2_108_lost_stage1_create_retries_after_import`
+Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_79_R2_107_existing_dossier_created_by_another_client_does_not_rebuild`, `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`, `test_upgrade.py::test_R2_74_R2_79_R2_92_R2_106_R2_108_lost_stage1_write_retries_after_import`
 
 ### R2.80
 - Section: Dossier — `/dossiers/{domain}`
@@ -991,7 +991,7 @@ Referenced tests: `test_browser.py::test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_
 
   > | `dossier-refresh` | Button. Sends `POST /dossiers/{domain}/refresh` |
 
-Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`, `test_browser_faults.py::test_R2_90_R2_96_R2_103_R2_105_browser_follows_another_clients_refresh`
+Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`, `test_browser_faults.py::test_R2_90_R2_91_confirmed_refresh_refusal_is_not_uncertain`, `test_browser_faults.py::test_R2_90_R2_96_R2_103_R2_105_browser_follows_another_clients_refresh`
 
 ### R2.91
 - Section: Dossier — `/dossiers/{domain}`
@@ -1001,7 +1001,7 @@ Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_
 
   > | `refresh-error` | Error message, when a refresh is refused |
 
-Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`
+Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`, `test_browser_faults.py::test_R2_90_R2_91_confirmed_refresh_refusal_is_not_uncertain`
 
 ### R2.92
 - Section: Dossier — `/dossiers/{domain}`
@@ -1011,7 +1011,7 @@ Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_
 
   > | `refresh-uncertain` | Shown when the outcome of a refresh is unknown (below) |
 
-Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`
+Referenced tests: `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`, `test_upgrade.py::test_R2_74_R2_79_R2_92_R2_106_R2_108_lost_stage1_write_retries_after_import`
 
 ### R2.93
 - Section: Dossier — `/dossiers/{domain}`
@@ -1166,7 +1166,7 @@ Referenced tests: `test_browser_faults.py::test_R2_90_R2_96_R2_103_R2_105_browse
   >   retry removes both the error and the uncertainty elements, shows the dossier, and starts at
   >   most one build. Unknown outcomes are not confirmed refusals.
 
-Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`, `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`, `test_upgrade.py::test_R2_74_R2_79_R2_106_R2_108_lost_stage1_create_retries_after_import`
+Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2_103_R2_106_research_lost_response_reuses_key`, `test_browser_faults.py::test_R2_90_R2_91_R2_92_R2_103_R2_106_refresh_lost_response_reuses_key`, `test_upgrade.py::test_R2_74_R2_79_R2_92_R2_106_R2_108_lost_stage1_write_retries_after_import`
 
 ### R2.107
 - Section: Refresh and competing clients
@@ -1177,7 +1177,7 @@ Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_73_R2_74_R2_79_R2
   > No background polling beyond the reading while `building`, live synchronization, or recovery
   > across page reloads is required.
 
-Referenced tests: none
+Referenced tests: `test_browser_faults.py::test_R2_71_R2_72_R2_79_R2_107_existing_dossier_created_by_another_client_does_not_rebuild`
 
 ### R2.108
 - Section: Existing clients after an upgrade
@@ -1200,7 +1200,7 @@ Referenced tests: none
   > requests; migration during an in-flight request is not required. No page reload or new screen
   > is required.
 
-Referenced tests: `test_harness.py::test_R2_108_upgrade_bridge_routes_api_before_and_after_switch`, `test_upgrade.py::test_R2_108_R2_109_RL59_stage1_export_sessions_and_candidates_survive_upgrade`, `test_upgrade.py::test_R2_69_R2_93_R2_108_RL59_browser_session_survives_stage1_import`, `test_upgrade.py::test_R2_74_R2_79_R2_106_R2_108_lost_stage1_create_retries_after_import`
+Referenced tests: `test_harness.py::test_R2_108_upgrade_bridge_routes_api_before_and_after_switch`, `test_upgrade.py::test_R2_108_R2_109_RL59_stage1_export_sessions_and_candidates_survive_upgrade`, `test_upgrade.py::test_R2_69_R2_93_R2_108_RL59_browser_session_survives_stage1_import`, `test_upgrade.py::test_R2_74_R2_79_R2_92_R2_106_R2_108_lost_stage1_write_retries_after_import`
 
 ### R2.109
 - Section: Existing clients after an upgrade

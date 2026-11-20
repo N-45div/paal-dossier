@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from oracle import FIELDS
+from oracle import FIELDS, amounts
 from test_candidates import wait_ready
 
 def node(testid):
@@ -69,6 +69,25 @@ def test_R1_22_browser_can_intercept_a_response(browser_page):
     browser_page.call('Fetch.disable')
 
 
+def test_R1_22_browser_can_drop_a_committed_response(api, seeded, browser_page):
+    """The test transport observes request identity before dropping a real response."""
+    seen = []
+    def drop(event):
+        request = event['request']
+        headers = {key.lower():value for key,value in request['headers'].items()}
+        seen.append((headers.get('idempotency-key'), request.get('postData', '')))
+        browser_page.call('Fetch.failRequest', {'requestId':event['requestId'], 'errorReason':'Failed'})
+    browser_page.navigate('/health')
+    browser_page.on('Fetch.requestPaused', drop)
+    browser_page.call('Fetch.enable', {'patterns':[{'urlPattern':'*/auth/login', 'requestStage':'Response'}]})
+    result = browser_page.evaluate('''fetch('/auth/login', {method:'POST', headers:{'Content-Type':'application/json',
+        'Idempotency-Key':'browser-transport-check'}, body:JSON.stringify({email:'ada@example.com',
+        password:'correct horse'})}).then(()=>'received').catch(()=>'failed')''')
+    assert result == 'failed' and len(seen) == 1
+    assert seen[0][0] == 'browser-transport-check' and json.loads(seen[0][1])['email'] == 'ada@example.com'
+    browser_page.call('Fetch.disable')
+
+
 def test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_94_R2_102_empty_not_found_and_refused_research(api, seeded, browser_page):
     """Empty and missing data are distinct from a rejected domain submission."""
     login(browser_page)
@@ -78,10 +97,13 @@ def test_R2_54_R2_57_R2_71_R2_72_R2_73_R2_78_R2_94_R2_102_empty_not_found_and_re
     browser_page.click('research-submit')
     browser_page.wait(present('research-error'))
     assert not browser_page.evaluate(present('research-uncertain'))
-    browser_page.screenshot(Path(tempfile.gettempdir()) / 'prover-stage2-refused.png')
+    browser_page.screenshot(Path(tempfile.gettempdir()) / f'{browser_page.artifact_prefix}-stage2-refused.png')
     browser_page.navigate('/contested')
     browser_page.wait(present('empty-contested'))
     browser_page.navigate('/dossiers/missing.test')
+    browser_page.wait(present('dossier-not-found'))
+    assert not browser_page.evaluate(present('field-ceo'))
+    browser_page.navigate('/dossiers/not%20a%20domain')
     browser_page.wait(present('dossier-not-found'))
     assert not browser_page.evaluate(present('field-ceo'))
 
@@ -96,7 +118,7 @@ def test_R2_55_R2_63_failed_dossier_has_a_distinct_state(api, mock, seeded, brow
     browser_page.click('research-submit')
     browser_page.wait(present('dossier-state') + ' && ' + node('dossier-state') +
                       '.innerText.trim() === "failed"', timeout=30)
-    browser_page.screenshot(Path(tempfile.gettempdir()) / 'prover-stage2-failed.png')
+    browser_page.screenshot(Path(tempfile.gettempdir()) / f'{browser_page.artifact_prefix}-stage2-failed.png')
 
 
 @pytest.mark.parametrize('width', [375, 1440])
@@ -134,7 +156,7 @@ def test_R2_53_R2_54_R2_58_R2_59_R2_64_R2_65_R2_66_R2_67_R2_68_R2_69_R2_70_auth_
         page.navigate(path)
         page.wait(present('current-user'))
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-    page.screenshot(Path(tempfile.gettempdir()) / f'prover-stage2-list-{width}.png')
+    page.screenshot(Path(tempfile.gettempdir()) / f'{page.artifact_prefix}-stage2-list-{width}.png')
     page.click('logout-button')
     page.wait('!' + present('current-user'))
 
@@ -197,7 +219,7 @@ def test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77
             assert page.evaluate(node(testid) + '.querySelector("a").getAttribute("href")') == citation['url']
     assert attribute(page, 'dossier-evidence-link', 'href').endswith('/dossiers/' + domain + '/evidence')
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-    page.screenshot(Path(tempfile.gettempdir()) / f'prover-stage2-dossier-{width}.png')
+    page.screenshot(Path(tempfile.gettempdir()) / f'{page.artifact_prefix}-stage2-dossier-{width}.png')
 
     page.navigate('/dossiers/' + domain + '/evidence')
     page.wait(present('current-user'))
@@ -222,7 +244,7 @@ def test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77
                 ordering = node(f'candidate-{field}-{n-1}') + '.compareDocumentPosition(' + node(testid) + ') & 4'
                 assert page.evaluate(ordering), 'candidates must retain API order'
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-    page.screenshot(Path(tempfile.gettempdir()) / f'prover-stage2-evidence-{width}.png')
+    page.screenshot(Path(tempfile.gettempdir()) / f'{page.artifact_prefix}-stage2-evidence-{width}.png')
 
     page.navigate('/contested')
     page.wait(present('current-user'))
@@ -235,7 +257,20 @@ def test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77
         for item_domain, field, item in contested:
             testid = f'contested-item-{item_domain}-{field}'
             assert attribute(page, testid, 'data-value') == str(item['fields'][field]['value'])
-            assert item_domain in text(page, testid)
+            rendered = text(page, testid)
+            assert item_domain in rendered
+            labels = {'legal_name':('legal name','registered name'), 'hq_city':('hq city','headquarters','head office'),
+                      'ceo':('ceo','chief executive'), 'founded_year':('founded','founding'),
+                      'headcount_range':('headcount','employees','workforce'), 'funding_total':('funding','raised','investment')}
+            assert any(label in rendered.lower().replace('_', ' ') for label in labels[field])
+            for value in {candidate['value'] for candidate in item['fields'][field]['candidates']}:
+                if isinstance(value, str):
+                    assert value in rendered
+                elif field == 'funding_total':
+                    digits = ''.join(char for char in rendered if char.isdecimal())
+                    assert value in {amount for _, amount in amounts(rendered)} or str(value) in digits
+                else:
+                    assert str(value) in rendered
             link = page.evaluate('(() => {const e=' + node(testid) +
                                  '; const a=e.matches("a") ? e : e.querySelector("a"); return a && a.getAttribute("href")})()')
             assert link.endswith('/dossiers/' + item_domain + '/evidence')
@@ -243,4 +278,4 @@ def test_R2_52_R2_54_R2_55_R2_56_R2_57_R2_61_R2_62_R2_63_R2_64_R2_75_R2_76_R2_77
                             'x => x.getAttribute("data-testid"))')
         assert ids == [f'contested-item-{item_domain}-{field}' for item_domain,field,_ in contested]
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-    page.screenshot(Path(tempfile.gettempdir()) / f'prover-stage2-contested-{width}.png')
+    page.screenshot(Path(tempfile.gettempdir()) / f'{page.artifact_prefix}-stage2-contested-{width}.png')
