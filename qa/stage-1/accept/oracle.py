@@ -152,9 +152,8 @@ def candidates(domain, field, text):
 
 
 def page_prose(page):
-    """Text served for normal, non-rendered searches and extracts."""
-    static = page.get('static_text')
-    return static if isinstance(static, str) else page['text']
+    """The caller supplies text observed from the provider, never corpus variants."""
+    return page['text']
 
 
 def corpus_candidates(domain, pages):

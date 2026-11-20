@@ -131,6 +131,17 @@ def test_R1_27_fractional_clock_precision(api, seeded):
     assert api.post('/_test/clock', json={'now':'2026-03-01T10:00:00.123456790+00:00'}).status_code == 204
 
 
+def test_R1_25_R1_27_RL26_leap_seconds(api, seeded):
+    """R1.25 R1.27: leap seconds are accepted only at 23:59:60 UTC and ordered."""
+    assert api.post('/_test/reset', json={'now':'2016-12-31T23:59:59Z', 'users':[]}, timeout=10).status_code == 204
+    assert api.post('/_test/clock', json={'now':'2016-12-31T18:59:60-05:00'}).status_code == 204
+    error(api.post('/_test/clock', json={'now':'2016-12-31T23:59:59.999999999Z'}), 422, 'validation_failed')
+    assert api.post('/_test/clock', json={'now':'2017-01-01T00:00:00Z'}).status_code == 204
+    assert api.post('/_test/reset', json={'now':'2016-12-31T23:59:60Z', 'users':[]}, timeout=10).status_code == 204
+    for timestamp in ('2016-12-31T12:00:60Z', '2016-12-31T23:59:61Z'):
+        error(api.post('/_test/clock', json={'now':timestamp}), 422, 'validation_failed')
+
+
 @pytest.mark.parametrize('timestamp', [
     '2027-01-01T00:00:00+00:60', '2027-01-01T00:00:00+24:00',
     '2027-01-01T00:00:00-05:99', '2027-02-30T00:00:00+00:00'])

@@ -5,6 +5,7 @@ environment variables on a network without external routes.
 """
 import os
 import json
+import re
 import socket
 import subprocess
 import time
@@ -18,7 +19,7 @@ WEB = Path('/home/ndivij/buildathon/sf-buildathon-2026/challenges/dossier/web')
 CORPUS = WEB / 'corpus/sample'
 ADMIN = {'X-Mock-Admin': 'prover-local-admin'}
 RELAY = r'''
-import select, socket, socketserver, threading
+import select, socket, socketserver, sys, threading
 class Handler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
@@ -38,7 +39,7 @@ class Server(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
 servers = []
-for port, destination in [(18200, 'mock'), (18201, 'app')]:
+for port, destination in [(int(sys.argv[1]), 'mock'), (int(sys.argv[2]), 'app')]:
     server = Server(('0.0.0.0', port), Handler)
     server.destination = destination
     servers.append(server)
@@ -46,11 +47,50 @@ for port, destination in [(18200, 'mock'), (18201, 'app')]:
 threading.Event().wait()
 '''
 
+# An HTTP proxy measures active extract requests without inspecting the service.
+EXTRACT_MONITOR = r'''
+import http.client, http.server, json, threading
+lock = threading.Lock()
+active = peak = total = 0
+class Handler(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *args): pass
+    def do_GET(self):
+        if self.path == '/_probe/metrics':
+            with lock: payload = json.dumps({'active': active, 'peak': peak, 'total': total}).encode()
+            self.send_response(200); self.send_header('Content-Length', str(len(payload))); self.end_headers(); self.wfile.write(payload)
+        else: self.forward()
+    def do_POST(self): self.forward()
+    def forward(self):
+        global active, peak, total
+        extract = self.path in ('/nimble/v2/extract', '/tavily/extract')
+        body = self.rfile.read(int(self.headers.get('Content-Length', '0')))
+        if extract:
+            with lock:
+                active += 1; total += 1; peak = max(peak, active)
+        try:
+            conn = http.client.HTTPConnection('mock', 8080, timeout=60)
+            headers = {k: v for k, v in self.headers.items() if k.lower() not in ('host', 'connection')}
+            conn.request(self.command, self.path, body, headers)
+            response = conn.getresponse(); data = response.read()
+            self.send_response(response.status)
+            for key, value in response.getheaders():
+                if key.lower() not in ('connection', 'transfer-encoding', 'content-length'):
+                    self.send_header(key, value)
+            self.send_header('Content-Length', str(len(data))); self.end_headers(); self.wfile.write(data)
+        finally:
+            if extract:
+                with lock: active -= 1
+http.server.ThreadingHTTPServer(('0.0.0.0', 8080), Handler).serve_forever()
+'''
+
 
 def pytest_addoption(parser):
     parser.addoption('--service-root', default=os.environ.get('DOSSIER_ROOT'),
                      help='worktree containing stage-1/')
     parser.addoption('--corpus', default=str(CORPUS), help='mock web corpus directory')
+    parser.addoption('--name-prefix', default='prover', help='Docker name prefix for this seat')
+    parser.addoption('--port-start', type=int, default=18200, help='first allowed host port')
+    parser.addoption('--port-end', type=int, default=18299, help='last allowed host port')
 
 
 def pytest_generate_tests(metafunc):
@@ -67,12 +107,36 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture(scope='session')
 def all_companies(request):
     corpus = Path(request.config.getoption('--corpus')).resolve()
-    return [json.loads(path.read_text()) for path in sorted(corpus.glob('*.test.json'))]
+    result = []
+    for path in sorted(corpus.glob('*.test.json')):
+        source = json.loads(path.read_text())
+        result.append({'domain': source['domain'], 'research': source.get('research', {}),
+                       'pages': [{key: page[key] for key in ('url', 'epochs', 'searchable') if key in page}
+                                 for page in source['pages']]})
+    return result
 
 
 @pytest.fixture(scope='session')
-def all_pages(all_companies):
-    return [page for company in all_companies for page in company['pages'] if 0 in page['epochs']]
+def served_companies(all_companies, deployment):
+    """RL25: obtain page text from the provider, not corpus text variants."""
+    with httpx.Client(base_url=deployment['mock'], headers=ADMIN, timeout=10, trust_env=False) as client:
+        assert client.post('/_mock/reset', json={'epoch': 0}).status_code == 204
+        pages = [page for company in all_companies for page in company['pages'] if 0 in page['epochs']]
+        for url in dict.fromkeys(page['url'] for page in pages):
+            response = client.post('/nimble/v2/extract', json={'url': url, 'formats': ['markdown']})
+            assert response.status_code == 200, (url, response.status_code)
+        calls = client.get('/_mock/log').json()['calls']
+        texts = {item['url']: item['text'] for call in calls for item in call.get('served', [])}
+        assert all(page['url'] in texts for page in pages)
+        for page in pages:
+            page['text'] = texts[page['url']]
+        assert client.post('/_mock/reset', json={'epoch': 0}).status_code == 204
+    return all_companies
+
+
+@pytest.fixture(scope='session')
+def all_pages(served_companies):
+    return [page for company in served_companies for page in company['pages'] if 0 in page['epochs']]
 
 
 def docker(*args, timeout=300, check=True):
@@ -80,10 +144,10 @@ def docker(*args, timeout=300, check=True):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
-def unused_ports(count):
+def unused_ports(count, first, last):
     sockets = []
     try:
-        for port in range(18200, 18300):
+        for port in range(first, last + 1):
             sock = socket.socket()
             try:
                 sock.bind(('127.0.0.1', port))
@@ -93,7 +157,7 @@ def unused_ports(count):
             sockets.append(sock)
             if len(sockets) == count:
                 return [s.getsockname()[1] for s in sockets]
-        raise RuntimeError('Not enough free ports in 18200–18299')
+        raise RuntimeError(f'Not enough free ports in {first}–{last}')
     finally:
         for sock in sockets:
             sock.close()
@@ -111,7 +175,7 @@ def healthy(url, seconds=60):
     raise AssertionError(f'health endpoint did not become ready in {seconds}s: {url}')
 
 
-def launch_deployment(request, corpus):
+def launch_deployment(request, corpus, monitor_extracts=False):
     root = request.config.getoption('--service-root')
     if not root:
         pytest.fail('Set DOSSIER_ROOT or pass --service-root to a worktree containing stage-1')
@@ -121,34 +185,46 @@ def launch_deployment(request, corpus):
         pytest.fail(f'Corpus directory does not exist: {corpus}')
     if not (service / 'Dockerfile').is_file():
         pytest.fail(f'No Dockerfile in {service}')
-    tag = 'prover-' + uuid.uuid4().hex[:12]
+    prefix = request.config.getoption('--name-prefix')
+    first, last = request.config.getoption('--port-start'), request.config.getoption('--port-end')
+    if not re.fullmatch(r'[a-z0-9][a-z0-9_.-]{0,39}', prefix):
+        pytest.fail('Docker name prefix must be 1–40 lowercase letters, digits, dots, underscores or hyphens')
+    if not 1 <= first < last <= 65535:
+        pytest.fail('Port range must contain at least two valid TCP ports')
+    tag = prefix + '-' + uuid.uuid4().hex[:12]
     network, front, relay, mock, app = tag + '-net', tag + '-front', tag + '-relay', tag + '-mock', tag + '-app'
     web_image, app_image = tag + '-web', tag + '-service'
-    mock_port, app_port = unused_ports(2)
+    monitor = tag + '-monitor'
+    mock_port, app_port = unused_ports(2, first, last)
     try:
         docker('build', '-t', web_image, WEB, timeout=600)
         docker('build', '-t', app_image, service, timeout=600)
         docker('network', 'create', '--internal', network)
         docker('network', 'create', front)
         docker('run', '-d', '--name', relay, '--network', front,
-               '-p', f'127.0.0.1:{mock_port}:18200', '-p', f'127.0.0.1:{app_port}:18201',
-               '--entrypoint', 'python', web_image, '-u', '-c', RELAY)
+               '-p', f'127.0.0.1:{mock_port}:{mock_port}', '-p', f'127.0.0.1:{app_port}:{app_port}',
+               '--entrypoint', 'python', web_image, '-u', '-c', RELAY, str(mock_port), str(app_port))
         docker('network', 'connect', network, relay)
         docker('run', '-d', '--name', mock, '--network', network, '--network-alias', 'mock',
                '-e', 'MOCK_ADMIN_TOKEN=prover-local-admin',
                '-v', f'{corpus}:/data/corpus:ro', web_image)
         healthy(f'http://127.0.0.1:{mock_port}/_mock/health')
+        upstream = mock
+        if monitor_extracts:
+            docker('run', '-d', '--name', monitor, '--network', network,
+                   '--entrypoint', 'python', web_image, '-u', '-c', EXTRACT_MONITOR)
+            upstream = monitor
         docker('run', '-d', '--name', app, '--network', network, '--network-alias', 'app',
                '--cpus', '2', '--memory', '3g',
                '-e', 'PORT=8080', '-e', 'NIMBLE_API_KEY=local',
-               '-e', f'NIMBLE_BASE_URL=http://{mock}:8080/nimble',
+               '-e', f'NIMBLE_BASE_URL=http://{upstream}:8080/nimble',
                '-e', 'TAVILY_API_KEY=local',
-               '-e', f'TAVILY_BASE_URL=http://{mock}:8080/tavily', app_image)
+               '-e', f'TAVILY_BASE_URL=http://{upstream}:8080/tavily', app_image)
         healthy(f'http://127.0.0.1:{app_port}/health')
         yield {'app': f'http://127.0.0.1:{app_port}', 'mock': f'http://127.0.0.1:{mock_port}',
-               'container': app}
+               'container': app, 'monitor': monitor if monitor_extracts else None}
     finally:
-        for name in (app, mock, relay):
+        for name in (app, monitor, mock, relay):
             docker('rm', '-f', name, timeout=20, check=False)
         docker('network', 'rm', network, timeout=20, check=False)
         docker('network', 'rm', front, timeout=20, check=False)
@@ -176,6 +252,8 @@ def adversarial_deployment(request, tmp_path_factory):
         ('length-probe.test', long_sentence),
         ('extract-probe.test', 'Extract Probe publishes an annual review.'),
         ('hidden-record.test', 'Hidden Record was incorporated in 2008.\nHidden Record employs 120 people.'),
+        ('zero-research.test', 'Zero Research has raised $0.'),
+        ('variant-probe.test', 'Variant Probe has raised $19M.'),
         ('long-witness.test', 'Long Witness was incorporated in 2012 ' + 'and ' * 200 + 'today.'),
         ('late-negation.test', 'Late Negation raised $19M ' + 'filler ' * 90 + 'not later.'),
         ('late-conflict.test', 'Late Conflict raised $19M ' + 'filler ' * 90 + 'or $23M.'),
@@ -199,8 +277,31 @@ def adversarial_deployment(request, tmp_path_factory):
             company['research'] = {'nimble': {'0': [{
                 'field':'founded_year', 'value':2008, 'url':page['url'],
                 'excerpt':'Hidden Record was incorporated in 2008.'}]}}
+        elif domain == 'zero-research.test':
+            page['searchable'] = False
+            company['research'] = {'nimble': {'0': [{
+                'field':'funding_total', 'value':0, 'url':page['url'],
+                'excerpt':'Zero Research has raised $0.'}]}}
+        elif domain == 'variant-probe.test':
+            page['static_text'] = 'Variant Probe has raised $23M.'
         (corpus / (domain + '.json')).write_text(json.dumps(company))
     yield from launch_deployment(request, corpus)
+
+
+@pytest.fixture(scope='session')
+def concurrency_deployment(request, tmp_path_factory):
+    corpus = tmp_path_factory.mktemp('prover-concurrency-corpus')
+    domain = 'concurrency-probe.test'
+    pages = []
+    for index in range(30):
+        pages.append({'url': f'https://{domain}/page-{index:02d}', 'kind': 'own', 'epochs': [0],
+                      'searchable': True, 'published_at': None, 'true_from': None,
+                      'title': f'Concurrency Probe report {index}',
+                      'text': 'Concurrency Probe publishes reports. ' + ('Additional details. ' * 40),
+                      'facts': {}, 'lineage': {'canonical': None, 'first_published_by': None, 'registrant': domain}})
+    company = {'domain': domain, 'names': ['Concurrency Probe'], 'pages': pages, 'research': {}}
+    (corpus / (domain + '.json')).write_text(json.dumps(company))
+    yield from launch_deployment(request, corpus, monitor_extracts=True)
 
 
 @pytest.fixture

@@ -5,10 +5,61 @@ import copy
 import httpx
 import pytest
 
-from conftest import ADMIN
+from conftest import ADMIN, docker
 from oracle import candidates, prose
 from test_api import auth, create, done
 from test_state_faults import fault
+
+
+def test_R1_18_RL13_extract_concurrency_at_most_eight(concurrency_deployment):
+    """R1.18 RL13: one build runs no more than eight extracts simultaneously."""
+    deployment = concurrency_deployment
+    monitor_address = docker('inspect', '--format', '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
+                             deployment['monitor'], timeout=10).stdout.strip()
+    with httpx.Client(base_url=deployment['app'], timeout=5, trust_env=False) as api, \
+         httpx.Client(base_url=deployment['mock'], headers=ADMIN, timeout=10, trust_env=False) as mock, \
+         httpx.Client(base_url=f'http://{monitor_address}:8080', timeout=5, trust_env=False) as monitor:
+        assert mock.post('/_mock/reset', json={'epoch': 0}).status_code == 204
+        for provider in ('nimble', 'tavily'):
+            assert mock.post('/_mock/faults', json={'provider': provider, 'methods': ['extract'],
+                                                    'mode': 'delay', 'seconds': 1.5}).status_code == 204
+        fixture = {'now': '2026-03-01T09:00:00Z', 'users': [
+            {'id': 'u', 'email': 'test@example.com', 'password': 'correct horse', 'display_name': 'Test'}]}
+        assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+        token = api.post('/auth/login', json={'email': 'test@example.com', 'password': 'correct horse'}).json()['token']
+        assert create(api, token, 'concurrency-probe.test', 'parallel').status_code == 202
+        dossier = done(api, token, 'concurrency-probe.test')
+        assert dossier['state'] == 'ready'
+        metrics = monitor.get('/_probe/metrics').json()
+        calls = mock.get('/_mock/log').json()['calls']
+        assert metrics['total'] >= 9, (metrics, 'test must exercise more than eight extract calls')
+        assert metrics['total'] == sum(call['method'] == 'extract' for call in calls)
+        assert metrics['peak'] <= 8, metrics
+
+
+def test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant(synthetic):
+    """R1.41 R1.43 R1.86 RL25: the actual provider text defines evidence."""
+    api, mock, token = synthetic
+    domain = 'variant-probe.test'
+    url = f'https://{domain}/about'
+    response = mock.post('/nimble/v2/extract', json={'url': url, 'formats': ['markdown']})
+    assert response.status_code == 200
+    served = [p['text'] for call in mock.get('/_mock/log').json()['calls']
+              for p in call.get('served', []) if p['url'] == url]
+    assert len(served) == 1
+    supported = candidates(domain, 'funding_total', prose(served[0]))
+    assert len(supported) == 1
+    assert mock.post('/_mock/reset', json={'epoch': 0}).status_code == 204
+    assert create(api, token, domain, 'variant').status_code == 202
+    dossier = done(api, token, domain)
+    field = dossier['fields']['funding_total']
+    assert field['status'] == 'known' and field['value'] in supported
+    calls = mock.get('/_mock/log').json()['calls']
+    for citation in field['citations']:
+        excerpt = re.sub(r'\s+', ' ', citation['excerpt']).strip()
+        assert any(call['provider'] == citation['provider'] and
+                   any(page['url'] == citation['url'] and excerpt in re.sub(r'\s+', ' ', page['text'])
+                       for page in call.get('served', [])) for call in calls)
 
 
 @pytest.fixture
@@ -170,6 +221,32 @@ def test_R1_41_R1_45_R1_86_unsearchable_page_only_claimed_field(synthetic):
                        for page in call.get('served', [])) for call in calls)
 
 
+def test_R1_40_R1_45_R1_86_R1_126_research_zero_is_known_and_importable(synthetic):
+    """R1.40 R1.45 R1.86 R1.126: a verified research-only zero is known and round-trips."""
+    api, mock, token = synthetic
+    domain = 'zero-research.test'
+    assert create(api, token, domain, 'zero').status_code == 202
+    dossier = done(api, token, domain)
+    assert dossier['state'] == 'ready'
+    field = dossier['fields']['funding_total']
+    assert field['status'] == 'known' and type(field['value']) is int and field['value'] == 0
+    assert field['citations']
+    calls = mock.get('/_mock/log').json()['calls']
+    assert not any(page['url'] == 'https://zero-research.test/about'
+                   for call in calls if call['method'] == 'search' for page in call.get('served', []))
+    assert any(call['method'] == 'research' and call['status'] == 200 for call in calls)
+    for citation in field['citations']:
+        assert candidates(domain, 'funding_total', citation['excerpt']) == {0}
+        excerpt = re.sub(r'\s+', ' ', citation['excerpt']).strip()
+        assert any(call['method'] == 'extract' and call['provider'] == citation['provider'] and
+                   any(page['url'] == citation['url'] and excerpt in re.sub(r'\s+', ' ', prose(page['text']))
+                       for page in call.get('served', [])) for call in calls)
+    snapshot = api.get('/_test/export', timeout=10).json()
+    assert api.post('/_test/import', json=snapshot, timeout=10).status_code == 204
+    assert api.get('/dossiers/' + domain, headers=auth(token)).json() == dossier
+    assert mock.get('/_mock/log').json()['calls'] == calls
+
+
 def test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix(synthetic):
     """R1.3 R1.43 R1.86: a supporting prefix may cite an overlong sentence."""
     api, mock, token = synthetic
@@ -199,7 +276,7 @@ def test_R1_43_R1_44_R1_86_long_sentence_full_context(synthetic, domain):
     assert dossier['fields']['funding_total'] == {'value':None, 'status':'unknown', 'citations':[]}
 
 
-@pytest.mark.parametrize('corruption', ['missing_field', 'known_without_citations', 'unknown_with_citations', 'wrong_value_type', 'empty_excerpt'])
+@pytest.mark.parametrize('corruption', ['missing_field', 'extra_field', 'extra_field_key', 'known_without_citations', 'unknown_with_citations', 'wrong_value_type', 'empty_excerpt'])
 def test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic(synthetic, corruption):
     """R1.40 R1.126 R1.127: reject incomplete or inconsistent dossier fields atomically."""
     api, mock, token = synthetic
@@ -213,6 +290,10 @@ def test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic(synthetic, corru
     fields = dossiers[0]['fields']
     if corruption == 'missing_field':
         del fields['legal_name']
+    elif corruption == 'extra_field':
+        fields['unexpected'] = {'value':None, 'citations':[]}
+    elif corruption == 'extra_field_key':
+        fields['funding_total']['unexpected'] = True
     elif corruption == 'known_without_citations':
         fields['funding_total']['citations'] = []
     elif corruption == 'unknown_with_citations':
@@ -230,8 +311,8 @@ def test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic(synthetic, corru
 
 
 @pytest.mark.parametrize('field,bad_value', [
-    ('founded_year', True), ('founded_year', 1799), ('founded_year', 2100),
-    ('funding_total', True), ('funding_total', 0), ('funding_total', -1), ('funding_total', 1.5),
+    ('founded_year', True), ('founded_year', 1799), ('founded_year', 2100), ('founded_year', 2014.0),
+    ('funding_total', True), ('funding_total', -1), ('funding_total', 1.5), ('funding_total', 23000000.0),
     ('headcount_range', '10-50'),
     ('legal_name', ''), ('legal_name', ' Shape Probe Inc.'),
     ('hq_city', ''), ('hq_city', 'Lisbon '),

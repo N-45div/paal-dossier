@@ -187,6 +187,39 @@ def test_R1_23_R1_67_R1_93_R1_129_reset_races_authenticated_opens(api, mock, see
         assert response.status_code == 200 and response.json()['dossiers'] == []
 
 
+def test_R1_23_R1_67_R1_129_reset_races_authenticated_reads(api, mock, seeded, direct_api):
+    """R1.23 R1.67 R1.129: old-token reads cannot observe post-reset state."""
+    fault(mock, 'nimble', ['search', 'extract', 'research'], 'error')
+    fault(mock, 'tavily', ['search', 'extract'], 'error')
+    for iteration in range(5):
+        fixture = {'now':'2026-03-01T09:00:00+00:00', 'users':[
+            {'id':'race-user', 'email':'race@example.com', 'password':'correct horse', 'display_name':'Race'}]}
+        assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+        login = api.post('/auth/login', json={'email':'race@example.com','password':'correct horse'})
+        assert login.status_code == 200
+        token = login.json()['token']
+        domain = f'visible-{iteration}.test'
+        assert create(api, token, domain, 'before-reset').status_code == 202
+        assert done(api, token, domain)['state'] in ('ready', 'failed')
+        barrier = threading.Barrier(50)
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
+            def request(i):
+                barrier.wait(timeout=5)
+                if i == 0:
+                    response = client.post('/_test/reset', json={'now':'2026-03-01T09:00:00+00:00','users':[]}, timeout=10)
+                    return response.status_code, None
+                response = client.get('/dossiers', headers=auth(token))
+                return response.status_code, response.json()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+                responses = list(pool.map(request, range(50)))
+        assert responses[0][0] == 204
+        for status, body in responses[1:]:
+            if status == 401:
+                assert body['error']['code'] == 'unauthenticated'
+            else:
+                assert status == 200 and [row['domain'] for row in body['dossiers']] == [domain]
+
+
 def test_R1_70_R1_124_R1_125_R1_126_R1_127_export_import_roundtrip(api, mock, seeded):
     'R1.70 R1.124 R1.125 R1.126 R1.127'
     token = seeded[0]

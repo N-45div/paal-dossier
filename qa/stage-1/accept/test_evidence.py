@@ -77,8 +77,7 @@ def test_R1_41_R1_45_R1_86_cross_company_and_research_evidence():
         ]}}},
         {'domain': 'other.test', 'pages': [
             {'url': 'https://other.test/news', 'epochs': [0],
-             'text': 'Acme Robotics was founded in 2016.',
-             'static_text': 'Acme Robotics was founded in 2014.'},
+             'text': 'Acme Robotics was founded in 2014.'},
             {'url': 'https://other.test/future', 'epochs': [1],
              'text': 'Acme Robotics was founded in 2015.'},
         ]},
@@ -98,11 +97,12 @@ def test_R1_43_R1_44_R1_133_long_sentence_full_support():
     assert corpus_candidates(domain, [{'text': prefix + 'or $30M.'}])['funding_total'] == set()
 
 
-def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost(api, mock, seeded, company_path, all_pages, all_companies):
+def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost(api, mock, seeded, company_path, all_pages, served_companies):
     'R1.111 R1.112 R1.113 R1.114 R1.115 R1.116 R1.117 R1.118 R1.119 R1.120:\n    verify each applicable price and depth for provider calls observed, without requiring optional calls.\n    \nR1.3 R1.4 R1.5 R1.37 R1.38 R1.39 R1.40 R1.41 R1.42 R1.43 R1.44 R1.45 R1.46 R1.47 R1.83 R1.85 R1.86 R1.87 R1.89 R1.95 R1.96 R1.97 R1.98 R1.99 R1.110 R1.121 R1.122 R1.123'
     company = json.loads(company_path.read_text())
     domain = company['domain']
     token = seeded[0]
+    assert mock.post('/_mock/reset', json={'epoch': 0}).status_code == 204
     started = time.monotonic()
     response = create(api, token, domain, 'build-' + domain)
     assert response.status_code == 202
@@ -129,7 +129,7 @@ def test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1
             assert domain in call['query']
             assert set(call['fields']) == set(FIELDS)
     assert set(dossier['fields']) == set(FIELDS)
-    supported = evidence_candidates(domain, all_companies)
+    supported = evidence_candidates(domain, served_companies)
     for field, result in dossier['fields'].items():
         value = result['value']
         if supported[field]:
