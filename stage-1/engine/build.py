@@ -19,7 +19,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Optional
 
-from .discovery import Hit, Candidate, candidates, support_queries
+from .discovery import Candidate, Hit, candidates, support_queries
 from .evidence import Evidence
 from .gateway import Gateway
 from .ledger import Ledger
@@ -49,8 +49,8 @@ def build(
         cited = _cited_urls(answer)
 
         ranked = candidates(hits, domain)
-        free_pages, partial_pages = _free_text(ranked)
-        fetched = _extract_in_priority(gateway, _extraction_order(cited, ranked, free_pages), deadline)
+        whole_urls = _whole_snippet_urls(ranked)
+        fetched = _extract_in_priority(gateway, _extraction_order(cited, ranked, whole_urls), deadline)
 
         evidence = Evidence(domain)
         searched = {c.url for c in ranked}  # RL21: pages a search of this build returned
@@ -58,14 +58,14 @@ def build(
             url = candidate.url
             if url in fetched:
                 evidence.add_served_text(url, fetched[url].content, "nimble", searched=True)
-            elif url in free_pages:
-                text, provider = free_pages[url]
-                evidence.add_prose(url, text, provider, searched=True)
-            elif url in partial_pages:
-                text, provider = partial_pages[url]
-                evidence.add_prose(url, text, provider, searched=True)
+            for provider, snippet in candidate.snippets.items():
+                if url in fetched and provider == "nimble":
+                    continue  # the nimble extract is the fuller text of the same provider
+                prose = _snippet_prose(snippet)
+                if prose:
+                    evidence.add_prose(url, prose, provider, searched=True)
         for url in cited:
-            if url in fetched and url not in evidence.pages:
+            if url in fetched:
                 evidence.add_served_text(url, fetched[url].content, "nimble", searched=url in searched)
         if answer is not None:
             _assert_research_claims(evidence, answer)
@@ -117,29 +117,29 @@ def _domain_search(gateway: Gateway, domain: str, tavily_allowed: bool):
     return None
 
 
-def _free_text(ranked: list[Candidate]) -> tuple[dict, dict]:
-    """Page text already held in search snippets: (whole pages, partial pages), each url ->
-    (text, provider that served the snippet)."""
-    whole: dict[str, tuple[str, str]] = {}
-    partial: dict[str, tuple[str, str]] = {}
-    for candidate in ranked:
-        snippet = candidate.snippet
-        if not snippet:
-            continue
-        if len(snippet) < SNIPPET_CHARS:
-            whole[candidate.url] = (snippet, candidate.provider)
-        else:
-            prefix = complete_sentences_prefix(snippet)
-            if prefix:
-                partial[candidate.url] = (prefix, candidate.provider)
-    return whole, partial
+def _snippet_prose(snippet: str) -> str:
+    """The prose a search snippet holds: a snippet shorter than SNIPPET_CHARS is the whole prose;
+    a longer one gives only its complete sentences."""
+    if not snippet:
+        return ""
+    if len(snippet) < SNIPPET_CHARS:
+        return snippet
+    return complete_sentences_prefix(snippet)
 
 
-def _extraction_order(cited: list[str], ranked: list[Candidate], free_pages: dict) -> list[str]:
+def _whole_snippet_urls(ranked: list[Candidate]) -> set[str]:
+    """URLs some search snippet holds whole: their text is not extracted."""
+    return {
+        c.url for c in ranked
+        if any(text and len(text) < SNIPPET_CHARS for text in c.snippets.values())
+    }
+
+
+def _extraction_order(cited: list[str], ranked: list[Candidate], whole_urls: set[str]) -> list[str]:
     """RL19: research-cited URLs first, then the candidates in discovery order. A URL whose
     text a snippet already holds whole is not extracted."""
     order = list(dict.fromkeys([*cited, *(candidate.url for candidate in ranked)]))
-    return [url for url in order if url not in free_pages]
+    return [url for url in order if url not in whole_urls]
 
 
 def _extract_in_priority(gateway: Gateway, urls: list[str], deadline: float) -> dict:

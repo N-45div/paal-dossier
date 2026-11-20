@@ -49,7 +49,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "stage-1"))
 
 from engine.discovery import Hit, candidates, support_queries  # noqa: E402
-from engine.build import _free_text  # noqa: E402
+from engine.build import _snippet_prose  # noqa: E402
 from engine.support import FIELDS, is_verbatim_in_prose, parse_page, supports  # noqa: E402
 import engine.build as build_module  # noqa: E402
 from engine.costs import EXTRACT_COST_PER_URL, RESEARCH_START_COST, SEARCH_COST, charged_units  # noqa: E402
@@ -145,16 +145,19 @@ class DiscoveryTests(unittest.TestCase):
         self.assertTrue(by_url["https://x.test/1"].names_company)
         self.assertFalse(by_url["https://x.test/2"].names_company)
 
-    def test_free_text_whole_short_snippet_and_complete_prefix_of_long_snippet(self):
+    def test_snippet_prose_whole_short_snippet_and_complete_prefix_of_long_snippet(self):
         short = "Acme Robotics is based in Lisbon."
         long_snippet = "Acme Robotics was founded in 2014. " + "x" * 280 + " and it grew"
+        self.assertEqual(_snippet_prose(short), short)
+        self.assertEqual(_snippet_prose(long_snippet), "Acme Robotics was founded in 2014.")
+
+    def test_candidate_keeps_every_providers_snippet(self):
         hits = [
-            _hit("https://short.test/", 0, 1, "t", short),
-            _hit("https://long.test/", 1, 1, "t", long_snippet),
+            _hit("https://x.test/1", 0, 1, "t", "from nimble", provider="nimble"),
+            _hit("https://x.test/1", 0, 2, "t", "from tavily", provider="tavily"),
         ]
-        whole, partial = _free_text(candidates(hits, D))
-        self.assertEqual(whole, {"https://short.test/": (short, "nimble")})
-        self.assertEqual(partial, {"https://long.test/": ("Acme Robotics was founded in 2014.", "nimble")})
+        (candidate,) = candidates(hits, D)
+        self.assertEqual(candidate.snippets, {"nimble": "from nimble", "tavily": "from tavily"})
 
     def test_complete_prefix_never_cuts_a_sentence(self):
         self.assertEqual(complete_sentences_prefix("Acme raised $12M. Acme is based in Lisb"), "Acme raised $12M.")
@@ -403,6 +406,7 @@ class ProviderLabelTests(unittest.TestCase):
 
     URL = "https://acme-robotics.test/leadership"
     CEO = "Dana Ruiz is CEO of Acme Robotics."
+    FOUNDED = "Acme Robotics was founded in 2014."
 
     def setUp(self):
         self._original = build_module.Gateway
@@ -436,18 +440,30 @@ class ProviderLabelTests(unittest.TestCase):
         self.assertEqual(citation["url"], self.URL)
         self.assertEqual(FakeGateway.served_prose[(self.URL, "tavily")], self.CEO)
 
-    def test_r1_3_and_r1_43_url_served_by_both_providers_is_labelled_nimble(self):
-        nimble_text = "Acme Robotics CEO: Sam Ortiz."
+    def test_r1_3_r1_41_r1_43_r1_86_each_provider_text_at_one_url_supplies_its_own_fields(self):
+        # RL45: tavily and nimble serve different prose at one URL; each text's sentences count
+        query_founded = support_queries(D)[2]
+        FakeGateway.script = {
+            D: [None, _Response([_Result(self.URL, "Acme Robotics", self.CEO)], provider="tavily")],
+            query_founded: [_Response([_Result(self.URL, "Acme Robotics", self.FOUNDED)], provider="nimble")],
+        }
+        _, fields = build_module.build(D, _Ledger(80))
+        self.assertEqual(fields["ceo"]["value"], "Dana Ruiz")
+        self.assertEqual(fields["founded_year"]["value"], 2014)
+        ceo, founded = fields["ceo"]["citations"][0], fields["founded_year"]["citations"][0]
+        self.assertEqual((ceo["url"], ceo["provider"], ceo["excerpt"]), (self.URL, "tavily", self.CEO))
+        self.assertEqual((founded["url"], founded["provider"], founded["excerpt"]), (self.URL, "nimble", self.FOUNDED))
+
+    def test_r1_3_and_r1_43_sentence_served_by_both_providers_is_labelled_nimble(self):
         query_ceo = support_queries(D)[1]
         FakeGateway.script = {
             D: [None, _Response([_Result(self.URL, "Acme Robotics", self.CEO)], provider="tavily")],
-            query_ceo: [_Response([_Result(self.URL, "Acme Robotics", nimble_text)], provider="nimble")],
+            query_ceo: [_Response([_Result(self.URL, "Acme Robotics", self.CEO)], provider="nimble")],
         }
         _, fields = build_module.build(D, _Ledger(80))
         citation = fields["ceo"]["citations"][0]
-        self.assertEqual(fields["ceo"]["value"], "Sam Ortiz")
-        self.assertEqual(citation["provider"], "nimble")
-        self.assertEqual(citation["excerpt"], nimble_text)
+        self.assertEqual(fields["ceo"]["value"], "Dana Ruiz")
+        self.assertEqual((citation["provider"], citation["excerpt"]), ("nimble", self.CEO))
 
     def test_r1_3_and_r1_43_research_claim_on_a_nimble_extract_is_labelled_nimble(self):
         text = "Acme Robotics was founded in 2014."

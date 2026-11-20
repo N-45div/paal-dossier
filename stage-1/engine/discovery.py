@@ -44,11 +44,9 @@ class Candidate:
     url: str
     best_rank: int
     queries: set = field(default_factory=set)
-    snippet: str = ""
     names_company: bool = False
     company_host: bool = False
-    provider: str = ""  # the provider whose served snippet is `snippet` (RL29)
-    snippets: dict = field(default_factory=dict)  # provider -> that provider's snippet
+    snippets: dict = field(default_factory=dict)  # provider -> the snippet that provider served (RL29)
 
     def priority(self) -> tuple:
         return (not self.company_host, not self.names_company, -len(self.queries), self.best_rank, self.url)
@@ -62,15 +60,6 @@ def host_of(url: str) -> str:
 def is_company_host(url: str, domain: str) -> bool:
     host = host_of(url)
     return host == domain or host.endswith("." + domain)
-
-
-def _choose_served_text(candidate: Candidate) -> None:
-    """RL29: one served text per URL. Prefer nimble when both providers served it, and prefer a
-    non-empty snippet. The candidate's provider is the one whose text is kept."""
-    served = [p for p in ("nimble", "tavily") if candidate.snippets.get(p)]
-    chosen = served[0] if served else next(iter(candidate.snippets), "nimble")
-    candidate.provider = chosen
-    candidate.snippet = candidate.snippets.get(chosen, "")
 
 
 def candidates(hits: list[Hit], domain: str) -> list[Candidate]:
@@ -88,5 +77,4 @@ def candidates(hits: list[Hit], domain: str) -> list[Candidate]:
         )
     for candidate in by_url.values():
         candidate.company_host = is_company_host(candidate.url, domain)
-        _choose_served_text(candidate)
     return sorted(by_url.values(), key=Candidate.priority)
