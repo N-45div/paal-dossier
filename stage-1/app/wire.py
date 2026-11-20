@@ -61,7 +61,9 @@ def parse_rfc3339(value: Any) -> Moment | None:
             utc = wall.astimezone(timezone.utc)
             if (utc.hour, utc.minute) != (23, 59):
                 return None
-            whole = (utc - _EPOCH) // timedelta(seconds=1) + 1
+            # The leap instant is the second after 23:59:59 UTC; it must itself lie in years 0001-9999.
+            leap_instant = utc + timedelta(seconds=1)  # raises OverflowError past 9999-12-31T23:59:59
+            whole = (leap_instant - _EPOCH) // timedelta(seconds=1)
         else:
             instant = datetime(
                 int(year), int(month), int(day), int(hour), int(minute), int(second), tzinfo=timezone(offset)

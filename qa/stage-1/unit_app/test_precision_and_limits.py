@@ -145,6 +145,12 @@ class PrecisionTests(unittest.TestCase):
         self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="2016-12-31T12:00:60Z"))[0], 422)
         self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="2016-12-31T23:59:61Z"))[0], 422)
 
+    def test_RL27_leap_second_at_the_end_of_year_9999_is_out_of_range(self):
+        """Covers R1.25, R1.27: 9999-12-31T23:59:60Z's instant is year 10000, so it is 422 and changes nothing."""
+        self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="2026-03-01T09:00:00+00:00"))[0], 204)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="9999-12-31T23:59:60Z"))[0], 422)
+        self.assertEqual(call(self.app, "POST", "/_test/reset", fixture(now="9999-12-31T23:59:59Z"))[0], 204)
+
 
 if __name__ == "__main__":
     unittest.main()

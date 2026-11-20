@@ -141,9 +141,14 @@ class Store:
                 if result is not None:
                     record["spent_units"] += max(0, int(result.spent) - reported)
                 return
-            record["spent_units"] += max(0, int(result.spent) - reported)
-            record["fields"] = fields_from_engine(result.fields)
-            record["researched_at"] = format_ts(requested_at)
+            # Prepare every new value before touching the record: a failure here must leave the
+            # previous fields in place for the worker's fallback (RL27).
+            fields = fields_from_engine(result.fields)
+            researched_at = format_ts(requested_at)
+            spent = record["spent_units"] + max(0, int(result.spent) - reported)
+            record["spent_units"] = spent
+            record["fields"] = fields
+            record["researched_at"] = researched_at
             record["state"] = "ready"
             record["last_state"] = "ready"
 

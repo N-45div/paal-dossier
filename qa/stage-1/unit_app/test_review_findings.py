@@ -17,6 +17,7 @@ import threading
 import time
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 from app.app import App
 from app.clock import Clock
@@ -249,6 +250,39 @@ class ReviewFindingTests(unittest.TestCase):
         self.assertEqual(body["state"], "failed")
         self.assertEqual(body["researched_at"], None)
         self.assertTrue(all(f["status"] == "unknown" for f in body["fields"].values()))
+
+    def test_r1_85_failure_inside_the_apply_step_keeps_the_prior_fields_and_ends_failed(self):
+        """Covers R1.85, R1.96: a ready dossier whose refresh fails inside the apply step ends failed with its prior fields."""
+        calls = []
+
+        def engine(domain, *, budget=80, on_spend=None, cancelled=None):
+            calls.append(domain)
+            later = dict(FIELDS_OK, founded_year=dict(FIELDS_OK["founded_year"], value=2019))
+            return SimpleNamespace(ok=True, spent=0, fields=FIELDS_OK if len(calls) == 1 else later)
+
+        app = App(Clock(), engine=engine)
+        call(app, "POST", "/_test/reset", FIXTURE)
+        _, login = call(app, "POST", "/auth/login", {"email": "ada@example.com", "password": "correct horse"})
+        headers = {"authorization": f"Bearer {login['token']}"}
+
+        def settled(timeout=5.0):
+            end = time.monotonic() + timeout
+            while time.monotonic() < end:
+                _, body = call(app, "GET", "/dossiers/acme-robotics.test", headers=headers)
+                if body["state"] != "building":
+                    return body
+                time.sleep(0.01)
+            self.fail("build did not settle")
+
+        call(app, "POST", "/dossiers", {"domain": "acme-robotics.test"}, dict(headers, **{"idempotency-key": "open"}))
+        ready = settled()
+        self.assertEqual(ready["state"], "ready")
+        with mock.patch("app.store.format_ts", side_effect=RuntimeError("injected in the apply step")):
+            call(app, "POST", "/dossiers/acme-robotics.test/refresh", None, dict(headers, **{"idempotency-key": "refresh"}))
+            body = settled()
+        self.assertEqual(body["state"], "failed")
+        self.assertEqual(body["researched_at"], ready["researched_at"])
+        self.assertEqual(body["fields"], ready["fields"])
 
     def test_r1_40_engine_returns_funding_zero_and_the_api_shows_known_zero(self):
         """Covers R1.40, R1.86: a supported $0 from the engine is a known value 0 (RL24, RL27)."""

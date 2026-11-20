@@ -137,51 +137,46 @@ class InfrastructureTests(unittest.TestCase):
             server.server_close()
 
     def test_r1_19_no_write_is_required_outside_memory(self):
-        """Covers R1.19: the service writes nothing to disk; a full session leaves its working directory empty."""
+        """Covers R1.19: the service writes nothing to disk; a full session runs with a read-only working directory."""
         previous = os.getcwd()
         with tempfile.TemporaryDirectory() as scratch:
+            os.chmod(scratch, 0o555)  # read and search only: the service must not need to create files here
             os.chdir(scratch)
             try:
                 app = App(Clock())
-                app.handle("POST", "/_test/reset", {}, b'{"now":"2026-03-01T09:00:00+00:00","users":[]}')
-                app.handle("POST", "/auth/signup", {}, b'{"email":"a@example.test","password":"longenough","display_name":"A"}')
-                app.handle("GET", "/_test/export", {}, b"")
+                reset = app.handle("POST", "/_test/reset", {}, b'{"now":"2026-03-01T09:00:00+00:00","users":[]}')
+                self.assertEqual(reset.status, 204)
+                signup = app.handle("POST", "/auth/signup", {}, b'{"email":"a@example.test","password":"longenough","display_name":"A"}')
+                self.assertEqual(signup.status, 201)
+                self.assertEqual(app.handle("GET", "/_test/export", {}, b"").status, 200)
                 self.assertEqual(os.listdir(scratch), [])
             finally:
                 os.chdir(previous)
+                os.chmod(scratch, 0o755)
 
     def test_r1_21_binds_all_interfaces_on_port_or_8080(self):
-        """Covers R1.21: binds 0.0.0.0 on PORT; with PORT unset the default is 8080 (two instances)."""
+        """Covers R1.21: binds 0.0.0.0 on PORT; with PORT unset the default is 8080 (two instances, both served)."""
         saved = os.environ.pop("PORT", None)
+        servers = []
         try:
             self.assertEqual(entry._port(), 8080)
-            os.environ["PORT"] = str(free_port())
-            with_port = int(os.environ["PORT"])
-            self.assertEqual(entry._port(), with_port)
-            server_a = make_server("0.0.0.0", entry._port(), App(Clock()))
-            thread = threading.Thread(target=server_a.serve_forever, daemon=True)
-            thread.start()
-            try:
-                self.assertEqual(server_a.server_address[0], "0.0.0.0")
-                self.assertEqual(health(with_port), 200)
-            finally:
-                server_a.shutdown()
-                server_a.server_close()
+            configured = free_port()
+            os.environ["PORT"] = str(configured)
+            self.assertEqual(entry._port(), configured)
+            servers.append(make_server("0.0.0.0", entry._port(), App(Clock())))
             self.assertIn('"0.0.0.0"', inspect.getsource(entry.main))
             os.environ.pop("PORT", None)
-            try:
-                server_b = make_server("0.0.0.0", entry._port(), App(Clock()))
-            except OSError as error:
-                self.skipTest(f"port 8080 busy on this host: {error}")
-            try:
-                self.assertEqual(server_b.server_address[1], 8080)
-            finally:
-                server_b.server_close()
+            servers.append(make_server("0.0.0.0", entry._port(), App(Clock())))  # 8080; a busy port fails the test
+            for server in servers:
+                threading.Thread(target=server.serve_forever, daemon=True).start()
+            self.assertEqual([server.server_address[0] for server in servers], ["0.0.0.0", "0.0.0.0"])
+            self.assertEqual(health(configured), 200)
+            self.assertEqual(health(8080), 200)
         finally:
-            os.environ.pop("PORT", None)
-            if saved is not None:
+            for server in servers:
+                server.shutdown()
+                server.server_close()
+            if saved is None:
+                os.environ.pop("PORT", None)
+            else:
                 os.environ["PORT"] = saved
-
-
-if __name__ == "__main__":
-    unittest.main()
