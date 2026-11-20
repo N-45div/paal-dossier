@@ -16,11 +16,11 @@ NEGATIVE = ('in talks to', 'plans to', 'planning to', 'wants to', 'expects to', 
 SUFFIXES = ('Inc.', 'Corp.', 'LLC', 'LLP', 'L.P.', 'Ltd', 'Limited', 'Pty Ltd', 'plc',
             'PLC', 'GmbH', 'AG', 'KG', 'SE', 'AS', 'A/S', 'ASA', 'AB', 'Oy', 'Oyj',
             'B.V.', 'N.V.', 'S.A.', 'S.A.S.', 'S.L.', 'S.r.l.', 'S.p.A.', 's.r.o.', 'a.s.', 'K.K.')
-NUM = r'(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?'
-NUMBER = re.compile(r'(?<![^\W_])(?<!\d[,.])' + NUM + r'(?![^\W_]|[,.]\d)')
+NUM = r'(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?'
+NUMBER = re.compile(r'(?<![^\W_])(?<![0-9][,.])' + NUM + r'(?![^\W_]|[,.][0-9])')
 AMOUNT = re.compile(r'(?<![^\W_])(?:(?:US\$|\$|USD) ?(' + NUM +
-                    r')(?![,.]\d)(?:((?:mn|bn|k|m))(?![^\W_])| (thousand|million|billion)(?![^\W_]))?|('
-                    + NUM + r')(?![,.]\d)(?: (thousand|million|billion))? (?:US )?dollars)(?![^\W_])', re.I)
+                    r')(?![,.][0-9])(?:((?:mn|bn|k|m))(?![^\W_])| (thousand|million|billion)(?![^\W_]))?|('
+                    + NUM + r')(?![,.][0-9])(?: (thousand|million|billion))? (?:US )?dollars)(?![^\W_])', re.I)
 WORD = r'[^\W\d_]+'
 WORD_RUN = re.compile(r'(?<![^\W_])' + WORD + r'(?:[ -]' + WORD + r')*(?![^\W_])', re.UNICODE)
 
@@ -141,7 +141,7 @@ def candidates(domain, field, text):
             if any(match.start() < end and match.end() > start for start, end in amount_spans):
                 continue
             raw = match.group()
-            if field == 'founded_year' and re.fullmatch(r'\d{4}', raw) and 1800 <= int(raw) <= 2099:
+            if field == 'founded_year' and re.fullmatch(r'[0-9]{4}', raw) and 1800 <= int(raw) <= 2099:
                 values.append(int(raw))
             if field == 'headcount_range' and '.' not in raw and int(raw.replace(',', '')) >= 1:
                 number = int(raw.replace(',', ''))

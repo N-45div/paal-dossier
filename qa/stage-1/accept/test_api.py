@@ -246,14 +246,14 @@ def test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_concurrent_identical(direct_a
     'R1.2 R1.16 R1.17 R1.62 R1.80 R1.93 R1.129'
     token = seeded[0]
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-        def one(_):
+    def one(_):
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
             barrier.wait(timeout=5)
             start = time.monotonic()
             r = client.post('/dossiers', headers=auth(token,'burst'), json={'domain':'burst.test'})
             return r.status_code, r.json(), time.monotonic()-start
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-            results = list(pool.map(one, range(50)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+        results = list(pool.map(one, range(50)))
     assert [status for status, _, _ in results].count(202) == 1
     assert [status for status, _, _ in results].count(200) == 49
     assert all(body == results[0][1] for _, body, _ in results)
@@ -278,15 +278,15 @@ def test_R1_14_container_memory_limit(deployment, seeded):
 def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(direct_api, seeded):
     'R1.16 R1.55 R1.62 R1.77 R1.80 R1.129'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-        def one(i):
+    def one(i):
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
             barrier.wait(timeout=5)
             start = time.monotonic()
             domain = 'conflict-a.test' if i % 2 else 'conflict-b.test'
             response = client.post('/dossiers', headers=auth(seeded[0], 'conflict'), json={'domain': domain})
             return domain, response.status_code, response.json(), time.monotonic() - start
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-            rows = list(pool.map(one, range(50)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+        rows = list(pool.map(one, range(50)))
     winners = [(domain, body) for domain, status, body, _ in rows if status == 202]
     assert len(winners) == 1
     winner, original = winners[0]
@@ -299,15 +299,15 @@ def test_R1_16_R1_55_R1_62_R1_77_R1_80_R1_129_concurrent_conflicting(direct_api,
 def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(direct_api, seeded):
     'R1.16 R1.17 R1.62 R1.65 R1.69 R1.129'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-        def one(_):
+    def one(_):
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
             barrier.wait(timeout=5)
             start = time.monotonic()
             response = client.post('/auth/signup', json={
                 'email': 'parallel@example.com', 'password': 'correct horse', 'display_name': 'Parallel'})
             return response.status_code, response.json(), time.monotonic() - start
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-            rows = list(pool.map(one, range(50)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+        rows = list(pool.map(one, range(50)))
     assert sum(status == 201 for status, _, _ in rows) == 1
     assert sum(status == 409 and body['error']['code'] == 'email_taken' for status, body, _ in rows) == 49
     assert max(duration for _, _, duration in rows) < 5
@@ -316,14 +316,14 @@ def test_R1_16_R1_17_R1_62_R1_65_R1_69_R1_129_concurrent_signup(direct_api, seed
 def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(direct_api, seeded):
     'R1.16 R1.17 R1.62 R1.69'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-        def one(_):
+    def one(_):
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
             barrier.wait(timeout=5)
             start = time.monotonic()
             response = client.post('/auth/login', json={'email': 'ada@example.com', 'password': 'correct horse'})
             return response.status_code, response.json(), time.monotonic() - start
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-            rows = list(pool.map(one, range(50)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+        rows = list(pool.map(one, range(50)))
     assert all(status == 200 and body['user_id'] == 'u_ada' and body['token'] for status, body, _ in rows)
     assert max(duration for _, _, duration in rows) < 5
     print(f'MEASURE 50_logins_max={max(duration for _, _, duration in rows):.3f}s')
@@ -332,14 +332,14 @@ def test_R1_16_R1_17_R1_62_R1_69_concurrent_logins(direct_api, seeded):
 def test_R1_16_R1_62_R1_93_R1_129_concurrent_different_keys(direct_api, seeded):
     'R1.16 R1.62 R1.93 R1.129'
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-        def one(i):
+    def one(i):
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
             barrier.wait(timeout=5)
             start = time.monotonic()
             response = client.post('/dossiers', headers=auth(seeded[0], 'distinct-' + str(i)), json={'domain': 'same.test'})
             return response.status_code, response.json(), time.monotonic() - start
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-            rows = list(pool.map(one, range(50)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+        rows = list(pool.map(one, range(50)))
     assert sum(status == 202 for status, _, _ in rows) == 1
     assert sum(status == 200 for status, _, _ in rows) == 49
     assert len({body['dossier_id'] for _, body, _ in rows}) == 1

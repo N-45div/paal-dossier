@@ -99,14 +99,14 @@ def test_R1_84_R1_102_concurrent_refresh_one_build(api, mock, seeded, direct_api
     fault(mock, 'nimble', ['search', 'extract', 'research'], 'delay', seconds=6)
     fault(mock, 'tavily', ['search', 'extract'], 'delay', seconds=6)
     barrier = threading.Barrier(50)
-    with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-        def one(i):
+    def one(i):
+        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
             barrier.wait(timeout=5)
             started = time.monotonic()
             response = client.post('/dossiers/' + domain + '/refresh', headers=auth(token, 'refresh-' + str(i)))
             return response.status_code, response.json(), time.monotonic() - started
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-            responses = list(pool.map(one, range(50)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+        responses = list(pool.map(one, range(50)))
     assert all(code == 202 and body['state'] == 'building' for code, body, _ in responses)
     assert len({body['dossier_id'] for _, body, _ in responses}) == 1
     assert max(elapsed for _, _, elapsed in responses) < 5
@@ -190,15 +190,15 @@ def test_R1_23_R1_67_R1_93_R1_129_reset_races_authenticated_opens(api, mock, see
         assert login.status_code == 200
         token = login.json()['token']
         barrier = threading.Barrier(50)
-        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-            def request(i):
+        def request(i):
+            with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
                 barrier.wait(timeout=5)
                 if i == 0:
                     return client.post('/_test/reset', json={'now':'2026-03-01T09:00:00+00:00','users':[]}, timeout=10).status_code
                 return client.post('/dossiers', headers=auth(token, f'race-{iteration}-{i}'),
                                    json={'domain':f'race-{iteration}-{i}.test'}).status_code
-            with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-                statuses = list(pool.map(request, range(50)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+            statuses = list(pool.map(request, range(50)))
         assert statuses[0] == 204 and all(code in (202, 401) for code in statuses[1:])
         error(api.get('/dossiers', headers=auth(token)), 401, 'unauthenticated')
         signup = api.post('/auth/signup', json={'email':'after-reset@example.com', 'password':'correct horse', 'display_name':'After'})
@@ -222,16 +222,16 @@ def test_R1_23_R1_67_R1_129_reset_races_authenticated_reads(api, mock, seeded, d
         assert create(api, token, domain, 'before-reset').status_code == 202
         assert done(api, token, domain)['state'] in ('ready', 'failed')
         barrier = threading.Barrier(50)
-        with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
-            def request(i):
+        def request(i):
+            with httpx.Client(base_url=direct_api.base_url, timeout=5, trust_env=False) as client:
                 barrier.wait(timeout=5)
                 if i == 0:
                     response = client.post('/_test/reset', json={'now':'2026-03-01T09:00:00+00:00','users':[]}, timeout=10)
                     return response.status_code, None
                 response = client.get('/dossiers', headers=auth(token))
                 return response.status_code, response.json()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
-                responses = list(pool.map(request, range(50)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as pool:
+            responses = list(pool.map(request, range(50)))
         assert responses[0][0] == 204
         for status, body in responses[1:]:
             if status == 401:

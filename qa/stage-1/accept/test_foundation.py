@@ -290,8 +290,8 @@ def test_R1_31_RL28_small_chunked_body_is_parsed(direct_api, mock):
     assert response.status_code == 204
 
 
-def test_R1_31_R1_49_RL28_oversize_unframed_stream_has_413_envelope(direct_api, mock):
-    """R1.31 R1.49 RL28: oversized Content-Length-less uploads receive the error envelope."""
+def test_R1_31_R1_49_RL42_unframed_request_has_no_body_and_service_stays_healthy(direct_api, mock):
+    """R1.31 R1.49 RL42: without framing headers there is no body and no server error."""
     endpoint = urlsplit(str(direct_api.base_url))
     with socket.create_connection((endpoint.hostname, endpoint.port), timeout=15) as conn:
         conn.settimeout(15)
@@ -316,9 +316,38 @@ def test_R1_31_R1_49_RL28_oversize_unframed_stream_has_413_envelope(direct_api, 
         body = response.read()
         writer.join(timeout=15)
         assert not writer.is_alive()
+        assert response.status in (400, 422)
+        assert json.loads(body)['error']['code'] in ('malformed_request', 'validation_failed')
+    assert direct_api.get('/health').status_code == 200
+
+
+def test_R1_31_R1_49_RL30_keepalive_recovers_after_oversize(direct_api, mock):
+    """R1.31 R1.49 RL30: reuse a client after a 413, reconnecting if the server closes."""
+    endpoint = urlsplit(str(direct_api.base_url))
+    conn = http.client.HTTPConnection(endpoint.hostname, endpoint.port, timeout=15)
+    try:
+        for _ in range(2):
+            conn.request('GET', '/health')
+            response = conn.getresponse()
+            assert response.status == 200
+            response.read()
+        conn.request('POST', '/_test/reset', body=b'x' * (16 * 1024 * 1024 + 1),
+                     headers={'Content-Type':'application/json'})
+        response = conn.getresponse()
         assert response.status == 413
-        assert sent and sent[0] == 16 * 1024 * 1024 + 1, f'connection ended after {sent} body bytes'
-        assert json.loads(body)['error']['code'] == 'payload_too_large'
+        assert json.loads(response.read())['error']['code'] == 'payload_too_large'
+        try:
+            conn.request('GET', '/health')
+            response = conn.getresponse()
+        except (http.client.RemoteDisconnected, BrokenPipeError, ConnectionResetError):
+            # RL30 expressly permits the server to close after the 413.
+            conn.close()
+            conn.request('GET', '/health')
+            response = conn.getresponse()
+        assert response.status == 200
+        response.read()
+    finally:
+        conn.close()
 
 
 def test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip(api, seeded):
