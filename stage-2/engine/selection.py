@@ -28,10 +28,11 @@ def normalise_value(value: Any) -> Any:
 
 def same_value(first: Any, second: Any) -> bool:
     """Two values are the same when JSON-equal after normalisation. A bool is not an integer."""
-    return _value_identity(first) == _value_identity(second)
+    return value_identity(first) == value_identity(second)
 
 
-def _value_identity(value: Any) -> str:
+def value_identity(value: Any) -> str:
+    """A canonical string for a value: equal strings mean the same value (RL71)."""
     return json.dumps(normalise_value(value), sort_keys=True, ensure_ascii=False)
 
 
@@ -87,7 +88,7 @@ def status_of(candidates: list[dict]) -> str:
     """known: candidates exist with one value; contested: two or more values; unknown: none."""
     if not candidates:
         return "unknown"
-    distinct = {_value_identity(candidate["value"]) for candidate in candidates}
+    distinct = {value_identity(candidate["value"]) for candidate in candidates}
     return "known" if len(distinct) == 1 else "contested"
 
 

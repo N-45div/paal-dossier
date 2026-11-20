@@ -7,9 +7,10 @@ Published must be an RFC 3339 timestamp with an offset (RL66); anything else mea
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from .discovery import is_company_host
+from .support import parse_page
 from .timestamps import is_rfc3339
 
 KINDS = ("own", "filing", "news", "aggregator")
@@ -35,3 +36,21 @@ def page_kind(kind_value: Optional[str], url: str, domain: str) -> str:
 def parse_published(value: Optional[str]) -> Optional[str]:
     """The value as written when it is a valid RFC 3339 timestamp (RL66), else None."""
     return value if is_rfc3339(value) else None
+
+
+class PageRead(NamedTuple):
+    """What a build takes from one page's served text: its kind, publication time and prose."""
+
+    kind: str
+    published_at: Optional[str]
+    prose: str
+
+
+def read_page(served_text: str, url: str, domain: str) -> PageRead:
+    """Read a rendered page's header lines (R2.5-R2.8) and prose (R2.9)."""
+    header, prose = parse_page(served_text)
+    return PageRead(
+        kind=page_kind(header.get("Kind"), url, domain),
+        published_at=parse_published(header.get("Published")),
+        prose=prose,
+    )
