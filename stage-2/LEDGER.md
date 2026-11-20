@@ -1870,3 +1870,1033 @@ Status values: open, built, tested, accepted. Spec line numbers refer to spec/st
 - Event check (isolated Stage 1): 122/122 passed, 0 failed, 0 skipped (report: band-work/gatekeeper-rl58-f26e80470eb8/report-2).
 - Ledger status at freeze: 164 entries accepted, 0 open.
 - Stage 1 frozen: 2026-11-20.
+
+---
+
+# Stage 2 (opened 2026-11-20T06:40Z)
+
+Stage 2 extends a plain copy of frozen stage-1 (3bacfc8). All 164 stage-1 entries above stay in force (regression set); stage-2 entries follow the rulings.
+
+## Stage 2 packages
+
+| Pkg | Owner | Area | Ledger scope | Order |
+|---|---|---|---|---|
+| P5 | builder-b | `stage-2/engine/`: `selection.py` (pure ranking/status/field assembly), candidates gathering (every supported value per page, research-cited pages read), Kind/Published parsing and defaulting, browser text via nimble `render`, 429 handling, `BuildResult` extended | Page kind, Page text, Web access, Rate limits, Candidates, The selection rule | 1st: `selection.py` + its unit tests first (builder-a imports it), then gathering |
+| P6 | builder-a | `stage-2/app/` data model and API: `candidates`, three-valued `status`, `retrieved_at`, `Accept: text/html` negotiation hook, export, import of stage-1 exports, concurrency | preamble item 3, Status, Existing clients after an upgrade, API part of Candidates | 1st (parallel with P5; uses selection.py when it lands, stub until then) |
+| P7a | builder-a | `stage-2/app/ui/`: design system (CSS/layout), shell, `/`, `/signup`, `/login`, `/dossiers/{domain}` incl. polling, latest-read-wins, uncertain states, refresh | Screens, Product direction, Signup and login, Dossier list, Dossier, Refresh and competing clients | after P6 skeleton; the shell/layout/CSS module first so P7b can start |
+| P7b | builder-b | `stage-2/app/ui/evidence.py`, `contested.py` (own files), using P7a's shell | Evidence, Contested fields | after P5 + P7a shell |
+| PQ2 | prover | `qa/stage-2/accept/`: selection oracle, API/candidate tests on the mock web, browser tests of the screens (375 px and desktop, testids), import-of-stage-1-export tests | all | parallel from the start |
+| G | gatekeeper | review, UI screenshot review at 375 px and desktop, merges, event checks | | as packages land |
+
+## Stage 2 rulings
+
+- **RL59 Import of a stage-1 export.** The frozen stage-1 export stores no served page text. Import therefore derives candidates from what the export holds: for each known imported field, one candidate per exported citation (value = field value, `url`, `excerpt`, `provider` as cited, `kind` null, `published_at` null, `retrieved_at` = the dossier's `researched_at`), with null kind having aggregator authority. `value`, `status`, `citations` and `candidates` then follow from the selection rule. Unknown fields get `candidates: []`. If the export records kind or published time for a citation, they are used. Import makes no provider call. Known risk: a hidden stage-1 export with several supporting pages is only partly reconstructible; this is the best available reading.
+- **RL60 Browser text and cost.** Every excerpt must come from text a browser shows (rendered). Nimble `extract` with `provider_options={"render": True}` costs 3 per URL, so under the 80-unit cap about 20 rendered URLs are affordable. P5 decides which pages to render by evidence value (research-cited URLs and company-host URLs first, as RL19), keeps exactly one exact-domain search per build, never exceeds 80 units, and must read `challenges/dossier/web/README.md` to learn what the mock serves un-rendered versus rendered. Non-rendered text may be used to choose which URLs to render, not as a citation source unless it is proven identical to the browser text. Kernel/browserbase are not used.
+- **RL61 Rate limits.** A 429 costs 0. The engine retries the same call no sooner than 1.05 s after the 429 (never a tight loop), at most 3 consecutive 429s are expected, tolerates 429 on any call, and never counts waiting against its working time budget when it measures the 10 s bound. Concurrent extracts may run during another call's wait. A call that stays 429 beyond a bounded number of attempts is treated as an error answer (cost 0).
+- **RL62 Selection module contract.** `engine/selection.py` exposes pure functions: `rank(candidates) -> list` (the selection rule exactly), `assemble_field(candidates, retrieved_at) -> {"value","status","citations","candidates"}` (candidate dicts as in the Candidates example, `selected` set, `status` known/contested/unknown, citations of every candidate sharing the selected value in rank order). Same value = JSON equal after stripping surrounding whitespace of strings; ints compare as numbers; bool is not an int. App and import both call it; no second implementation of the rule is allowed anywhere.
+- **RL63 Content negotiation and auth in the browser.** `GET /dossiers/{domain}` returns HTML when `Accept` contains `text/html`, else JSON (the API behaviour of stage 1 is unchanged, including 401 for unauthenticated JSON requests). Browser routes `/`, `/dossiers/{domain}` (HTML), `/dossiers/{domain}/evidence`, `/contested`, `/signup`, `/login` are served without authentication as static shells; data is read from the API with the bearer token kept client-side (localStorage), so a token valid before import stays valid after import. Browser routes normalise the domain; an invalid domain shows the not-found state. Assets (fonts, CSS, JS) are inlined or served by the service itself; no external hosts.
+- **RL64 Candidate order and selected.** `candidates` lists candidates of the last `ready` build in rank order, selected first; `selected` true only on index 0 of a non-empty list. Candidates are not de-duplicated across pages; the same value from one page yields one candidate per supported (page, value) per RL specification ("once for each such page"); one page may support several different values (one candidate each).
+- **RL65 Seat boundaries.** Lead never runs the event harness; gatekeeper does under RL39/RL58. The frozen `stage-1/` folder never changes; test files live in `qa/stage-2/`.
+
+## Stage 2 measures (measured on every revision)
+
+- **M5** Cost per build ≤ 80 units with render at 3 units per URL; reported `spent_units` equals the provider log (mock log).
+- **M6** Build ends ≤ 10 s with sub-second providers; waits after 429 excluded from the 10 s.
+- **M7** Dossier screen re-reads at least every 2 s while `building`; latest read wins.
+- **M8** Screens usable at 375 px without horizontal scroll (gatekeeper screenshots).
+- **M1-M4** from stage 1 remain: 12 sample builds ready; 50 concurrent logins ≤ 5 s; memory under 3 GiB; 2 CPUs.
+
+
+## Stage 2 requirements (R2.n) — source spec/stage-2.md, quoted verbatim
+
+Package key: P5 builder-b engine (candidates, Kind/Published, render extract, 429, selection.py); P6 builder-a app data model/API/import; P7a builder-a UI shell, `/`, auth, dossier screen; P7b builder-b evidence and contested screens.
+
+### R2.1
+- Section: (preamble)
+- Package: P6
+- Status: open
+- Text:
+
+  > The stage-1 requirements continue to apply, with the additions below. Numbered section
+  > references such as §4 and §7 refer to `stage-1.md`.
+
+### R2.2
+- Section: (preamble)
+- Package: P6
+- Status: open
+- Text:
+
+  > Sources disagree. A dossier now keeps every value its evidence supports, as candidates, and
+  > selects one per field by a fixed rule. Researchers read dossiers, their evidence and the
+  > fields in dispute in a browser.
+
+### R2.3
+- Section: (preamble)
+- Package: P6
+- Status: open
+- Text:
+
+  > The following applies to all operations, in addition to the stage-1 list:
+
+### R2.4
+- Section: (preamble)
+- Package: P6
+- Status: open
+- Text:
+
+  > 3. A field's selected value is the one the selection rule below picks from the field's
+  >    candidates; the same candidates always yield the same value.
+
+### R2.5
+- Section: Page kind and publication time
+- Package: P5
+- Status: open
+- Text:
+
+  > Two header lines (§4, Pages) now carry requirements:
+
+### R2.6
+- Section: Page kind and publication time
+- Package: P5
+- Status: open
+- Text:
+
+  > | `Kind: own`, `Kind: filing`, `Kind: news`, `Kind: aggregator` | The page's **kind**: the company's own site, a filing registry, a news report, or an aggregator of company data |
+
+### R2.7
+- Section: Page kind and publication time
+- Package: P5
+- Status: open
+- Text:
+
+  > | `Published: <RFC 3339 timestamp>` | When the page was published |
+
+### R2.8
+- Section: Page kind and publication time
+- Package: P5
+- Status: open
+- Text:
+
+  > A page with no `Kind` line, or with a value not listed above, is of kind `own` when the
+  > host of its URL, normalised as `stage-1.md` normalises a domain, is the company's domain,
+  > and of kind `aggregator` otherwise. A page with no `Published` line, or with a value that is not an RFC 3339 timestamp, has no
+  > publication time.
+
+### R2.9
+- Section: Page text
+- Package: P5
+- Status: open
+- Text:
+
+  > From this stage, a page's **text** is the text a browser shows once the page has loaded,
+  > without clicking controls. Activating disclosure controls is not required. The graded
+  > corpus contains no facts that require a click to reveal them.
+  > Evidence (§4) is read from page text so defined, and a citation's excerpt must appear in the
+  > page's text. A citation's `provider` is the provider that served the text the excerpt was
+  > copied from.
+
+### R2.10
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > From this stage an extract through `nimble` may ask Nimble to load the page in a browser and
+  > serve the text the browser shows once the page has loaded, with no control activated:
+  > `provider_options={"render": True}` on WebRouter's extract.
+
+### R2.11
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > Two optional browser vendors are also available, in addition to the providers in §2:
+
+### R2.12
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > - `kernel`, through `open_browser`;
+
+### R2.13
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > - `browserbase`, through `open_browser` and `browse`.
+
+### R2.14
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > A service may use Nimble's rendered extract alone to obtain every page's browser text;
+  > neither browser vendor is required.
+
+### R2.15
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > The deployment provides these environment variables in addition to those in §2:
+
+### R2.16
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | `KERNEL_API_KEY` | Credential for the `kernel` provider |
+
+### R2.17
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | `KERNEL_BASE_URL` | Base URL of the `kernel` provider endpoint |
+
+### R2.18
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | `BROWSERBASE_API_KEY` | Credential for the `browserbase` provider |
+
+### R2.19
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | `BROWSERBASE_BASE_URL` | Base URL of the `browserbase` provider endpoint |
+
+### R2.20
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > WebRouter reads the keys from the environment. A service that uses these vendors passes their
+  > base URLs to WebRouter in `provider_config`, beside those of §2:
+
+### R2.21
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > ```python
+  > provider_config={"kernel": {"base_url": <KERNEL_BASE_URL>},
+  >                  "browserbase": {"base_url": <BROWSERBASE_BASE_URL>}}
+  > ```
+
+### R2.22
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > These calls cost, in the units of §9:
+
+### R2.23
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | Extract through `nimble` that loads the page in a browser | 3 per URL requested, including a URL for which no page is returned |
+
+### R2.24
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | Open a session through `kernel` | 0 |
+
+### R2.25
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | Open a session through `browserbase` | 2 |
+
+### R2.26
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | Each page served to a session, through either | 1 |
+
+### R2.27
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > | Browse run through `browserbase` | 4 |
+
+### R2.28
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > A failed open, a failed page load and releasing a session cost nothing.
+
+### R2.29
+- Section: Web access
+- Package: P5
+- Status: open
+- Text:
+
+  > Each provider keeps at most 4 sessions open at once; opening another is answered with an
+  > error. A session that no client has been connected to for 60 seconds is closed by the
+  > provider.
+
+### R2.30
+- Section: Rate limits
+- Package: P5
+- Status: open
+- Text:
+
+  > From this stage a provider may answer any call with 429. A call answered 429 costs nothing
+  > (`stage-1.md` §9). The same call (the same provider, operation and arguments) made again less
+  > than one second after a 429 for it was answered is answered 429 again. No call is answered
+  > 429 more than three times in a row, except that opening a session while its provider keeps
+  > 4 open (Web access) is answered 429 until one of them closes. Time a build spends waiting to
+  > make a call again after a 429 does not count toward the 10 seconds of `stage-1.md` §8.
+
+### R2.31
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > A **candidate** is one value for one field, supported by one excerpt of one page. Every
+  > value that a page of the evidence (§4) supports for a field is a candidate of that field,
+  > once for each such page. The evidence now also holds the page that each research claim of
+  > the evidence cites, whether or not the citation supports its claim: a build reads that page
+  > as it reads any other. A research claim whose citation does not support it is still not a
+  > candidate. A candidate's `provider` is a provider that served the text
+  > its excerpt is taken from; when several did, any of them may be given.
+
+### R2.32
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > Each field gains `candidates`:
+
+### R2.33
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > ```json
+  > {
+  >   "value": "Dana Ruiz",
+  >   "status": "contested",
+  >   "citations": [ { "url": "https://acme-robotics.test/about", "excerpt": "...", "provider": "nimble" } ],
+  >   "candidates": [
+  >     { "value": "Dana Ruiz", "url": "https://acme-robotics.test/about",
+  >       "excerpt": "Dana Ruiz has led Acme Robotics as chief executive since 2021.",
+  >       "provider": "nimble", "kind": "own",
+  >       "published_at": "2026-01-10T00:00:00+00:00",
+  >       "retrieved_at": "2026-03-01T09:00:00+00:00", "selected": true },
+  >     { "value": "Sam Ortiz", "url": "https://bizdata.test/acme-robotics",
+  >       "excerpt": "Acme Robotics CEO: Sam Ortiz.",
+  >       "provider": "tavily", "kind": "aggregator",
+  >       "published_at": "2026-02-20T00:00:00+00:00",
+  >       "retrieved_at": "2026-03-01T09:00:00+00:00", "selected": false }
+  >   ]
+  > }
+  > ```
+
+### R2.34
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > - `url`, `excerpt` and `provider` follow the citation rules in §4.
+
+### R2.35
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > - `kind` is the page's kind, and `published_at` its publication time or null. Only an
+  >   imported candidate (below) has a null `kind`; it has the authority of `aggregator`.
+
+### R2.36
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > - `retrieved_at` is the time of the build that gathered the candidate (§8, Builds).
+
+### R2.37
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > - `selected` is true on exactly one candidate of a field that has candidates, the one the
+  >   rule picks, and false on the others.
+
+### R2.38
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > - `candidates` lists the candidates of the last build that completed `ready`, in the order
+  >   the selection rule ranks them, the selected one first. A field with no candidate has
+  >   `"candidates": []` and is `unknown`.
+
+### R2.39
+- Section: Candidates
+- Package: P5 (engine) / P6 (API shape)
+- Status: open
+- Text:
+
+  > - Two values are the same value when they are equal as JSON values; strings are compared
+  >   exactly, after removing surrounding whitespace.
+
+### R2.40
+- Section: The selection rule
+- Package: P5 (engine/selection.py)
+- Status: open
+- Text:
+
+  > Rank a field's candidates, highest first, by:
+
+### R2.41
+- Section: The selection rule
+- Package: P5 (engine/selection.py)
+- Status: open
+- Text:
+
+  > 1. **Authority** of the page's kind: `own` and `filing` rank equal and highest, then `news`,
+  >    then `aggregator`.
+
+### R2.42
+- Section: The selection rule
+- Package: P5 (engine/selection.py)
+- Status: open
+- Text:
+
+  > 2. **Recency** within the same authority: the later `published_at` ranks higher. A candidate
+  >    without a publication time ranks below every candidate of the same authority that has one.
+
+### R2.43
+- Section: The selection rule
+- Package: P5 (engine/selection.py)
+- Status: open
+- Text:
+
+  > 3. **URL**: when authority and publication time are equal, the candidate whose `url` is
+  >    smaller, comparing the strings by Unicode code point, ranks higher; between two
+  >    candidates with the same URL, they rank by provider in the order `nimble`, `tavily`,
+  >    `kernel`, `browserbase`.
+
+### R2.44
+- Section: The selection rule
+- Package: P5 (engine/selection.py)
+- Status: open
+- Text:
+
+  > 4. **Value**: between two candidates with the same URL and provider, the one whose value is
+  >    smaller ranks higher: integers compare as numbers, strings by Unicode code point after
+  >    removing surrounding whitespace.
+
+### R2.45
+- Section: The selection rule
+- Package: P5 (engine/selection.py)
+- Status: open
+- Text:
+
+  > The highest-ranked candidate is the selected one. The field's `value` is the selected
+  > candidate's value, and its `citations` are the `url`, `excerpt` and `provider` of every
+  > candidate with that value, in rank order.
+
+### R2.46
+- Section: The selection rule
+- Package: P5 (engine/selection.py)
+- Status: open
+- Text:
+
+  > A candidate of lower authority is selected only when no candidate of higher authority
+  > exists for that field. The rule runs over all of a field's candidates.
+
+### R2.47
+- Section: Status
+- Package: P6
+- Status: open
+- Text:
+
+  > `status` is now one of three values:
+
+### R2.48
+- Section: Status
+- Package: P6
+- Status: open
+- Text:
+
+  > | `known` | The field has candidates, and they all have the same value |
+
+### R2.49
+- Section: Status
+- Package: P6
+- Status: open
+- Text:
+
+  > | `contested` | The field's candidates carry two or more different values |
+
+### R2.50
+- Section: Status
+- Package: P6
+- Status: open
+- Text:
+
+  > | `unknown` | The field has no candidate; `value` is null |
+
+### R2.51
+- Section: Status
+- Package: P6
+- Status: open
+- Text:
+
+  > A `contested` field still has a selected `value` and its citations.
+
+### R2.52
+- Section: Status
+- Package: P6
+- Status: open
+- Text:
+
+  > `GET /dossiers` (§8) is unchanged. The `legal_name` it lists is the selected value.
+
+### R2.53
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > The following screens must be reachable by URL. Other screens must be reachable through the UI.
+  > Server-side and client-side rendering are both permitted.
+
+### R2.54
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `/` | The dossier list with search, and a form to research a domain |
+
+### R2.55
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `/dossiers/{domain}` | One dossier: its state, its six fields with their values, status and citations, a refresh and a reload |
+
+### R2.56
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `/dossiers/{domain}/evidence` | Every candidate of every field of that dossier |
+
+### R2.57
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `/contested` | Every contested field across all dossiers |
+
+### R2.58
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `/signup` | Signup |
+
+### R2.59
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `/login` | Login |
+
+### R2.60
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > The browser and the API share `/dossiers/{domain}`. Return the UI for `Accept: text/html`;
+  > API requests without that header receive JSON. `/`, `/dossiers/{domain}/evidence` and
+  > `/contested` are browser routes; they read the API's dossier data. The domain in a browser
+  > route is normalised as in §4.
+
+### R2.61
+- Section: Screens
+- Package: P7a
+- Status: open
+- Text:
+
+  > The UI must expose the `data-testid` attributes listed below for integration testing. Additional
+  > elements are permitted, and the visual implementation is the team's choice subject to the
+  > product-quality requirements below.
+
+### R2.62
+- Section: Product and visual direction
+- Package: P7a/P7b
+- Status: open
+- Text:
+
+  > The browser experience must feel like a coherent, presentation-ready research product, not a
+  > thin wrapper of raw controls. Aim for a calm, legible, evidence-first character: a reader
+  > opening a dossier should see at a glance which fields are known, which are unknown and which
+  > are contested, and where each value came from.
+
+### R2.63
+- Section: Product and visual direction
+- Package: P7a/P7b
+- Status: open
+- Text:
+
+  > A field's value and its status must be the clearest information on the dossier screen, with
+  > its citations directly beside it. Fields, citations, candidates and contested fields should be
+  > easy to scan, and status, provider, page kind and publication time should be understandable
+  > without interpreting raw API data. Use a consistent visual system for typography, spacing,
+  > colour, controls and feedback. Primary actions — research, refresh — must be easy to identify.
+  > Known, unknown, contested, building, failed, loading, successful, refused and uncertain states
+  > must be visually distinct as well as satisfying the behavioural requirements below. Format
+  > names, years, headcount ranges, money and timestamps for people first; expose technical
+  > identifiers only where they help the user. Each citation shows its excerpt as quoted text and
+  > links to its URL.
+
+### R2.64
+- Section: Product and visual direction
+- Package: P7a/P7b
+- Status: open
+- Text:
+
+  > The required flows must remain clear and usable at a 375 CSS-pixel viewport and at conventional
+  > desktop widths, without horizontal page scrolling. Inputs need visible labels, keyboard focus must
+  > be apparent, and text and controls need sufficient contrast. Provide considered empty, loading and
+  > error states, and keep navigation consistent across the required routes. A custom illustration,
+  > brand asset or exact visual match to a reference is not required.
+
+### R2.65
+- Section: Signup and login
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `signup-email`, `signup-password`, `signup-display-name` | Inputs |
+
+### R2.66
+- Section: Signup and login
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `signup-submit` | Button |
+
+### R2.67
+- Section: Signup and login
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `login-email`, `login-password`, `login-submit` | Inputs and button |
+
+### R2.68
+- Section: Signup and login
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `auth-error` | Error message. Present only when there is one |
+
+### R2.69
+- Section: Signup and login
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `current-user` | Visible on every screen when signed in. Text contains the display name |
+
+### R2.70
+- Section: Signup and login
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `logout-button` | Button |
+
+### R2.71
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `research-domain` | Input for the domain to research |
+
+### R2.72
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `research-submit` | Button. Sends `POST /dossiers` |
+
+### R2.73
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `research-error` | Error message, when the request is refused — including an invalid domain |
+
+### R2.74
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `research-uncertain` | Shown when the outcome of a research request is unknown (below) |
+
+### R2.75
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-search` | Input. Filters the list as `q` does on `GET /dossiers` |
+
+### R2.76
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-list` | Container. Children ordered by domain ascending |
+
+### R2.77
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-item-{domain}` | One per listed dossier. Carries `data-state="{state}"`. Text contains the domain, and the legal name when known. Links to `/dossiers/{domain}` |
+
+### R2.78
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `empty-dossiers` | Shown instead of the list when no dossier matches |
+
+### R2.79
+- Section: Dossier list — `/`
+- Package: P7a
+- Status: open
+- Text:
+
+  > A research request that succeeds, with 202 or 200, opens `/dossiers/{domain}` for the
+  > normalised domain. A domain that already has a dossier, including one created by another
+  > client after this browser read the list, opens that dossier and starts no build.
+
+### R2.80
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-domain` | Text is exactly the normalised domain |
+
+### R2.81
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-state` | Text is exactly `building`, `ready` or `failed` |
+
+### R2.82
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-spent` | Formatted `spent_units`. Carries `data-units="{integer}"` |
+
+### R2.83
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-researched-at` | Text contains `researched_at`, formatted. Absent when it is null |
+
+### R2.84
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `field-{field}` | One per field, six in all, in the order of the table in `stage-1.md` §4. Carries `data-status="{status}"` |
+
+### R2.85
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `field-value-{field}` | The formatted value. Carries `data-value` (below). Present only when the value is not null |
+
+### R2.86
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `field-contested-{field}` | A marker. Present only when the field is `contested` |
+
+### R2.87
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `field-citations-{field}` | Container of the field's citations, in API order |
+
+### R2.88
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `citation-{field}-{n}` | The field's `n`th citation, counting from 1. Text contains the excerpt. Contains a link whose `href` is the citation's `url`. Carries `data-provider="{provider}"` |
+
+### R2.89
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-evidence-link` | Link to `/dossiers/{domain}/evidence` |
+
+### R2.90
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-refresh` | Button. Sends `POST /dossiers/{domain}/refresh` |
+
+### R2.91
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `refresh-error` | Error message, when a refresh is refused |
+
+### R2.92
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `refresh-uncertain` | Shown when the outcome of a refresh is unknown (below) |
+
+### R2.93
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-reload` | Button. Reads the dossier again without starting a build |
+
+### R2.94
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > | `dossier-not-found` | Shown instead of the fields when no dossier exists for the domain |
+
+### R2.95
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > `data-value` is the API value as text: a string value unchanged, an integer in plain decimal
+  > digits.
+
+### R2.96
+- Section: Dossier — `/dossiers/{domain}`
+- Package: P7a
+- Status: open
+- Text:
+
+  > While the dossier's state is `building`, the screen reads the dossier again at least every
+  > 2 seconds until the state is `ready` or `failed`, and then shows the new fields without a
+  > manual reload.
+
+### R2.97
+- Section: Evidence — `/dossiers/{domain}/evidence`
+- Package: P7b
+- Status: open
+- Text:
+
+  > | `evidence-{field}` | One container per field, six in all. Children in API `candidates` order |
+
+### R2.98
+- Section: Evidence — `/dossiers/{domain}/evidence`
+- Package: P7b
+- Status: open
+- Text:
+
+  > | `candidate-{field}-{n}` | The field's `n`th candidate, counting from 1. Text contains the formatted value and the excerpt. Carries `data-value`, `data-provider`, `data-kind`, `data-url`, `data-published-at` (the RFC 3339 `published_at`, empty when null) and `data-selected="true"` or `"false"` |
+
+### R2.99
+- Section: Evidence — `/dossiers/{domain}/evidence`
+- Package: P7b
+- Status: open
+- Text:
+
+  > | `evidence-empty-{field}` | Shown instead of candidates when the field has none |
+
+### R2.100
+- Section: Contested fields — `/contested`
+- Package: P7b
+- Status: open
+- Text:
+
+  > | `contested-list` | Container. Children ordered by domain ascending, then by field in the order of the table in `stage-1.md` §4 |
+
+### R2.101
+- Section: Contested fields — `/contested`
+- Package: P7b
+- Status: open
+- Text:
+
+  > | `contested-item-{domain}-{field}` | One per contested field of any dossier. Carries `data-value` for the selected value. Text contains the domain, the field and every distinct candidate value. Links to `/dossiers/{domain}/evidence` |
+
+### R2.102
+- Section: Contested fields — `/contested`
+- Package: P7b
+- Status: open
+- Text:
+
+  > | `empty-contested` | Shown instead of the list when no field is contested |
+
+### R2.103
+- Section: Refresh and competing clients
+- Package: P7a
+- Status: open
+- Text:
+
+  > After any successful action, the data on the same page must show the new state without a manual
+  > reload. Navigation must wait for the write to succeed before it refreshes the data. Any mechanism
+  > is fine, including a full navigation. Apart from the reading while a dossier is `building`,
+  > there is no live-update requirement: another client may change state, but this browser need
+  > only read again after its own action, an explicit reload or a build it is waiting on.
+
+### R2.104
+- Section: Refresh and competing clients
+- Package: P7a
+- Status: open
+- Text:
+
+  > - `dossier-reload` reads the dossier again. **Latest read wins:** a delayed earlier read must
+  >   not overwrite a later one, including when responses arrive out of order. This applies to the
+  >   reads while a dossier is `building` as well.
+
+### R2.105
+- Section: Refresh and competing clients
+- Package: P7a
+- Status: open
+- Text:
+
+  > - Another client may refresh a dossier after this browser reads it. A refresh from this
+  >   browser while that build runs is answered 202 like any other and the screen follows the
+  >   running build to its end.
+
+### R2.106
+- Section: Refresh and competing clients
+- Package: P7a
+- Status: open
+- Text:
+
+  > - If a research or refresh response is lost, including after the request commits, show
+  >   `research-uncertain` or `refresh-uncertain` (nonempty text), not `research-error` or
+  >   `refresh-error`. Keep the request retryable with the **same key and body**. A successful
+  >   retry removes both the error and the uncertainty elements, shows the dossier, and starts at
+  >   most one build. Unknown outcomes are not confirmed refusals.
+
+### R2.107
+- Section: Refresh and competing clients
+- Package: P7a
+- Status: open
+- Text:
+
+  > No background polling beyond the reading while `building`, live synchronization, or recovery
+  > across page reloads is required.
+
+### R2.108
+- Section: Existing clients after an upgrade
+- Package: P6
+- Status: open
+- Text:
+
+  > A stage-2 service must accept an export produced by the same team's stage-1 service. A browser
+  > signed in before that export/import upgrade must remain signed in afterwards. Imported dossiers
+  > appear in the list and on their screens. Each imported field gains one candidate for every
+  > value that text the providers served to the dossier's last stage-1 build that completed
+  > `ready` supports for that field (`stage-1.md` §4), once for each page whose served text
+  > supports it. The candidate's excerpt is taken from that text and supports the value; its
+  > `provider` is the provider that served that text, its `kind` and `published_at` are as the
+  > exported state records them or else null, and its `retrieved_at` is the dossier's
+  > `researched_at`. Each imported field's `value`, `status` and `citations` then follow from its
+  > candidates by the selection rule and Status, as after a build. A research or refresh
+  > request whose response was lost before export remains retryable after import with the same body and key; the UI must recover the original response
+  > and show the imported dossier. These requirements apply when import completes between browser
+  > requests; migration during an in-flight request is not required. No page reload or new screen
+  > is required.
+
+### R2.109
+- Section: Existing clients after an upgrade
+- Package: P6
+- Status: open
+- Text:
+
+  > The candidates of an imported dossier are replaced by those of its next completed build.
