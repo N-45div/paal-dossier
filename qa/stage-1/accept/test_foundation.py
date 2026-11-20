@@ -2,6 +2,10 @@
 import time
 import copy
 import json
+import socket
+import threading
+import http.client
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -143,6 +147,26 @@ def test_R1_25_R1_27_RL26_leap_seconds(api, seeded):
         error(api.post('/_test/clock', json={'now':timestamp}), 422, 'validation_failed')
 
 
+def test_R1_25_R1_27_RL27_last_year_leap_second_is_out_of_range(api, mock):
+    """R1.25 R1.27 RL27: the final year's leap second exceeds the UTC range."""
+    fixture = {'now':'2026-03-01T09:00:00Z', 'users': [{'id':'u', 'email':'seed@example.com',
+               'password':'correct horse', 'display_name':'Seed'}]}
+    assert api.post('/_test/reset', json=fixture, timeout=10).status_code == 204
+    response = api.post('/_test/reset', json={'now':'9999-12-31T23:59:60Z', 'users':[]}, timeout=10)
+    error(response, 422, 'validation_failed')
+    login = api.post('/auth/login', json={'email':'seed@example.com', 'password':'correct horse'})
+    assert login.status_code == 200 and login.json()['user_id'] == 'u'
+
+
+@pytest.mark.parametrize('digits', [10, 11, 30, 1000])
+def test_R1_25_R1_27_RL18_fraction_comparison_exact_through_1000_digits(api, mock, digits):
+    """R1.25 R1.27 RL18: compare full RFC3339 fractions without truncation."""
+    prefix = '2026-03-01T10:00:00.' + ('1' * (digits - 1))
+    assert api.post('/_test/reset', json={'now':prefix + '1Z', 'users':[]}, timeout=10).status_code == 204
+    error(api.post('/_test/clock', json={'now':prefix + '0Z'}), 422, 'validation_failed')
+    assert api.post('/_test/clock', json={'now':prefix + '2Z'}).status_code == 204
+
+
 @pytest.mark.parametrize('timestamp', [
     '0001-01-02T00:00:00+23:59',
     '9999-12-30T23:59:59-23:59',
@@ -241,6 +265,60 @@ def test_R1_17_R1_23_R1_31_body_size_boundary(api, direct_api, seeded):
                                headers={'Content-Type':'application/json'}, timeout=10)
     error(rejected, 413, 'payload_too_large')
     assert api.post('/auth/login', json={'email':'after@example.com','password':'correct horse'}).status_code == 200
+
+
+@pytest.mark.parametrize('route', ['/_test/reset', '/auth/signup', '/dossiers', '/_test/import'])
+@pytest.mark.parametrize('framing', ['length', 'chunked'])
+def test_R1_31_R1_49_RL28_oversize_body_has_413_envelope(direct_api, seeded, route, framing):
+    """R1.31 R1.49 RL28: each POST route delivers a 413 for oversized streamed bodies."""
+    limit = 16 * 1024 * 1024
+    def payload():
+        for _ in range(limit // 65536):
+            yield b'x' * 65536
+        yield b'x'
+    headers = {'Content-Type':'application/json', **auth(seeded[0], 'oversize')}
+    if framing == 'length':
+        headers['Content-Length'] = str(limit + 1)
+    response = direct_api.post(route, content=payload(), headers=headers, timeout=15)
+    error(response, 413, 'payload_too_large')
+
+
+def test_R1_31_RL28_small_chunked_body_is_parsed(direct_api, mock):
+    """R1.31 RL28: a valid chunked reset is parsed under the size limit."""
+    chunks = iter([b'{"now":"2026-03-01T09:00:00Z",', b'"users":[]}'])
+    response = direct_api.post('/_test/reset', content=chunks, headers={'Content-Type':'application/json'}, timeout=10)
+    assert response.status_code == 204
+
+
+def test_R1_31_R1_49_RL28_oversize_unframed_stream_has_413_envelope(direct_api, mock):
+    """R1.31 R1.49 RL28: oversized Content-Length-less uploads receive the error envelope."""
+    endpoint = urlsplit(str(direct_api.base_url))
+    with socket.create_connection((endpoint.hostname, endpoint.port), timeout=15) as conn:
+        conn.settimeout(15)
+        conn.sendall(b'POST /_test/reset HTTP/1.0\r\nHost: localhost\r\nContent-Type: application/json\r\n\r\n')
+        sent = []
+        def upload():
+            count = 0
+            try:
+                for _ in range(256):
+                    conn.sendall(b'x' * 65536)
+                    count += 65536
+                conn.sendall(b'x')
+                count += 1
+                conn.shutdown(socket.SHUT_WR)
+            except OSError:
+                pass
+            sent.append(count)
+        writer = threading.Thread(target=upload, daemon=True)
+        writer.start()
+        response = http.client.HTTPResponse(conn)
+        response.begin()
+        body = response.read()
+        writer.join(timeout=15)
+        assert not writer.is_alive()
+        assert response.status == 413
+        assert sent and sent[0] == 16 * 1024 * 1024 + 1, f'connection ended after {sent} body bytes'
+        assert json.loads(body)['error']['code'] == 'payload_too_large'
 
 
 def test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip(api, seeded):

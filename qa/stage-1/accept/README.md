@@ -19,3 +19,5 @@ The body-size boundary and concurrent-request tests connect directly to the serv
 The mock and oracle default to the sample corpus. To run against a different mock corpus directory, add `--corpus /absolute/path/to/corpus`. The oracle uses corpus metadata to enumerate pages and research claims, then obtains full text through the running mock's extract endpoint and served-text log. It resets the log before each measured build (RL25).
 
 The controlled-corpus cases start separate deployments with synthetic company pages. One uses a transparent HTTP proxy to measure simultaneous provider extracts during a delayed build (RL13). To select them, add `--test-path qa/stage-1/accept/test_synthetic.py -q` to the runner command. Additional unrecognized options are passed to pytest; for example, `-s -q -k evidence_and_cost` prints per-company measurements. Ledger IDs and verbatim requirement text are indexed in [CLAIMS.md](CLAIMS.md).
+
+The HTTP/1.0 upload with neither Content-Length nor Transfer-Encoding is included as an RL28 interpretation probe; its expected result is awaiting Lead's clarification. Treat its failure as inconclusive until then.

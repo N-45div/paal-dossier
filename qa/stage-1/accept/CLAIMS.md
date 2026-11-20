@@ -1,6 +1,6 @@
 # Acceptance claims and verbatim ledger entries
 
-Source: Stage 1 ledger at lead revision `f3d0e3c89ff0cf14f4a9a8c24c7ba5a6af638538`. Each referenced test names the ID; a reference is not a claim that every subclause has been fully verified. Optional call types and live-only requirements remain conditional. RL24 amends the funding_total range; RL25, RL26 and RL27 were issued as binding room rulings after that ledger revision.
+Source: Stage 1 ledger at lead revision `f3d0e3c89ff0cf14f4a9a8c24c7ba5a6af638538`. Each referenced test names the ID; a reference is not a claim that every subclause has been fully verified. Optional call types and live-only requirements remain conditional. RL24 amends the funding_total range; RL25–RL29 were issued as binding room rulings after that ledger revision.
 
 Not claimed by individual tests: R1.1, R1.6, R1.10, R1.11, R1.13, R1.19, R1.88.
 
@@ -26,7 +26,7 @@ Referenced tests: `test_api.py::test_R1_2_R1_16_R1_17_R1_62_R1_80_R1_93_R1_129_c
   >    to this service, and that excerpt supports the value. No citation is invented, reworded, or
   >    attached to a value it does not support.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`
 
 ### R1.4
 - Section: 1. Scope
@@ -241,7 +241,7 @@ Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test
   > - Reset sets the clock to the fixture's `now`. Before the first reset the clock follows the
   >   system time.
 
-Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_23_R1_25_reset_can_move_clock_backwards`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_RL27_boundary_offset_build_completes`, `test_foundation.py::test_R1_25_R1_27_RL27_unrepresentable_utc_offset_rejected_atomically`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
+Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_23_R1_25_reset_can_move_clock_backwards`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_25_R1_27_RL27_last_year_leap_second_is_out_of_range`, `test_foundation.py::test_R1_25_R1_27_RL18_fraction_comparison_exact_through_1000_digits`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_RL27_boundary_offset_build_completes`, `test_foundation.py::test_R1_25_R1_27_RL27_unrepresentable_utc_offset_rejected_atomically`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
 
 ### R1.26
 - Section: 3.4 Clock
@@ -265,7 +265,7 @@ Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`
   > - `now` is an RFC 3339 timestamp with an explicit offset. A `now` earlier than the clock's
   >   current time is 422 `validation_failed` and changes nothing.
 
-Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_27_fractional_clock_precision`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_RL27_boundary_offset_build_completes`, `test_foundation.py::test_R1_25_R1_27_RL27_unrepresentable_utc_offset_rejected_atomically`, `test_foundation.py::test_R1_27_invalid_rfc3339_offsets`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
+Referenced tests: `test_api.py::test_R1_24_R1_25_R1_26_R1_27_R1_28_clock`, `test_foundation.py::test_R1_24_R1_25_R1_27_R1_28_clock_public_and_monotonic`, `test_foundation.py::test_R1_27_fractional_clock_precision`, `test_foundation.py::test_R1_25_R1_27_RL26_leap_seconds`, `test_foundation.py::test_R1_25_R1_27_RL27_last_year_leap_second_is_out_of_range`, `test_foundation.py::test_R1_25_R1_27_RL18_fraction_comparison_exact_through_1000_digits`, `test_foundation.py::test_R1_25_R1_27_R1_85_R1_96_RL27_boundary_offset_build_completes`, `test_foundation.py::test_R1_25_R1_27_RL27_unrepresentable_utc_offset_rejected_atomically`, `test_foundation.py::test_R1_27_invalid_rfc3339_offsets`, `test_foundation.py::test_R1_25_R1_27_long_fractional_timestamp`
 
 ### R1.28
 - Section: 3.4 Clock
@@ -309,7 +309,7 @@ Referenced tests: `test_api.py::test_R1_29_R1_30_json_and_timestamp`
 
   > - Unknown fields in a request body are ignored, never an error.
 
-Referenced tests: `test_api.py::test_R1_31_R1_33_R1_64_signup_extra_fields`, `test_api.py::test_R1_31_R1_35_R1_36_R1_92_R1_100_normalisation`, `test_foundation.py::test_R1_17_R1_23_R1_31_body_size_boundary`, `test_foundation.py::test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip`
+Referenced tests: `test_api.py::test_R1_31_R1_33_R1_64_signup_extra_fields`, `test_api.py::test_R1_31_R1_35_R1_36_R1_92_R1_100_normalisation`, `test_foundation.py::test_R1_17_R1_23_R1_31_body_size_boundary`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_body_has_413_envelope`, `test_foundation.py::test_R1_31_RL28_small_chunked_body_is_parsed`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_unframed_stream_has_413_envelope`, `test_foundation.py::test_R1_31_R1_62_R1_64_R1_127_surrogate_round_trip`
 
 ### R1.32
 - Section: 3.5 Conventions
@@ -434,7 +434,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   > - `url` is the URL of the page the excerpt was served for, `provider` is `nimble` or
   >   `tavily`, the provider that served it.
 
-Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_40_R1_45_R1_86_R1_126_research_zero_is_known_and_importable`, `test_synthetic.py::test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic`, `test_synthetic.py::test_R1_38_R1_40_R1_126_invalid_import_field_values`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
+Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server`, `test_synthetic.py::test_R1_40_R1_45_R1_86_R1_126_research_zero_is_known_and_importable`, `test_synthetic.py::test_R1_40_R1_126_R1_127_invalid_dossier_snapshot_is_atomic`, `test_synthetic.py::test_R1_38_R1_40_R1_126_invalid_import_field_values`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
 
 ### R1.41
 - Section: Evidence and support
@@ -476,7 +476,7 @@ Referenced tests: `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40
   >   of whitespace may be written as a single space. It is 1 to 500 characters long.
   > - It is taken from the page's prose (below), not from its header.
 
-Referenced tests: `test_evidence.py::test_R1_43_R1_44_R1_133_long_sentence_full_support`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`, `test_synthetic.py::test_R1_43_R1_44_R1_86_long_sentence_full_context`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
+Referenced tests: `test_evidence.py::test_R1_43_R1_44_R1_133_long_sentence_full_support`, `test_evidence.py::test_R1_3_R1_4_R1_5_R1_37_R1_38_R1_39_R1_40_R1_41_R1_42_R1_43_R1_44_R1_45_R1_46_R1_47_R1_83_R1_85_R1_86_R1_87_R1_89_R1_95_R1_96_R1_97_R1_98_R1_99_R1_110_R1_121_R1_122_R1_123_evidence_and_cost`, `test_state_faults.py::test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server`, `test_synthetic.py::test_R1_41_R1_43_R1_86_RL25_evidence_uses_mock_served_variant`, `test_synthetic.py::test_R1_44_R1_155_R1_164_large_amount_exact`, `test_synthetic.py::test_R1_3_R1_43_R1_44_citation_length_limit`, `test_synthetic.py::test_R1_3_R1_43_R1_86_long_sentence_supporting_prefix`, `test_synthetic.py::test_R1_43_R1_44_R1_86_long_sentence_full_context`, `test_synthetic.py::test_R1_40_R1_43_R1_126_invalid_import_citation`
 
 ### R1.44
 - Section: Evidence and support
@@ -574,7 +574,7 @@ Referenced tests: `test_api.py::test_R1_23_R1_48_R1_63_R1_65_R1_66_R1_69_auth_re
 
   > Every 4xx and 5xx response carries this body:
 
-Referenced tests: `test_api.py::test_R1_15_R1_21_R1_22_R1_49_health`, `test_api.py::test_R1_49_R1_50_R1_51_R1_56_R1_57_R1_64_R1_65_signup_validation`, `test_api.py::test_R1_49_R1_51_R1_56_malformed_body_types`, `test_foundation.py::test_R1_49_R1_50_R1_54_error_envelope_unknown_route`
+Referenced tests: `test_api.py::test_R1_15_R1_21_R1_22_R1_49_health`, `test_api.py::test_R1_49_R1_50_R1_51_R1_56_R1_57_R1_64_R1_65_signup_validation`, `test_api.py::test_R1_49_R1_51_R1_56_malformed_body_types`, `test_foundation.py::test_R1_49_R1_50_R1_54_error_envelope_unknown_route`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_body_has_413_envelope`, `test_foundation.py::test_R1_31_R1_49_RL28_oversize_unframed_stream_has_413_envelope`
 
 ### R1.50
 - Section: 5. Errors

@@ -1,12 +1,14 @@
 import time
 import concurrent.futures
 import threading
+import re
 from collections import Counter
 
 import httpx
 import pytest
 
 from test_api import auth, create, done, error
+from oracle import prose
 
 
 def fault(mock, provider, methods, mode, **extra):
@@ -44,6 +46,24 @@ def test_R1_9_R1_62_R1_85_nimble_failure(api, mock, seeded):
     succeeded = any(c['status'] < 400 for c in calls)
     assert dossier['state'] == ('ready' if succeeded else 'failed')
     assert dossier['spent_units'] == sum(c['cost'] for c in calls), Counter((c['provider'], c['method'], c['status'], c['cost']) for c in calls)
+
+
+def test_R1_3_R1_40_R1_43_RL29_fallback_citation_provider_is_actual_server(api, mock, seeded):
+    """R1.3 R1.40 R1.43 RL29: fallback citations use the provider that served each excerpt."""
+    domain = 'halvorsen-robotics.test'
+    fault(mock, 'nimble', ['search'], 'error')
+    assert create(api, seeded[0], domain, 'fallback-provenance').status_code == 202
+    dossier = done(api, seeded[0], domain)
+    assert dossier['state'] == 'ready'
+    calls = mock.get('/_mock/log').json()['calls']
+    assert any(c['provider'] == 'tavily' and c['method'] == 'search' and c['query'] == domain and c['status'] == 200 for c in calls)
+    citations = [citation for result in dossier['fields'].values() for citation in result['citations']]
+    assert citations
+    normal = lambda text: re.sub(r'\s+', ' ', text).strip()
+    for citation in citations:
+        matches = {call['provider'] for call in calls for page in call.get('served', [])
+                   if page['url'] == citation['url'] and normal(citation['excerpt']) in normal(prose(page['text']))}
+        assert citation['provider'] in matches, (citation['url'], citation['provider'], sorted(matches))
 
 
 def test_R1_62_R1_85_R1_87_rate_limits(api, mock, seeded):
