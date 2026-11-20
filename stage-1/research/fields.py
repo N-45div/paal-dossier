@@ -26,7 +26,7 @@ def headcount_range_for(count: int) -> str | None:
     """Return the §4 range that contains a headcount of 1 or more, else None."""
     if count < 1:
         return None
-    for low, high, label in HEADCOUNT_RANGES:
+    for _low, high, label in HEADCOUNT_RANGES:
         if high is None or count <= high:
             return label
     return None  # unreachable: the last band is open-ended
