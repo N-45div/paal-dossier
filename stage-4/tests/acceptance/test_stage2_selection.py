@@ -10,7 +10,7 @@ import json
 import pytest
 
 from conftest import call, await_settled, check_dossier_fields, login, mock_calls, start_build, reset_service
-from oracle import EXEC_FIELD
+from oracle import EXEC_FIELD, INV_FIELD
 from selection_oracle import expected_citations, expected_status, rank_key
 
 RANK = "rank-co.test"
@@ -65,6 +65,8 @@ def _check_field_selection(name, fld, dossier, domain):
     if name == EXEC_FIELD:
         _check_executives(fld, dossier)
         return
+    if name == INV_FIELD:
+        return  # stage 4: investors has its own tests (test_stage4_investors.py)
     cands = fld["candidates"]
     assert isinstance(cands, list), name
     for c in cands:

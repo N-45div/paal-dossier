@@ -61,7 +61,11 @@ def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: 
 
 def _selected_flags(view: Selected) -> list[bool]:
     """Which ranked candidates are selected (R3.21): the top one of the field; for executives,
-    the top one of each title, since each title has its own selected person."""
+    the top one of each title, since each title has its own selected person. For investors
+    (R4.35), every candidate whose name is a member."""
+    if view.field == "investors":
+        members = set(view.value or [])
+        return [normalise_value(c.value) in members for c, _ in view.ranked]
     if view.field != "executives":
         return [index == 0 for index in range(len(view.ranked))]
     seen: set[str | None] = set()

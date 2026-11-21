@@ -17,10 +17,11 @@ from app.candidates import Candidate, normalise_value
 from app.executives import decide_executives
 from app.records import BuildRecord
 from app.selection import decide_field
+from app.investors import candidate_origin, decide_investors
 from app.support import FIELDS
 
 # The seven fields of a dossier (stage 3): the six of stage 1, then executives.
-SEVEN: tuple[str, ...] = (*FIELDS, "executives")
+SEVEN: tuple[str, ...] = (*FIELDS, "executives", "investors")
 
 @dataclass(frozen=True)
 class Selected:
@@ -98,6 +99,8 @@ def _decide(name: str, found: list[Candidate]) -> Any:
     executives. Each has value, status, citations, ranked and true_from."""
     if name == "executives":
         return decide_executives(found)
+    if name == "investors":
+        return decide_investors(found, candidate_origin)
     return _SixDecision(decide_field(found))
 
 
@@ -162,11 +165,46 @@ def _classify_executives(previous: Selected | None, new: Selected) -> str:
     return "correction" if differing else "change"
 
 
+def _investor_times(selected: Selected | None) -> dict[str, date | None]:
+    """investors: name -> the earliest non-null true_from among that name's candidates (R4.38)."""
+    times: dict[str, date | None] = {}
+    if selected is None or selected.value is None:
+        return times
+    for candidate, _ in selected.ranked:
+        name = normalise_value(candidate.value)
+        if name not in selected.value:
+            continue
+        known = [d for d in (candidate.true_from, times.get(name)) if d is not None]
+        times[name] = min(known) if known else None
+    return times
+
+
+def _classify_investors(previous: Selected | None, new: Selected) -> str:
+    """R4.40: a name in the new value and not in the earlier one counts as a correction when its
+    true_from and the earlier value's are both not null and its true_from is on or before the
+    earlier value's. The entry is a correction when every name in exactly one value counts as one.
+    A name only in the earlier value does not count as a correction (spec silent; see handoff)."""
+    before, after = _investor_times(previous), _investor_times(new)
+    differing = set(before) ^ set(after)
+    if not differing:
+        return "change"
+    for name in differing:
+        if name not in after or name in before:
+            return "change"
+        earlier = previous.true_from if previous is not None else None
+        later = after[name]
+        if earlier is None or later is None or later > earlier:
+            return "change"
+    return "correction"
+
+
 def classify(previous: Selected | None, new: Selected) -> str:
     """Spec 'Changes and corrections': a correction when both values are not null and the new
     value's true_from is on or before the earlier one's (both non-null); otherwise a change."""
     if new.field == "executives":
         return _classify_executives(previous, new)
+    if new.field == "investors":
+        return _classify_investors(previous, new)
     if (previous is not None and previous.value is not None and new.value is not None
             and previous.true_from is not None and new.true_from is not None
             and new.true_from <= previous.true_from):

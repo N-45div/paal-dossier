@@ -19,8 +19,8 @@ import asyncio
 import logging
 from typing import Any, Callable
 
-from app.budget import BUILD_BUDGET_UNITS, Ledger
-from app.evidence import collect_candidates, collect_executives, decide_fields
+from app.budget import BUILD_BUDGET_UNITS, Ledger, SharedBudget
+from app.evidence import collect_candidates, collect_executives, collect_investors, decide_fields
 from app.origins import OriginResolver
 from app.pages import page_meta
 from app.gateway import CitedClaim, NimbleGateway, ServedPage
@@ -81,14 +81,15 @@ class _Gathered:
         return [self._pages[key] for key in sorted(self._pages)]
 
 
-async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) -> BuildOutcome:
+async def run_build(domain: str, on_spend: Callable[[int], None] | None = None,
+                    shared: SharedBudget | None = None) -> BuildOutcome:
     """Research one company by its normalised domain and decide its fields.
 
     ``on_spend`` (Rul-11) receives each unit change as it happens: ``+units`` when a
     call's cost is reserved, ``-units`` when a refused call's reservation is released.
     The net of those changes equals the returned ``spent_units``.
     """
-    ledger = Ledger(BUILD_BUDGET_UNITS)
+    ledger = Ledger(BUILD_BUDGET_UNITS, shared)
     gateway = NimbleGateway(ledger, on_spend)
     gathered = _Gathered()
     if not gateway.available:  # nothing can be called: fail at once, spend nothing
@@ -108,6 +109,7 @@ async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) 
     pages = gathered.pages_in_order()
     candidates = collect_candidates(domain, pages, origins)
     candidates["executives"] = collect_executives(domain, pages, origins)
+    candidates["investors"] = collect_investors(domain, pages, origins)
     return BuildOutcome(
         ok=True,
         spent_units=ledger.spent,

@@ -39,7 +39,7 @@ def _one_build(item: dict[str, Any], candidates: dict[str, list[Candidate]],
     researched = _researched_at(item)
     if researched is None or item.get("state") != "ready":
         return ()
-    everything = {name: list(candidates.get(name, [])) for name in (*FIELDS, "executives")}
+    everything = {name: list(candidates.get(name, [])) for name in (*FIELDS, "executives", "investors")}
     pages = _pages(everything, stage2)
     return (BuildRecord(index=1, time=researched, ok=True, spent_units=_spent(item),
                         versions=versions_of(everything, pages)),)

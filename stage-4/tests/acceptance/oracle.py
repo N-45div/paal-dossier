@@ -17,7 +17,9 @@ FIELDS = ("legal_name", "hq_city", "ceo", "founded_year", "headcount_range", "fu
 # Stage 3 adds a seventh field, last. Every response that lists a dossier's fields holds it;
 # a research run still asks for the six of FIELDS only (stage-3 LEDGER, Executives section).
 EXEC_FIELD = "executives"
-RESPONSE_FIELDS = FIELDS + (EXEC_FIELD,)
+# Stage 4 adds an eighth field, `investors`, after `executives` (stage-4 spec, Investors).
+INV_FIELD = "investors"
+RESPONSE_FIELDS = FIELDS + (EXEC_FIELD, INV_FIELD)
 
 # R1.90 headcount ranges, R1.93 mapping of a number to the range that contains it.
 HEADCOUNT_RANGES = [
