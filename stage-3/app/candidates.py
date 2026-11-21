@@ -30,6 +30,9 @@ class Candidate:
     title: str | None = None
     true_from: date | None = None
     learned_at: datetime | None = None
+    # The field this candidate is for (stage 3): needed where candidates of several fields
+    # sit in one page version. None for stage-2 callers, which key candidates by field.
+    field: str | None = None
 
 
 def normalise_value(value: Any) -> Any:
