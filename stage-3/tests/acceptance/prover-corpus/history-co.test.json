@@ -1,0 +1,64 @@
+{
+ "domain": "history-co.test",
+ "names": [
+  "History Co"
+ ],
+ "pages": [
+  {
+   "url": "https://history-co.test/about",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-01-10T00:00:00Z",
+   "true_from": "2026-01-10",
+   "title": "history-co.test about",
+   "text": "History Co is a company building sensors for farms. Dana Ruiz is the chief executive of History Co. History Co was founded in 2010.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "history-co.test"
+   }
+  },
+  {
+   "url": "https://history-co.test/about",
+   "kind": "own",
+   "epochs": [
+    1
+   ],
+   "searchable": true,
+   "published_at": "2026-03-20T00:00:00Z",
+   "true_from": "2026-03-20",
+   "title": "history-co.test about",
+   "text": "History Co is a company building sensors for farms. Lee Park is the chief executive of History Co. History Co was founded in 2010.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "history-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": [
+    {
+     "field": "ceo",
+     "value": "Dana Ruiz",
+     "url": "https://history-co.test/about",
+     "excerpt": "Dana Ruiz is the chief executive of History Co."
+    }
+   ],
+   "1": [
+    {
+     "field": "ceo",
+     "value": "Lee Park",
+     "url": "https://history-co.test/about",
+     "excerpt": "Lee Park is the chief executive of History Co."
+    }
+   ]
+  }
+ }
+}
