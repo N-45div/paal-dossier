@@ -49,7 +49,7 @@ def test_history_has_initial_then_change_with_learned_at(env):
     assert ceo[0]["value"] == "Dana Ruiz" and ceo[0]["learned_at"].startswith("2026-03-01T09:00:00")
     assert ceo[1]["value"] == "Lee Park" and ceo[1]["learned_at"].startswith("2026-04-01T09:00:00")
     assert set(r.json()["fields"]) == {"legal_name", "hq_city", "founded_year", "headcount_range",
-                                       "ceo", "funding_total", "executives"}
+                                       "ceo", "funding_total", "executives", "investors"}
 
 
 def test_feed_holds_the_change_exactly_once(env):
