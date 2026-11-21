@@ -29,7 +29,7 @@ STAGE3_SCHEMA = "stage3"
 def export_state(state: State) -> dict[str, Any]:
     """The stage-3 export: the whole state, including build records, history, the change feed
     and its next seq (§10, Upgrades). A running build is not in it."""
-    return {"schema": STAGE3_SCHEMA, **state_json(state)}
+    return {"schema": STAGE3_SCHEMA, **state_json(state, exporting=True)}
 
 
 def import_state(raw: Any) -> State:

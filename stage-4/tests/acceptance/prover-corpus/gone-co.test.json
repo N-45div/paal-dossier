@@ -1,0 +1,47 @@
+{
+ "domain": "gone-co.test",
+ "names": [
+  "Gone Co"
+ ],
+ "pages": [
+  {
+   "url": "https://gone-co.test/about",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-03-01T00:00:00Z",
+   "true_from": null,
+   "title": "gone-co.test about",
+   "text": "Gone Co is a company building sensors for farms. Ann Aster is the chief executive of Gone Co.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "gone-co.test"
+   }
+  },
+  {
+   "url": "https://gone-co.test/about",
+   "kind": "own",
+   "epochs": [
+    1
+   ],
+   "searchable": true,
+   "published_at": "2026-04-01T00:00:00Z",
+   "true_from": null,
+   "title": "gone-co.test about",
+   "text": "Gone Co is a company building sensors for farms. Its staff work on the farm line.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "gone-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {}
+ }
+}

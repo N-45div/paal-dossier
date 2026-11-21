@@ -39,7 +39,7 @@ def summary(dossier: Dossier) -> dict:
 
 def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: bool,
                    retrieved_at: datetime | None) -> dict:
-    return {
+    body = {
         "value": normalise_value(candidate.value),
         "url": candidate.url,
         "excerpt": candidate.excerpt,
@@ -51,6 +51,22 @@ def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: 
         "learned_at": learned_at.isoformat() if learned_at else None,
         "selected": selected,
     }
+    if candidate.title is not None:  # an executives candidate carries its title (R3.18)
+        body["title"] = candidate.title
+    return body
+
+
+def _selected_flags(view: Selected) -> list[bool]:
+    """Which ranked candidates are selected (R3.21): the top one of the field; for executives,
+    the top one of each title, since each title has its own selected person."""
+    if view.field != "executives":
+        return [index == 0 for index in range(len(view.ranked))]
+    seen: set[str | None] = set()
+    flags: list[bool] = []
+    for candidate, _ in view.ranked:
+        flags.append(candidate.title not in seen)
+        seen.add(candidate.title)
+    return flags
 
 
 def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
@@ -63,8 +79,8 @@ def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
         "learned_at": view.learned_at.isoformat() if view.learned_at and selected_value else None,
         "citations": list(view.citations),
         "candidates": [
-            candidate_json(candidate, learned, index == 0, retrieved_at)
-            for index, (candidate, learned) in enumerate(view.ranked)
+            candidate_json(candidate, learned, selected, retrieved_at)
+            for (candidate, learned), selected in zip(view.ranked, _selected_flags(view))
         ],
     }
 

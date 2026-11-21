@@ -27,7 +27,8 @@ def _feed_after(records) -> tuple[list[FeedRow], int]:
         if not prefix[-1].ok:
             continue
         current = views(prefix)[-1][1]
-        entries = feed_entries(previous, current, first=previous is None)
+        entries = feed_entries(previous, current, first=previous is None,
+                               built_at=records[index].time)
         next_seq = append_build(feed, next_seq, DOMAIN, entries)
         previous = current
     return feed, next_seq
