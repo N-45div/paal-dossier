@@ -2,11 +2,11 @@
 service (spec part 3, Upgrades; part 1, Executives: no executives candidates after import).
 
 The earlier services are built from their own folders at main (git archive, into /tmp), run
-on the same Docker network as the mock web (the suite's prover-stage3-net), filled through
+on the same Docker network as the mock web (the suite's network (PROVER_NET)), filled through
 their own API, exported with GET /_test/export, stopped and removed. Then the export is posted
 to /_test/import of the stage-3 service under test.
 
-Every container created here is named with the prefix prover-stage3-up- and removed in the
+Every container created here is named with the prefix PROVER_PREFIX-up- and removed in the
 fixture's teardown by exact name. Ledger ids: R3C (import of stage-1 and stage-2 exports,
 R3.65-R3.68) and the Upgrades rules of part 3.
 """
@@ -21,7 +21,13 @@ import requests
 
 from conftest import BASE_URL, call, login, new_key, seed_fixture, await_settled
 
-NET = "prover-stage3-net"
+# The handle prefix, network, web host and upgrade ports come from the environment so that
+# each seat runs under its own names (run_suite.sh exports them). Defaults are the Prover's.
+PREFIX = os.environ.get("PROVER_PREFIX", "prover-stage3")
+NET = os.environ.get("PROVER_NET", f"{PREFIX}-net")
+WEB_HOST = os.environ.get("PROVER_WEB", f"{PREFIX}-web")
+S1_PORT = int(os.environ.get("UPGRADE_S1_PORT", "18250"))
+S2_PORT = int(os.environ.get("UPGRADE_S2_PORT", "18260"))
 MAIN_REPO = os.environ.get("MAIN_REPO", "/home/ndivij/buildathon/band-work/paal-dossier")
 SAMPLE = "brightwater-labs.test"
 
@@ -31,7 +37,7 @@ def _run(*args, timeout=600):
 
 
 def _build_image(tag, stage):
-    src = tempfile.mkdtemp(prefix="prover-up-src-")
+    src = tempfile.mkdtemp(prefix=f"{PREFIX}-up-src-")
     archive = subprocess.run(["git", "-C", MAIN_REPO, "archive", "main", stage],
                              check=True, capture_output=True, timeout=120)
     subprocess.run(["tar", "-x", "-C", src], input=archive.stdout, check=True, timeout=120)
@@ -42,15 +48,15 @@ def _build_image(tag, stage):
 def _export_from_old_service(stage, name, port):
     """Build the old stage at main, run it on NET with the mock as its providers, build one
     dossier, export, then remove the container. Returns the export payload."""
-    tag = f"prover-up-{name}"
+    tag = f"{PREFIX}-up-{name}"
     _build_image(tag, stage)
-    cname = f"prover-stage3-up-{name}"
+    cname = f"{PREFIX}-up-{name}"
     subprocess.run(["docker", "rm", "-f", cname], capture_output=True, timeout=120)
     _run("docker", "run", "-d", "--name", cname, "--network", NET,
          "-p", f"127.0.0.1:{port}:8000",
          "-e", "PORT=8000",
-         "-e", "NIMBLE_API_KEY=local", "-e", "NIMBLE_BASE_URL=http://prover-stage3-web:8080/nimble",
-         "-e", "TAVILY_API_KEY=local", "-e", "TAVILY_BASE_URL=http://prover-stage3-web:8080/tavily",
+         "-e", "NIMBLE_API_KEY=local", "-e", f"NIMBLE_BASE_URL=http://{WEB_HOST}:8080/nimble",
+         "-e", "TAVILY_API_KEY=local", "-e", f"TAVILY_BASE_URL=http://{WEB_HOST}:8080/tavily",
          tag, timeout=120)
     try:
         base = f"http://127.0.0.1:{port}"
@@ -88,12 +94,12 @@ def _export_from_old_service(stage, name, port):
 
 @pytest.fixture(scope="module")
 def stage1_export():
-    return _export_from_old_service("stage-1", "s1", 18250)
+    return _export_from_old_service("stage-1", "s1", S1_PORT)
 
 
 @pytest.fixture(scope="module")
 def stage2_export():
-    return _export_from_old_service("stage-2", "s2", 18260)
+    return _export_from_old_service("stage-2", "s2", S2_PORT)
 
 
 def _import(payload):

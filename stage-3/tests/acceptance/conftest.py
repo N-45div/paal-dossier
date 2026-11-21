@@ -178,6 +178,9 @@ def check_dossier_fields(dossier: dict, domain: str, calls: list[dict]):
         if fld["value"] is None:
             assert fld["status"] == "unknown", name
             assert fld["citations"] == [], f"{name}: unknown field with citations"
+            if name == EXEC_FIELD:
+                # executives has one selected candidate per title; none selected means no candidates
+                assert fld.get("candidates") == [], f"{name}: unknown with candidates"
             continue
         known += 1
         assert fld["status"] in ("known", "contested"), name  # stage 2 adds contested
