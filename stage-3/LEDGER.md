@@ -3129,14 +3129,14 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 - **Rul-S3-6 (ledger statements).** Entries below are mechanical verbatim blocks of stage-3.md (paragraph, bullet, table row or code block), numbered R3.n in spec order; table header rows are context, not requirements.
 
 ## Requirements (spec stage-3.md; every quote is verbatim; status: open | built | tested | accepted)
-### R3.1  [pkg ALL] [open]
+### R3.1  [pkg ALL] [accepted]
 - Section: Dossier — Stage 3: change over time (spec line 3)
 - Text:
 
 > The requirements from stages 1 and 2 continue to apply, with the additions below.
 > Numbered section references such as §4 and §8 refer to `stage-1.md`.
 
-### R3.2  [pkg ALL] [open]
+### R3.2  [pkg ALL] [accepted]
 - Section: Dossier — Stage 3: change over time (spec line 6)
 - Text:
 
@@ -3145,26 +3145,26 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > themselves. A dossier now keeps the history of each field, answers as it stood at an earlier
 > time, and publishes its changes in a feed. It also names the company's executives.
 
-### R3.3  [pkg ALL] [open]
+### R3.3  [pkg ALL] [accepted]
 - Section: Dossier — Stage 3: change over time (spec line 11)
 - Text:
 
 > The following applies to all operations, in addition to the earlier lists:
 
-### R3.4  [pkg ALL] [open]
+### R3.4  [pkg ALL] [accepted]
 - Section: Dossier — Stage 3: change over time (spec line 13)
 - Text:
 
 > 4. Every change to a selected value appears exactly once in the change feed, at the time this
 >    stage assigns to it.
 
-### R3.5  [pkg R3A] [open]
+### R3.5  [pkg R3A] [accepted]
 - Section: Two times per value (spec line 18)
 - Text:
 
 > Every candidate and every selected value now has two times:
 
-### R3.6  [pkg R3A] [open]
+### R3.6  [pkg R3A] [accepted]
 - Section: Two times per value (spec line 20)
 - Text:
 
@@ -3172,7 +3172,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   in the header line `Effective: <YYYY-MM-DD>`. A page with no valid `Effective` line takes
 >   the date part, in UTC, of its `published_at`; with neither, `true_from` is null.
 
-### R3.7  [pkg R3A] [open]
+### R3.7  [pkg R3A] [accepted]
 - Section: Two times per value (spec line 23)
 - Text:
 
@@ -3181,7 +3181,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   and provider. For a selected value, it is the time of the build that made it the
 >   selected value.
 
-### R3.8  [pkg R3A] [open]
+### R3.8  [pkg R3A] [accepted]
 - Section: Two times per value (spec line 28)
 - Text:
 
@@ -3189,7 +3189,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > build that gathered the candidate in the current candidate set. A selected value's
 > `true_from` is that of its selected candidate.
 
-### R3.9  [pkg R3A] [open]
+### R3.9  [pkg R3A] [accepted]
 - Section: Two times per value (spec line 32)
 - Text:
 
@@ -3197,13 +3197,13 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > `learned_at`. Both are null when the field is `unknown`. In an `as_of` response these
 > describe the selected value at that snapshot, using no later history.
 
-### R3.10  [pkg R3A] [open]
+### R3.10  [pkg R3A] [accepted]
 - Section: Two times per value (spec line 36)
 - Text:
 
 > The selection rule in `stage-2.md` is unchanged.
 
-### R3.11  [pkg R3B] [open]
+### R3.11  [pkg R3B] [accepted]
 - Section: Executives (spec line 40)
 - Text:
 
@@ -3211,7 +3211,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > dossier's fields hold it, after the six fields of §4. A research run (§4) still asks for the
 > six fields of §4 only.
 
-### R3.12  [pkg R3B] [open]
+### R3.12  [pkg R3B] [accepted]
 - Section: Executives (spec line 44)
 - Text:
 
@@ -3220,7 +3220,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > **members**. When no title has a selected person, the value is null and the field is
 > `unknown`.
 
-### R3.13  [pkg R3B] [open]
+### R3.13  [pkg R3B] [accepted]
 - Section: Executives (spec line 49)
 - Text:
 
@@ -3228,31 +3228,31 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > normalisation of `ceo` (A.4, A.5), the title's own statement phrases taking the place of
 > those for `ceo`:
 
-### R3.14  [pkg R3B] [open]
+### R3.14  [pkg R3B] [accepted]
 - Section: Executives (spec line 53)
 - Text:
 
 > | Title | Statement phrases |
 
-### R3.15  [pkg R3B] [open]
+### R3.15  [pkg R3B] [accepted]
 - Section: Executives (spec line 55)
 - Text:
 
 > | `cfo` | `chief financial officer`, `CFO` |
 
-### R3.16  [pkg R3B] [open]
+### R3.16  [pkg R3B] [accepted]
 - Section: Executives (spec line 56)
 - Text:
 
 > | `coo` | `chief operating officer`, `COO` |
 
-### R3.17  [pkg R3B] [open]
+### R3.17  [pkg R3B] [accepted]
 - Section: Executives (spec line 57)
 - Text:
 
 > | `cto` | `chief technology officer`, `CTO` |
 
-### R3.18  [pkg R3B] [open]
+### R3.18  [pkg R3B] [accepted]
 - Section: Executives (spec line 59)
 - Text:
 
@@ -3260,7 +3260,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > and its `value` is the person's name. A research claim is never a candidate of
 > `executives`.
 
-### R3.19  [pkg R3B] [open]
+### R3.19  [pkg R3B] [accepted]
 - Section: Executives (spec line 63)
 - Text:
 
@@ -3276,61 +3276,61 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >                   { "title": "cto", "value": "Ben Okafor", "...": "...", "selected": true } ] }
 > ```
 
-### R3.20  [pkg R3B] [open]
+### R3.20  [pkg R3B] [accepted]
 - Section: Executives (spec line 75)
 - Text:
 
 > The selection rule in `stage-2.md` runs separately over the candidates of each title.
 
-### R3.21  [pkg R3B] [open]
+### R3.21  [pkg R3B] [accepted]
 - Section: Executives (spec line 77)
 - Text:
 
 > - `selected` is true on the highest-ranked candidate of each title that has candidates, and
 >   false on the others.
 
-### R3.22  [pkg R3B] [open]
+### R3.22  [pkg R3B] [accepted]
 - Section: Executives (spec line 79)
 - Text:
 
 > - `candidates` lists every candidate by title, in the order above, then in rank order.
 
-### R3.23  [pkg R3B] [open]
+### R3.23  [pkg R3B] [accepted]
 - Section: Executives (spec line 80)
 - Text:
 
 > - `citations` are, for each member in order, the `url`, `excerpt` and `provider` of every
 >   candidate with the member's title and name, in rank order.
 
-### R3.24  [pkg R3B] [open]
+### R3.24  [pkg R3B] [accepted]
 - Section: Executives (spec line 82)
 - Text:
 
 > - `status` is `unknown` when the value is null, `contested` when the candidates of some
 >   title carry two or more different names, and `known` otherwise.
 
-### R3.25  [pkg R3B] [open]
+### R3.25  [pkg R3B] [accepted]
 - Section: Executives (spec line 84)
 - Text:
 
 > - A candidate's `learned_at` is the time of the first build that gathered a candidate with
 >   the same title, name, URL and provider.
 
-### R3.26  [pkg R3B] [open]
+### R3.26  [pkg R3B] [accepted]
 - Section: Executives (spec line 86)
 - Text:
 
 > - A member's `true_from` is that of its title's selected candidate. The field's `true_from`
 >   is the latest of its members' `true_from`, or null when any member's is null.
 
-### R3.27  [pkg R3B] [open]
+### R3.27  [pkg R3B] [accepted]
 - Section: Executives (spec line 88)
 - Text:
 
 > - `GET /dossiers/{domain}/values` chooses each title's person from the candidates at
 >   `true_at` and gives the value, `true_from` and `citations` from them by these rules.
 
-### R3.28  [pkg R3B] [open]
+### R3.28  [pkg R3B] [accepted]
 - Section: Executives (spec line 91)
 - Text:
 
@@ -3342,7 +3342,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > member's. The entry is `correction` when every differing title counts as a correction, and
 > `change` otherwise.
 
-### R3.29  [pkg R3B] [open]
+### R3.29  [pkg R3B] [accepted]
 - Section: Executives (spec line 99)
 - Text:
 
@@ -3350,32 +3350,32 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > `executives` takes none of them, and a screen that shows it does so with other markup. On
 > `/contested`, "no field is contested" means none of those six fields is.
 
-### R3.30  [pkg R3A] [open]
+### R3.30  [pkg R3A] [accepted]
 - Section: Changes and corrections (spec line 105)
 - Text:
 
 > When a build completes `ready`, each field whose selected value differs from its selected
 > value before the build gets one history entry, and one feed entry, of one of two types:
 
-### R3.31  [pkg R3A] [open]
+### R3.31  [pkg R3A] [accepted]
 - Section: Changes and corrections (spec line 108)
 - Text:
 
 > | Type | When |
 
-### R3.32  [pkg R3A] [open]
+### R3.32  [pkg R3A] [accepted]
 - Section: Changes and corrections (spec line 110)
 - Text:
 
 > | `correction` | Both the earlier and the new value are not null, and the new value's `true_from` is on or before the earlier value's `true_from` |
 
-### R3.33  [pkg R3A] [open]
+### R3.33  [pkg R3A] [accepted]
 - Section: Changes and corrections (spec line 111)
 - Text:
 
 > | `change` | Every other difference, including a value appearing where there was none, a value disappearing, and either `true_from` being null |
 
-### R3.34  [pkg R3A] [open]
+### R3.34  [pkg R3A] [accepted]
 - Section: Changes and corrections (spec line 113)
 - Text:
 
@@ -3383,7 +3383,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > gets a history entry of type `initial` and no feed entry. A field that is `unknown` after
 > that build gets its first entry when it first gets a value, and that entry is a `change`.
 
-### R3.35  [pkg R3A] [open]
+### R3.35  [pkg R3A] [accepted]
 - Section: Changes and corrections (spec line 117)
 - Text:
 
@@ -3391,7 +3391,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > when its candidates, citations or `true_from` differ. A `failed` build adds nothing. Concurrent refreshes
 > of one dossier run one build (§8) and so add each entry once.
 
-### R3.36  [pkg R3A] [open]
+### R3.36  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 123)
 - Text:
 
@@ -3399,7 +3399,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > GET /dossiers/acme-robotics.test?as_of=2026-03-15T00:00:00+00:00
 > ```
 
-### R3.37  [pkg R3A] [open]
+### R3.37  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 127)
 - Text:
 
@@ -3408,7 +3408,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > `as_of`, decided by `learned_at`, never by `true_from`. `state` is `ready`. `spent_units` is
 > the total of the builds whose time is at or before `as_of`.
 
-### R3.38  [pkg R3A] [open]
+### R3.38  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 132)
 - Text:
 
@@ -3416,37 +3416,37 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > This also applies when equivalent RFC 3339 timestamps use different offsets. The clock
 > need not advance between builds.
 
-### R3.39  [pkg R3A] [open]
+### R3.39  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 136)
 - Text:
 
 > | Case | Response |
 
-### R3.40  [pkg R3A] [open]
+### R3.40  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 138)
 - Text:
 
 > | `as_of` is not an RFC 3339 timestamp with an explicit offset | 422 `validation_failed` |
 
-### R3.41  [pkg R3A] [open]
+### R3.41  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 139)
 - Text:
 
 > | No build of the dossier completed `ready` with a time at or before `as_of` | 404 `not_found` |
 
-### R3.42  [pkg R3A] [open]
+### R3.42  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 140)
 - Text:
 
 > | No dossier for the domain | 404 `not_found` |
 
-### R3.43  [pkg R3A] [open]
+### R3.43  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}?as_of=` (spec line 142)
 - Text:
 
 > Without `as_of`, `GET /dossiers/{domain}` is unchanged.
 
-### R3.44  [pkg R3B] [open]
+### R3.44  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 146)
 - Text:
 
@@ -3454,14 +3454,14 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > GET /dossiers/acme-robotics.test/values?true_at=2025-06-01&as_of=2026-04-01T09:00:00+00:00
 > ```
 
-### R3.45  [pkg R3B] [open]
+### R3.45  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 150)
 - Text:
 
 > Returns, for each field, the value that the evidence this service had at `as_of` says held
 > on the date `true_at`. `as_of` defaults to the current time (§8).
 
-### R3.46  [pkg R3B] [open]
+### R3.46  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 153)
 - Text:
 
@@ -3475,7 +3475,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > version of its URL. A gathered version with no candidates still replaces or ends earlier
 > versions by this rule.
 
-### R3.47  [pkg R3B] [open]
+### R3.47  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 163)
 - Text:
 
@@ -3483,7 +3483,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > field's value is chosen from them by the selection rule in `stage-2.md`, and its
 > `true_from` is that of the chosen candidate.
 
-### R3.48  [pkg R3B] [open]
+### R3.48  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 167)
 - Text:
 
@@ -3495,38 +3495,38 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >               "...": "..." } }
 > ```
 
-### R3.49  [pkg R3B] [open]
+### R3.49  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 175)
 - Text:
 
 > A field with no candidate at `true_at` has `"value": null`, `"true_from": null`,
 > `"citations": []`. Citations are those of the candidates at `true_at` with the chosen value.
 
-### R3.50  [pkg R3B] [open]
+### R3.50  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 178)
 - Text:
 
 > | Case | Response |
 
-### R3.51  [pkg R3B] [open]
+### R3.51  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 180)
 - Text:
 
 > | `true_at` missing or not a `YYYY-MM-DD` date, or `as_of` not an RFC 3339 timestamp with an explicit offset | 422 `validation_failed` |
 
-### R3.52  [pkg R3B] [open]
+### R3.52  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 181)
 - Text:
 
 > | No dossier for the domain, or no build of it completed `ready` with a time at or before `as_of` | 404 `not_found` |
 
-### R3.53  [pkg R3B] [open]
+### R3.53  [pkg R3B] [accepted]
 - Section: `GET /dossiers/{domain}/values?true_at=` (spec line 183)
 - Text:
 
 > For state imported from an export, the builds and versions are those Upgrades gives.
 
-### R3.54  [pkg R3A] [open]
+### R3.54  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}/history` (spec line 187)
 - Text:
 
@@ -3552,14 +3552,14 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > }
 > ```
 
-### R3.55  [pkg R3A] [open]
+### R3.55  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}/history` (spec line 209)
 - Text:
 
 > - `fields` holds all seven fields. Each list is in the order the entries were added, oldest
 >   first.
 
-### R3.56  [pkg R3A] [open]
+### R3.56  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}/history` (spec line 211)
 - Text:
 
@@ -3567,13 +3567,13 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   value it records. An entry whose value is null has `"true_from": null` and
 >   `"citations": []`.
 
-### R3.57  [pkg R3A] [open]
+### R3.57  [pkg R3A] [accepted]
 - Section: `GET /dossiers/{domain}/history` (spec line 214)
 - Text:
 
 > - No dossier for the domain is 404 `not_found`.
 
-### R3.58  [pkg R3A] [open]
+### R3.58  [pkg R3A] [accepted]
 - Section: `GET /changes` (spec line 218)
 - Text:
 
@@ -3581,7 +3581,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > GET /changes?since=0&limit=50
 > ```
 
-### R3.59  [pkg R3A] [open]
+### R3.59  [pkg R3A] [accepted]
 - Section: `GET /changes` (spec line 222)
 - Text:
 
@@ -3596,13 +3596,13 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > }
 > ```
 
-### R3.60  [pkg R3A] [open]
+### R3.60  [pkg R3A] [accepted]
 - Section: `GET /changes` (spec line 233)
 - Text:
 
 > The feed holds every `change` and `correction` entry of every dossier.
 
-### R3.61  [pkg R3A] [open]
+### R3.61  [pkg R3A] [accepted]
 - Section: `GET /changes` (spec line 235)
 - Text:
 
@@ -3610,7 +3610,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   Entries added by one build are numbered in the order of the fields in `stage-1.md` §4,
 >   then `executives`.
 
-### R3.62  [pkg R3A] [open]
+### R3.62  [pkg R3A] [accepted]
 - Section: `GET /changes` (spec line 238)
 - Text:
 
@@ -3618,21 +3618,21 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   `true_from` is the new value's. `learned_at` is the time of the build that added the
 >   entry.
 
-### R3.63  [pkg R3A] [open]
+### R3.63  [pkg R3A] [accepted]
 - Section: `GET /changes` (spec line 241)
 - Text:
 
 > - `since` defaults to 0 and lists only entries whose `seq` is greater than it. It is an
 >   integer, 0 or more. Entries are ordered by `seq` ascending.
 
-### R3.64  [pkg R3A] [open]
+### R3.64  [pkg R3A] [accepted]
 - Section: `GET /changes` (spec line 243)
 - Text:
 
 > - `limit` defaults to 50, range 1 to 200. `has_more` is true when entries exist beyond the
 >   last one returned.
 
-### R3.65  [pkg R3C] [open]
+### R3.65  [pkg R3C] [accepted]
 - Section: Upgrades (spec line 248)
 - Text:
 
@@ -3645,7 +3645,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > of a stage-3 export survive a stage-3 import unchanged. So do its builds: after a
 > stage-3 import, `?as_of=` and `/values` answer as they did in the exporting service.
 
-### R3.66  [pkg R3C] [open]
+### R3.66  [pkg R3C] [accepted]
 - Section: Upgrades (spec line 257)
 - Text:
 
@@ -3656,7 +3656,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > 404 `not_found`. An imported dossier whose `researched_at` is null answers every `as_of` with
 > 404 `not_found` until a build completes.
 
-### R3.67  [pkg R3C] [open]
+### R3.67  [pkg R3C] [accepted]
 - Section: Upgrades (spec line 264)
 - Text:
 
@@ -3670,7 +3670,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > still one `initial` entry per field that has a value, as above, and an `as_of` response takes
 > each field's `learned_at` and `true_from` from that history (Two times per value).
 
-### R3.68  [pkg R3C] [open]
+### R3.68  [pkg R3C] [accepted]
 - Section: Upgrades (spec line 274)
 - Text:
 
@@ -3679,32 +3679,32 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > and has no history entry; the first build that completes `ready` with a value for it adds a
 > `change`, or an `initial` entry when it is the dossier's first build that completes `ready`.
 
-### R3.69  [pkg R3A] [open]
+### R3.69  [pkg R3A] [accepted]
 - Section: Concurrency (spec line 281)
 - Text:
 
 > Concurrent refreshes and reads must produce the same results as executing them one at a time
 > in some order. No change appears twice in the feed, and none is missing from it.
 
-### R3.70  [pkg R3D] [open]
+### R3.70  [pkg R3D] [accepted]
 - Section: Restarts (spec line 286)
 - Text:
 
 > This row replaces the Disk row of the resource limits in `stage-1.md` §2:
 
-### R3.71  [pkg R3D] [open]
+### R3.71  [pkg R3D] [accepted]
 - Section: Restarts (spec line 288)
 - Text:
 
 > | Limit | Value |
 
-### R3.72  [pkg R3D] [open]
+### R3.72  [pkg R3D] [accepted]
 - Section: Restarts (spec line 290)
 - Text:
 
 > | Disk | the container's filesystem; it survives a container restart |
 
-### R3.73  [pkg R3D] [open]
+### R3.73  [pkg R3D] [accepted]
 - Section: Restarts (spec line 292)
 - Text:
 
@@ -3714,13 +3714,13 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > at the stop, the service answers after the restart exactly
 > as it did before the stop:
 
-### R3.74  [pkg R3D] [open]
+### R3.74  [pkg R3D] [accepted]
 - Section: Restarts (spec line 298)
 - Text:
 
 > - Every account signs in with its password, and every bearer token is valid.
 
-### R3.75  [pkg R3D] [open]
+### R3.75  [pkg R3D] [accepted]
 - Section: Restarts (spec line 299)
 - Text:
 
@@ -3728,20 +3728,20 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   `GET /dossiers/{domain}/values` and `GET /dossiers/{domain}/history` as before, and
 >   `GET /dossiers` lists the same dossiers.
 
-### R3.76  [pkg R3D] [open]
+### R3.76  [pkg R3D] [accepted]
 - Section: Restarts (spec line 302)
 - Text:
 
 > - The change feed holds the same entries with the same `seq`. An entry added after the
 >   restart has a larger `seq` than every entry before it.
 
-### R3.77  [pkg R3D] [open]
+### R3.77  [pkg R3D] [accepted]
 - Section: Restarts (spec line 304)
 - Text:
 
 > - A replay of a completed idempotent request answers as §7 requires.
 
-### R3.78  [pkg R3D] [open]
+### R3.78  [pkg R3D] [accepted]
 - Section: Restarts (spec line 305)
 - Text:
 
@@ -3749,26 +3749,43 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   it.
 
 
+
 ## Status table (stage 3)
 
 | Pkg | Ledger scope | Status |
 |---|---|---|
-| R3S | seed | open |
-| R3A | all `[pkg R3A]` | open |
-| R3D | all `[pkg R3D]` | open |
-| R3B | all `[pkg R3B]` | open |
-| R3C | all `[pkg R3C]` | open |
-| R3U | UI part of R3.* | open |
-| ALL | process/global | open |
+| R3S | seed | accepted |
+| R3A | all `[pkg R3A]` | accepted |
+| R3D | all `[pkg R3D]` | accepted |
+| R3B | all `[pkg R3B]` | accepted |
+| R3C | all `[pkg R3C]` | accepted |
+| R3U | UI part of R3.* | accepted |
+| ALL | process/global | accepted |
 
 ## In-flight list (stage 3)
 
 | Item | Holder | Latest report |
 |---|---|---|
-| stage-3 seed merge | @gatekeeper | requested |
-| R3A | @builder-a | assigned |
-| R3B | @builder-b | assigned |
-| PT3 | @prover | assigned |
+| (none) | | stage 3 frozen; final acceptance by @gatekeeper on c4d0402 |
+
+## Rulings added during stage 3
+
+- **Rul-S3-7 (R3.35, same-value refresh).** The feed test's third refresh ran at epoch 0, which really reverts Lee Park to Dana Ruiz: a `correction` by R3.32. The test premise was wrong; same-value refreshes add nothing.
+- **Rul-S3-8 (R3.6, Effective).** The Effective line counts only inside the header block (before the first blank line). eff-co fixture had `true_from` null, so its Effective line was body prose. Fixture corrected.
+- **Rul-S3-9 (stage-1 imports).** An imported stage-1 build has `true_from` null, so `/values?true_at=` gives null for every field (spec: "A version whose `true_from` is null holds from no date").
+- **Rul-S3-10 (R3.46).** A later-gathered version overwrites the end of the latest earlier version it does not replace, unconditionally.
+- **Rul-S3-11 (R3.21).** `selected` is true on the top candidate of each executives title; one revision (builder-b db4fac3) merged, the duplicate (builder-a c7be92d) skipped.
+- **Rul-S3-12 (R3.56, R3.62, learned_at).** A feed entry's `learned_at` is the adding build's time. A history entry whose value is null also takes the adding build's time (R3.56 nulls only `true_from` and `citations`).
+- **Rul-S3-13 (Rul-7 in stage 3).** Export writes `building` false and the last completed build's outcome; durable state still loads a mid-build dossier as `failed` (Rul-S3-2).
 
 ## Rejections (stage 3)
-(none yet)
+
+1. 3114aa1 (builder-a): R3.6 and R3.35 failures. Both were ruled test or fixture defects (eff-co fixture, epoch reset); the package was accepted as 350a3df. Three further findings (R3.18 candidate `title`, R3.21 `selected` per title, Rul-7 export during a build) were real service defects, fixed by builder-b 24c866d, db4fac3 and builder-a a645095.
+2. 2bdb259 (final isolated check, stage 3 FAIL 8/9): R3.7 and R3.62, `learned_at` null on a feed entry for a value that disappears. Fixed by builder-a ee54c39, 94e379c, 0399715; Prover added a9fda6b and 59b2b33 acceptance tests.
+
+## Frozen (stage 3)
+
+- Final acceptance by @gatekeeper: integrated main c4d0402 (app code identical to 588a209). Isolated event check: stage 1 pass, stage 2 pass, stage 3 PASS 9/9 (checks/s3-final-588a209). Unit and service pytest 411 passed. Full Prover suite on c4d0402: 248 passed, 0 failed, 0 errors.
+- Frozen deliverable: main 887079a, stage-3/ folder. It equals c4d0402 plus two Prover test files (gone-co fixture and a feed learned_at test); no app change.
+- Ledger counts (stage 3 range): 78 R3 entries accepted, 0 open.
+- Stage 3 ended; stage-3/ no longer changes.
