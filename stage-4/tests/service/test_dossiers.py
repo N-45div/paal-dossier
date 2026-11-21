@@ -85,8 +85,11 @@ class DossierTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(dossier["researched_at"])
         for name, field in dossier["fields"].items():
             # Stage 3: every field carries its selected value's two times, null when unknown.
+            # Stage 4 (R4.19): and its origins, corroborated and corroborated_since, empty when unknown.
             self.assertEqual(field, {"value": None, "status": "unknown", "citations": [],
-                                     "candidates": [], "true_from": None, "learned_at": None},
+                                     "candidates": [], "true_from": None, "learned_at": None,
+                                     "origins": [], "corroborated": False,
+                                     "corroborated_since": None},
                              name)
 
     async def test_second_create_for_same_domain_starts_no_build(self) -> None:
