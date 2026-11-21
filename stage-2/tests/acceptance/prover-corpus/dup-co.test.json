@@ -1,0 +1,44 @@
+{
+ "domain": "dup-co.test",
+ "names": [
+  "Dup Co"
+ ],
+ "pages": [
+  {
+   "url": "https://dup-co.test/about",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-01-10T00:00:00Z",
+   "true_from": "2026-01-05",
+   "title": "dup-co.test about",
+   "text": "Dup Co is a company building sensors for farms. Dup Co was founded in 2010. Dup Co was founded in 2010 by two engineers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "dup-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": [
+    {
+     "field": "founded_year",
+     "value": 2010,
+     "url": "https://dup-co.test/about",
+     "excerpt": "Dup Co was founded in 2010."
+    },
+    {
+     "field": "founded_year",
+     "value": 2010,
+     "url": "https://dup-co.test/about",
+     "excerpt": "Dup Co was founded in 2010 by two engineers."
+    }
+   ]
+  }
+ }
+}
