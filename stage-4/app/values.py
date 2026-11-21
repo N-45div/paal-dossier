@@ -17,6 +17,7 @@ from typing import Any, Iterable
 
 from app.candidates import Candidate
 from app.executives import decide_executives
+from app.investors import decide_investors, url_host
 from app.records import BuildRecord, PageVersion
 from app.selection import decide_field
 from app.support import FIELDS
@@ -67,7 +68,7 @@ class FieldAt:
 
 def candidates_at(records: Iterable[BuildRecord], true_at: date) -> dict[str, list[Candidate]]:
     """Every holding version's candidates by field (seven fields), stamped with their true_from."""
-    result: dict[str, list[Candidate]] = {name: [] for name in (*FIELDS, "executives")}
+    result: dict[str, list[Candidate]] = {name: [] for name in (*FIELDS, "executives", "investors")}
     for version in holding_versions(records, true_at):
         for name, found in version.candidates.items():
             if name not in result:
@@ -90,4 +91,7 @@ def values_at(records: Iterable[BuildRecord], true_at: date) -> dict[str, FieldA
     executives = decide_executives(candidates["executives"])
     answers["executives"] = FieldAt(value=executives.value, true_from=executives.true_from,
                                     citations=executives.citations)
+    investors = decide_investors(candidates["investors"], url_host)
+    answers["investors"] = FieldAt(value=investors.value, true_from=investors.true_from,
+                                   citations=investors.citations)
     return answers

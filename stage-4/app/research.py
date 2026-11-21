@@ -20,7 +20,7 @@ import logging
 from typing import Any, Callable
 
 from app.budget import BUILD_BUDGET_UNITS, Ledger
-from app.evidence import collect_candidates, collect_executives, decide_fields
+from app.evidence import collect_candidates, collect_executives, decide_fields, collect_investors
 from app.pages import page_meta
 from app.gateway import CitedClaim, NimbleGateway, ServedPage
 from app.outcome import BuildOutcome, FieldResult, unknown_fields
@@ -105,6 +105,7 @@ async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) 
     pages = gathered.pages_in_order()
     candidates = collect_candidates(domain, pages)
     candidates["executives"] = collect_executives(domain, pages)
+    candidates["investors"] = collect_investors(domain, pages)
     return BuildOutcome(
         ok=True,
         spent_units=ledger.spent,

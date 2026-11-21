@@ -13,6 +13,7 @@ from app.candidates import Candidate
 from app.gateway import ServedPage
 from app.outcome import FieldResult
 from app.pages import page_meta
+from app.investors import investor_names
 from app.support import FIELDS, MAX_EXCERPT_LENGTH, extract_supports, prose_sentences, supported_executives
 
 MAX_CITATIONS = 3
@@ -65,6 +66,33 @@ def collect_executives(domain: str, pages: list[ServedPage]) -> list[Candidate]:
                     kind=meta.kind,
                     published_at=meta.published_at,
                     title=title,
+                    true_from=meta.true_from,
+                ))
+    return found
+
+
+def collect_investors(domain: str, pages: list[ServedPage]) -> list[Candidate]:
+    """The `investors` candidates (stage 4, R4B): one per (name, page), taken from the first
+    sentence of that page that supports it. A research claim is never one of these."""
+    found: list[Candidate] = []
+    seen: set[tuple[str, str]] = set()
+    for page in pages:
+        meta = page_meta(page.headers, page.url, domain)
+        for sentence in prose_sentences(page.prose):
+            if len(sentence) > MAX_EXCERPT_LENGTH:
+                continue
+            for name in sorted(investor_names(domain, sentence)):
+                key = (name, page.url)
+                if key in seen:
+                    continue
+                seen.add(key)
+                found.append(Candidate(
+                    value=name,
+                    url=page.url,
+                    excerpt=sentence,
+                    provider=PROVIDER,
+                    kind=meta.kind,
+                    published_at=meta.published_at,
                     true_from=meta.true_from,
                 ))
     return found

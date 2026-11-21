@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.candidates import Candidate, normalise_value
+from app.domain import normalise_domain
+from urllib.parse import urlsplit
 from app.selection import rank
 from app.support import _AMOUNT_RE, _LETTER_RUN, _gate, _is_capitalised, _word_at, _word_re
 
@@ -88,6 +90,12 @@ def is_member(candidates_with_name: list[Candidate], origins: set[str]) -> bool:
     if any(c.kind in ("own", "filing") for c in candidates_with_name):
         return True
     return len(origins) >= 2
+
+
+def url_host(candidate: Candidate) -> str:
+    """Stand-in origin of a candidate: the normalised host of its URL. R4A's origin (the page's
+    First-Published-By, canonical chain, lookalike or registrant) replaces this when it lands."""
+    return normalise_domain(urlsplit(candidate.url).hostname or "") or ""
 
 
 @dataclass(frozen=True)

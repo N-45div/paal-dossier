@@ -94,4 +94,5 @@ def _gathered(outcome: BuildOutcome) -> dict[str, list]:
     gathered = {name: dedupe(found) for name, found in candidates_of(outcome).items()}
     executives = (outcome.candidates or {}).get("executives", [])
     gathered["executives"] = dedupe(executives)
+    gathered["investors"] = dedupe((outcome.candidates or {}).get("investors", []))
     return gathered

@@ -92,3 +92,40 @@ def test_field_true_from_is_null_when_a_member_has_none():
     no_date = _candidate("Bluebird Capital", kind="own", true_from=None)
     decision = decide_investors([with_date, no_date], lambda c: c.url.split("/")[2])
     assert decision.true_from is None
+
+
+def _selected(names, true_from, times=None):
+    from datetime import datetime, timezone
+    from app.history import Selected
+    ranked = tuple(
+        (Candidate(value=name, url="https://dealwire.test/" + name.replace(" ", "-"),
+                   excerpt=name, provider="nimble", kind="news", published_at=None,
+                   true_from=(times or {}).get(name)), datetime(2026, 3, 1, tzinfo=timezone.utc))
+        for name in names)
+    return Selected(field="investors", value=list(names) if names else None,
+                    status="known" if names else "unknown", true_from=true_from,
+                    learned_at=None, citations=(), ranked=ranked)
+
+
+def test_new_name_with_dated_true_from_on_or_before_earlier_is_a_correction():
+    from app.history import classify
+    earlier = _selected(["Bluebird Capital"], date(2024, 5, 2), {"Bluebird Capital": date(2024, 5, 2)})
+    new = _selected(["Bluebird Capital", "Northwind Ventures"], date(2024, 5, 2),
+                    {"Bluebird Capital": date(2024, 5, 2), "Northwind Ventures": date(2023, 1, 1)})
+    assert classify(earlier, new) == "correction"
+
+
+def test_new_name_later_than_earlier_is_a_change():
+    from app.history import classify
+    earlier = _selected(["Bluebird Capital"], date(2024, 5, 2), {"Bluebird Capital": date(2024, 5, 2)})
+    new = _selected(["Bluebird Capital", "Northwind Ventures"], date(2025, 1, 1),
+                    {"Bluebird Capital": date(2024, 5, 2), "Northwind Ventures": date(2025, 1, 1)})
+    assert classify(earlier, new) == "change"
+
+
+def test_a_name_only_in_the_earlier_value_is_a_change():
+    from app.history import classify
+    earlier = _selected(["Bluebird Capital", "Northwind Ventures"], date(2024, 5, 2),
+                        {"Bluebird Capital": date(2024, 5, 2), "Northwind Ventures": date(2024, 5, 2)})
+    new = _selected(["Bluebird Capital"], date(2024, 5, 2), {"Bluebird Capital": date(2024, 5, 2)})
+    assert classify(earlier, new) == "change"
