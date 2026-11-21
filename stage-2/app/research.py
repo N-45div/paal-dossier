@@ -91,7 +91,7 @@ async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) 
     gathered = _Gathered()
     if not gateway.available:  # nothing can be called: fail at once, spend nothing
         logger.error("no Nimble client for build of %s", domain)
-        return BuildOutcome(ok=False, spent_units=0, fields=unknown_fields())
+        return _failed(0)
     try:
         async with asyncio.timeout(BUILD_DEADLINE_S):
             await _gather(domain, gateway, gathered)
@@ -100,9 +100,23 @@ async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) 
     except Exception:  # a bug must end this build as failed, never crash the service
         logger.exception("build for %s failed", domain)
     if not gathered.answered:
-        return BuildOutcome(ok=False, spent_units=ledger.spent, fields=unknown_fields())
-    candidates = collect_candidates(domain, gathered.pages_in_order(), gathered.claims)
-    return BuildOutcome(ok=True, spent_units=ledger.spent, fields=decide_fields(candidates))
+        return _failed(ledger.spent)
+    candidates = collect_candidates(domain, gathered.pages_in_order())
+    return BuildOutcome(
+        ok=True,
+        spent_units=ledger.spent,
+        fields=decide_fields(candidates),
+        candidates=candidates,
+    )
+
+
+def _failed(spent_units: int) -> BuildOutcome:
+    return BuildOutcome(
+        ok=False,
+        spent_units=spent_units,
+        fields=unknown_fields(),
+        candidates={name: [] for name in FIELD_NAMES},
+    )
 
 
 async def _gather(domain: str, gateway: NimbleGateway, gathered: _Gathered) -> None:

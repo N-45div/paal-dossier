@@ -11,6 +11,7 @@ import pytest
 from web_router import ProviderError
 
 from app import gateway, research
+from app.budget import Ledger
 
 DOMAIN = "acme-robotics.test"
 PAGE_TEXT = "Facts: {}\n\nAcme Robotics was founded in 2014. Acme Robotics is based in Lisbon."
@@ -90,3 +91,73 @@ def test_run_build_tolerates_no_callback(monkeypatch):
     monkeypatch.setattr(gateway, "_client", lambda: FakeRouter(set()))
     outcome = asyncio.run(research.run_build(DOMAIN))
     assert outcome.ok
+
+
+# --- 429 handling (Rul-S2-5) ----------------------------------------------------------
+
+
+def rate_limited() -> ProviderError:
+    return ProviderError("nimble", "rate limited", original=StatusError(429))
+
+
+class ThrottledRouter(FakeRouter):
+    """Answers 429 to the first ``throttles`` calls of each method, then behaves normally."""
+
+    def __init__(self, throttles: int) -> None:
+        super().__init__(set())
+        self.throttles = throttles
+        self.calls: dict[str, int] = {}
+
+    def _gate(self, method: str) -> None:
+        self.calls[method] = self.calls.get(method, 0) + 1
+        if self.calls[method] <= self.throttles:
+            raise rate_limited()
+
+    async def search(self, query, **kwargs):
+        self._gate("search")
+        return await super().search(query, **kwargs)
+
+    async def extract(self, urls, **kwargs):
+        self._gate("extract")
+        return await super().extract(urls, **kwargs)
+
+    async def research(self, query, **kwargs):
+        self._gate("research")
+        return await super().research(query, **kwargs)
+
+
+def test_three_429s_are_retried_and_the_build_succeeds(monkeypatch):
+    monkeypatch.setattr(gateway, "RATE_LIMIT_WAIT_S", 0)
+    router = ThrottledRouter(throttles=3)
+    monkeypatch.setattr(gateway, "_client", lambda: router)
+    notified: list[int] = []
+    outcome = asyncio.run(research.run_build(DOMAIN, notified.append))
+    assert outcome.ok
+    assert sum(notified) == outcome.spent_units
+
+
+def test_four_429s_give_up_on_that_call_without_spend(monkeypatch):
+    monkeypatch.setattr(gateway, "RATE_LIMIT_WAIT_S", 0)
+    router = ThrottledRouter(throttles=10**6)
+    monkeypatch.setattr(gateway, "_client", lambda: router)
+    notified: list[int] = []
+    outcome = asyncio.run(research.run_build(DOMAIN, notified.append))
+    assert not outcome.ok
+    assert outcome.spent_units == 0
+    assert sum(notified) == 0
+
+
+def test_rate_limit_waits_at_least_one_point_oh_five_seconds(monkeypatch):
+    waits: list[float] = []
+
+    async def fake_sleep(seconds):
+        waits.append(seconds)
+
+    monkeypatch.setattr(gateway.asyncio, "sleep", fake_sleep)
+    router = ThrottledRouter(throttles=2)
+    monkeypatch.setattr(gateway, "_client", lambda: router)
+    gw = gateway.NimbleGateway(Ledger())
+    value, refused = asyncio.run(gw.search(DOMAIN))
+    assert value is not None and not refused
+    assert waits == [gateway.RATE_LIMIT_WAIT_S, gateway.RATE_LIMIT_WAIT_S]
+    assert gateway.RATE_LIMIT_WAIT_S >= 1.05
