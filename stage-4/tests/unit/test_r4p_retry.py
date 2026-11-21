@@ -98,3 +98,32 @@ def test_every_call_failing_ends_failed_with_no_spend(monkeypatch):
     outcome, net = run(monkeypatch, FaultRouter(first_fail=every))
     assert not outcome.ok
     assert outcome.spent_units == 0 and net == 0
+
+
+@pytest.mark.parametrize("method", ["search", "extract", "research"])
+@pytest.mark.parametrize("status", [500, 502, 503, 504])
+def test_a_transient_5xx_on_each_kind_of_call_gives_the_clean_run(monkeypatch, method, status):
+    clean, clean_net = run(monkeypatch, FaultRouter())
+    flaky_router = FaultRouter(first_fail={method: 1})
+    flaky_router_status = status  # read by fail_with_status below
+
+    def fail_with_status(self, method_name):
+        if self.first_fail.get(method_name, 0) > 0:
+            self.first_fail[method_name] -= 1
+            raise ProviderError("nimble", "injected", original=StatusError(flaky_router_status))
+
+    monkeypatch.setattr(FaultRouter, "_maybe_fail", fail_with_status)
+    flaky, net = run(monkeypatch, flaky_router)
+    assert flaky.ok
+    assert fields_of(flaky) == fields_of(clean)
+    assert flaky.spent_units == clean.spent_units
+    assert net == flaky.spent_units
+
+
+def test_a_per_url_503_on_extract_once_still_gives_the_page(monkeypatch):
+    # Two 500s on extract calls: the gateway's retries absorb them and the page still counts.
+    clean, _ = run(monkeypatch, FaultRouter())
+    flaky, net = run(monkeypatch, FaultRouter(first_fail={"extract": 2}))
+    assert flaky.ok
+    assert fields_of(flaky) == fields_of(clean)
+    assert net == flaky.spent_units
