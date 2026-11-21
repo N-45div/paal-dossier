@@ -80,3 +80,15 @@ def test_executives_are_per_title_and_seventh_field():
 def test_executives_unknown_without_titles():
     records = [ready(1, version(date(2025, 9, 1), cand("ceo", "Dana Ruiz")))]
     assert values_at(records, date(2026, 1, 1))["executives"].value is None
+
+
+def test_collect_executives_one_per_title_name_page_with_true_from():
+    from app.evidence import collect_executives
+    from app.gateway import ServedPage
+
+    page = ServedPage(url=URL, prose="Ana Silva is the chief financial officer of Acme Robotics. "
+                                     "Acme Robotics CTO: Ben Okafor. Acme Robotics CTO: Ben Okafor.",
+                      headers={"Effective": "2025-09-01", "Kind": "own"})
+    found = collect_executives("acme-robotics.test", [page])
+    assert sorted((c.title, c.value) for c in found) == [("cfo", "Ana Silva"), ("cto", "Ben Okafor")]
+    assert all(c.true_from == date(2025, 9, 1) and c.field == "executives" for c in found)
