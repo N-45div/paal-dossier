@@ -40,6 +40,7 @@ def test_every_call_failing_ends_failed_within_the_bound_with_no_spend(env):
         _clear_all()
     assert d["state"] == "failed", d
     assert d["spent_units"] == 0, d["spent_units"]
+    print(f"R1.191 all-fail build elapsed {elapsed:.2f}s (bound {BOUND_SECONDS}s)")
     assert elapsed <= BOUND_SECONDS, f"all-fail build took {elapsed:.2f}s, bound is {BOUND_SECONDS}s"
     for name, fld in d["fields"].items():
         assert fld["value"] is None, (name, fld)
