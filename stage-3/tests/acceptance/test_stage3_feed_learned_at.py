@@ -100,3 +100,20 @@ def test_every_entry_of_a_sample_company_carries_the_refresh_build_time(env, dom
             assert e["learned_at"] is not None, (name, e)
             expected = T0 if e["type"] == "initial" else T1
             assert _instant(e["learned_at"]) == _instant(expected), (name, e)
+
+
+def test_a_value_that_disappears_carries_the_refresh_build_time(env):
+    # gone-co.test: epoch 0 names a CEO, epoch 1 does not. The value becomes null at the refresh:
+    # the history entry (value null) and every feed entry carry the refresh build's time (R3.56 ruling;
+    # R3.62). Derived from the clock set for the refresh, not from the service.
+    _run_builds(env, "gone-co.test", [(0, T0), (1, T1)])
+    h = call("GET", "/dossiers/gone-co.test/history", token=env["ada"], timeout=10)
+    assert h.status_code == 200, h.text
+    ceo = h.json()["fields"]["ceo"]
+    assert ceo[0]["type"] == "initial" and ceo[0]["value"] == "Ann Aster", ceo
+    assert _instant(ceo[0]["learned_at"]) == _instant(T0), ceo[0]
+    assert ceo[-1]["value"] is None, ceo
+    assert _instant(ceo[-1]["learned_at"]) == _instant(T1), ceo[-1]
+    for c in _feed(env, "gone-co.test"):
+        assert c["learned_at"] is not None, c
+        assert _instant(c["learned_at"]) == _instant(T1), c
