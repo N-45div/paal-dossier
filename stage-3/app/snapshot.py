@@ -11,14 +11,14 @@ from typing import Any
 
 from aiohttp import web
 
-from app.records import BuildRecord, versions_of
-from app.candidates import KINDS, PROVIDERS, Candidate, dedupe, from_citation
-from app.clock import parse_rfc3339
+from app.export_readers import _obj, _text
+from app.imports import import_stage1, import_stage2
+from app.candidates import Candidate
 from app.domain import normalise_domain
 from app.errors import json_response, validation_failed
 from app.idempotency import MAX_KEY_LENGTH
 from app.state import STORE, Dossier, IdemRecord, State, Store, User
-from app.support import FIELDS, supported_values
+from app.support import FIELDS
 from app.validation import read_json_object
 
 TRACK = "dossier"
@@ -78,9 +78,9 @@ def import_state(raw: Any) -> State:
     _import_users(raw, state)
     _import_tokens(raw, state)
     if schema == SCHEMA:
-        _import_dossiers(raw, state, _stage2_candidates)
+        _import_dossiers(raw, state, import_stage2)
     else:
-        _import_dossiers(raw, state, _stage1_candidates)
+        _import_dossiers(raw, state, import_stage1)
     _import_idempotency(raw, state)
     return state
 
@@ -89,19 +89,6 @@ def _list(raw: dict[str, Any], key: str) -> list[Any]:
     value = raw.get(key)
     if not isinstance(value, list):
         raise validation_failed(f"state.{key} must be a list")
-    return value
-
-
-def _obj(entry: Any, what: str) -> dict[str, Any]:
-    if not isinstance(entry, dict):
-        raise validation_failed(f"{what} must be an object")
-    return entry
-
-
-def _text(entry: dict[str, Any], key: str, what: str) -> str:
-    value = entry.get(key)
-    if not isinstance(value, str) or value == "":
-        raise validation_failed(f"{what}.{key} must be a non-empty string")
     return value
 
 
@@ -129,7 +116,7 @@ def _import_tokens(raw: dict[str, Any], state: State) -> None:
         state.tokens[token] = user_id
 
 
-def _import_dossiers(raw: dict[str, Any], state: State, candidates_of) -> None:
+def _import_dossiers(raw: dict[str, Any], state: State, convert) -> None:
     ids: set[str] = set()
     for entry in _list(raw, "dossiers"):
         item = _obj(entry, "dossier")
@@ -145,15 +132,8 @@ def _import_dossiers(raw: dict[str, Any], state: State, candidates_of) -> None:
         spent = item.get("spent_units")
         if not isinstance(spent, int) or isinstance(spent, bool) or spent < 0:
             raise validation_failed("dossier spent_units must be a non-negative integer")
-        researched = item.get("researched_at")
-        records: list[BuildRecord] = []
-        if researched is not None:
-            # The exported state is one ready build at researched_at (Upgrades, stage 3).
-            found = {name: dedupe(items) for name, items in candidates_of(item, domain).items()}
-            records.append(BuildRecord(
-                index=0, time=parse_rfc3339(researched), ok=True, spent_units=spent,
-                versions=versions_of(found, pages={}),
-            ))
+        # The exported dossier's build records (Rul-S3-8): see app.imports.
+        records = list(convert(item, domain))
         state.dossiers_by_domain[domain] = Dossier(
             id=dossier_id,
             domain=domain,
@@ -161,63 +141,6 @@ def _import_dossiers(raw: dict[str, Any], state: State, candidates_of) -> None:
             records=records,
             spent_units=spent,
         )
-
-
-def _stage2_candidates(item: dict[str, Any], domain: str) -> dict[str, list[Candidate]]:
-    """Candidates of a stage-2 export, validated field by field."""
-    raw = _obj(item.get("candidates"), "dossier candidates")
-    result: dict[str, list[Candidate]] = {}
-    for name in FIELDS:
-        entries = raw.get(name)
-        if not isinstance(entries, list):
-            raise validation_failed(f"candidates of {name} must be a list")
-        result[name] = [_stage2_candidate(_obj(e, "candidate")) for e in entries]
-    return result
-
-
-def _stage2_candidate(item: dict[str, Any]) -> Candidate:
-    value = item.get("value")
-    if isinstance(value, bool) or not isinstance(value, (int, str)) or value == "":
-        raise validation_failed("candidate value must be a non-empty string or an integer")
-    kind = item.get("kind")
-    if kind is not None and kind not in KINDS:
-        raise validation_failed("candidate kind is not a known page kind")
-    provider = _text(item, "provider", "candidate")
-    if provider not in PROVIDERS:
-        raise validation_failed("candidate provider is not known")
-    published = item.get("published_at")
-    if published is not None:
-        parse_rfc3339(_text(item, "published_at", "candidate"))
-    return Candidate(value=value, url=_text(item, "url", "candidate"),
-                     excerpt=_text(item, "excerpt", "candidate"), provider=provider,
-                     kind=kind, published_at=published)
-
-
-def _stage1_candidates(item: dict[str, Any], domain: str) -> dict[str, list[Candidate]]:
-    """Candidates of a stage-1 export (Rul-S2-2): one per verified citation of each field."""
-    fields = _obj(item.get("fields"), "dossier fields")
-    result: dict[str, list[Candidate]] = {}
-    for name in FIELDS:
-        entry = _obj(fields.get(name), f"field {name}")
-        value = entry.get("value")
-        if value is not None and (isinstance(value, bool) or not isinstance(value, (str, int))):
-            raise validation_failed(f"field {name} has an invalid value")
-        citations = entry.get("citations")
-        if not isinstance(citations, list):
-            raise validation_failed(f"field {name} citations must be a list")
-        cands: list[Candidate] = []
-        for citation in citations:
-            cite = _obj(citation, "citation")
-            for key in ("url", "excerpt", "provider"):
-                _text(cite, key, "citation")
-            if value is None:
-                continue
-            # A stage-1 citation was verified when it was written; keep it only while it
-            # still supports the field's value under Appendix A.
-            if supported_values(domain, cite["excerpt"]).get(name) == value:
-                cands.append(from_citation(value, cite))
-        result[name] = cands
-    return result
 
 
 def _import_idempotency(raw: dict[str, Any], state: State) -> None:

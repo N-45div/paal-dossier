@@ -20,16 +20,16 @@ from typing import Any
 
 from app.candidates import Candidate
 from app.records import BuildRecord, versions_of
-from app.snapshot import _stage1_candidates, _stage2_candidates
+from app.export_readers import stage1_candidates, stage2_candidates
 from app.support import FIELDS
 
 
 def import_stage1(item: dict[str, Any], domain: str) -> tuple[BuildRecord, ...]:
-    return _one_build(item, _stage1_candidates(item, domain), stage2=False)
+    return _one_build(item, stage1_candidates(item, domain), stage2=False)
 
 
 def import_stage2(item: dict[str, Any], domain: str) -> tuple[BuildRecord, ...]:
-    raw = _stage2_candidates(item, domain)
+    raw = stage2_candidates(item, domain)
     stamped = {name: [replace(c, true_from=_utc_date(c)) for c in found] for name, found in raw.items()}
     return _one_build(item, stamped, stage2=True)
 
