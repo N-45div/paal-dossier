@@ -10,6 +10,7 @@ import json
 import pytest
 
 from conftest import call, await_settled, check_dossier_fields, login, mock_calls, start_build, reset_service
+from oracle import EXEC_FIELD
 from selection_oracle import expected_citations, expected_status, rank_key
 
 RANK = "rank-co.test"
@@ -22,7 +23,37 @@ def _build(env, domain):
     return await_settled(env["ada"], domain, timeout=120)
 
 
+EXEC_TITLES = ("cfo", "coo", "cto")
+
+
+def _check_executives(fld, dossier):
+    # Stage 3, R3.12 and R3.18: a candidate is one title's person (value = name, title beside it);
+    # the field's value is one {title, name} per title with a selected person, in cfo, coo, cto
+    # order, or null and unknown when none is selected. The one-selected-per-field rule of the
+    # six fields does not apply: each title selects its own person.
+    cands = fld["candidates"]
+    assert isinstance(cands, list), EXEC_FIELD
+    for c in cands:
+        assert set(c) >= CAND_KEYS | {"title"}, set(c)
+        assert c["title"] in EXEC_TITLES, c["title"]
+    selected = [c for c in cands if c["selected"]]
+    titles = [c["title"] for c in selected]
+    assert len(titles) == len(set(titles)), titles
+    if selected:
+        members = [{"title": t, "name": c["value"]}
+                   for t in EXEC_TITLES for c in selected if c["title"] == t]
+        assert fld["value"] == members, (fld["value"], members)
+        assert fld["status"] in ("known", "contested"), fld["status"]
+        assert fld["citations"], "executives with a value must cite"
+    else:
+        assert fld["value"] is None and fld["status"] == "unknown", fld
+        assert fld["citations"] == []
+
+
 def _check_field_selection(name, fld, dossier, domain):
+    if name == EXEC_FIELD:
+        _check_executives(fld, dossier)
+        return
     cands = fld["candidates"]
     assert isinstance(cands, list), name
     for c in cands:

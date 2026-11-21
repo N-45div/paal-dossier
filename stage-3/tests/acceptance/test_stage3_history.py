@@ -84,14 +84,15 @@ def test_changes_since_and_limit_paging(env):
 def test_as_of_answers_as_the_service_had_it(env):
     # GET ?as_of= decided by learned_at
     _two_builds(env)
-    before = _get(env, f"/dossiers/{DOMAIN}?as_of=2026-03-15T00:00:00+00:00")
+    # The offset's "+" must be percent-encoded (%2B); an unencoded "+" decodes as a space.
+    before = _get(env, f"/dossiers/{DOMAIN}?as_of=2026-03-15T00:00:00%2B00:00")
     assert before.status_code == 200, before.text
     assert before.json()["fields"]["ceo"]["value"] == "Dana Ruiz"
-    after = _get(env, f"/dossiers/{DOMAIN}?as_of=2026-04-02T00:00:00+00:00")
+    after = _get(env, f"/dossiers/{DOMAIN}?as_of=2026-04-02T00:00:00%2B00:00")
     assert after.status_code == 200 and after.json()["fields"]["ceo"]["value"] == "Lee Park"
-    assert _get(env, f"/dossiers/{DOMAIN}?as_of=2026-02-01T00:00:00+00:00").status_code == 404
+    assert _get(env, f"/dossiers/{DOMAIN}?as_of=2026-02-01T00:00:00%2B00:00").status_code == 404
     assert _get(env, f"/dossiers/{DOMAIN}?as_of=2026-03-15T00:00:00").status_code == 422
-    assert _get(env, "/dossiers/nobody.test?as_of=2026-03-15T00:00:00+00:00").status_code == 404
+    assert _get(env, "/dossiers/nobody.test?as_of=2026-03-15T00:00:00%2B00:00").status_code == 404
 
 
 def test_values_at_true_at(env):
