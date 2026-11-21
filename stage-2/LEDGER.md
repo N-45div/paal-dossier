@@ -2046,3 +2046,1058 @@ Stage 1 frozen at main 34d96762f8e798683d97b9ca5195ad808175cd37 (merge of PT del
 Final checks: full acceptance suite 178 passed / 0 failed; unit 244 passed; service tests 29 OK; event check stage 1 pass non-isolated (checks/s1-1) and isolated (checks/s1-final).
 Known open risks: the Prover's step-7 defect-planting found 3 defects the suite does not catch (80-unit cap not forced, unverified research citations, negating phrase on a served page); tests for them are to be added in the next stage's folder. No live Nimble run was possible.
 Stage 1 started 2026-11-21T05:08Z; frozen 2026-11-21T05:44Z.
+
+
+---
+
+# Stage 2 (started 2026-11-21T05:47Z) — competing sources and the dossier screens
+
+Stage-1 entries above stay in force (cumulative; all accepted at the stage-1 freeze, main 34d9676). Stage 2 entries are `R2.*`.
+
+## Packages (stage 2)
+
+| Pkg | Owner | Scope | Order |
+|---|---|---|---|
+| R2S | @builder-a | `app/candidates.py` (the `Candidate` dataclass), `app/selection.py` (pure selection rule, status, ordering), dossier model/API changes (fields gain `candidates`, `status` known/contested/unknown, `value`/`citations` from selection, `retrieved_at` = build time, `GET /dossiers` legal_name = selected), export/import v2 including accepting a stage-1 export (derive candidates, keep tokens/idempotency), content negotiation hook for `Accept: text/html` on `/dossiers/{domain}` (route table only; UI owned by R2U1) | first |
+| R2R | @builder-b | research changes: all candidates (every supported value on every gathered page, one candidate per page and excerpt), research-cited pages gathered and read like any other, page kind and `Published` parsing (`app/pages.py`), 429 handling (retry after >= 1 s, waiting does not count toward the 10 s bound, still <= 80 units, no cost on 429), optional Nimble rendered extract (3 units) and optional browser vendors (not required), page text = browser text | first (parallel with R2S) |
+| R2U1 | @builder-b | UI: routes `/`, `/dossiers/{domain}`, `/signup`, `/login`, shared layout/design system/navigation, auth flow, research and refresh with uncertain-outcome handling, polling while building, latest-read-wins, 375 px responsive; every `data-testid` in the spec | after R2R |
+| R2U2 | @builder-a | UI: `/dossiers/{domain}/evidence` and `/contested` screens and their testids, using the R2U1 layout; later joint visual polish and the 375 px review | after R2S, on top of R2U1's shared layout once merged |
+| PT2 | @prover | Stage-2 acceptance tests: API (candidates, selection rule oracle, status, import of a stage-1 export, rate limits via mock faults) and browser tests with the data-testids (Playwright) at 375 px and desktop; also the 3 stage-1 gaps (80-unit cap forced, unverified research citation, negating phrase on a served page) in stage-2/tests/acceptance | in parallel from the start |
+| GK | @gatekeeper | review/merge/checks | as packages land |
+
+## Rulings (stage 2)
+
+- **Rul-S2-1 (shapes between packages).** `app/candidates.py` defines `@dataclass(frozen=True) Candidate(value, url, excerpt, provider, kind, published_at)` where `value` is the normalised value (str or int), `kind` is `own|filing|news|aggregator` (or None only for an imported candidate), `published_at` an RFC 3339 string with offset or None. `app/research.py`'s `run_build(domain, on_spend=None)` now returns `BuildOutcome(ok, spent_units, candidates: dict[str, list[Candidate]])` (all six field names as keys, each a list, deduplicated on (value, url, excerpt, provider)). `app/selection.py` (R2S) turns the lists into the API `fields` (value/status/citations/candidates with `selected` and `retrieved_at`). `FieldResult`/`unknown_fields` stay importable, because the stage-1 code paths use them; R2S owns their evolution.
+- **Rul-S2-2 (stage-1 export import).** The frozen stage-1 export state does not record served page texts, only the dossier fields with their citations, so an imported dossier gets exactly one candidate per exported citation (value = the field's exported value; excerpt, url and provider from the citation; kind/published_at from the exported state when it records them, else null; `retrieved_at` = the dossier's `researched_at`), each candidate's value checked with `supported_values` when the field is known. Fields, status, citations then derive via the selection rule. A stage-2 export (format_version stays 1, `state` carries the candidates and `schema` marker) must also import. Tokens, hashed passwords, idempotency records, ids and timestamps are preserved exactly; an idempotent replay of a stage-1 request after import returns the original response.
+- **Rul-S2-3 (page kind).** `Kind` header value matched exactly (case-sensitive) to `own|filing|news|aggregator`; otherwise the host rule from the spec. `Published` must parse as RFC 3339 with an explicit offset (a `Z` suffix is an offset); otherwise None. `published_at` is emitted as given by the page normalised to `+00:00`/the page's offset isoformat (preserve the value's instant; compare by instant).
+- **Rul-S2-4 (render).** Plain Nimble extract (1 unit) remains the default page-text source; the mock serves the same text as a render. Do not use `render` unless a ledger requirement fails without it. Kernel/Browserbase are not used.
+- **Rul-S2-5 (429).** A call answered 429 costs 0 and is released from the budget ledger. Retry after waiting at least 1.05 s since that 429 (same call), up to the point where the budget or the 300 s limit would be exceeded; time spent waiting does not count toward the 10 s target, so the build's non-waiting work must still finish promptly. Give up on a call only after 4 consecutive 429s' worth of attempts has been made or the global deadline nears. Never let a 429 cause a 5xx or a failed build when other calls succeeded.
+- **Rul-S2-6 (UI tech).** The UI is served by the same Python process with no runtime network use: server-rendered HTML with a small vanilla-JS enhancement layer and a local CSS file (no CDN, no fonts from the web, everything inside the image). Browser tests are run against `Accept: text/html` on the shared `/dossiers/{domain}` route; a request without that header gets JSON. The token is stored in `localStorage` (so a signed-in browser stays signed in after an export/import upgrade); `current-user` appears on every screen when signed in.
+- **Rul-S2-7 (uncertain outcomes).** When a research/refresh request fails at the network level (no response), keep the key and body, show `research-uncertain`/`refresh-uncertain`, and a retry sends the same `Idempotency-Key` and body; success removes error and uncertain markers.
+
+## Requirements (spec stage-2.md; every quote is verbatim; status: open | built | tested | accepted)
+
+### R2.1  [pkg ALL] [open]
+- Section: Dossier — Stage 2: competing sources and the dossier screens (spec line 3)
+- Text:
+
+> The stage-1 requirements continue to apply, with the additions below.
+
+### R2.2  [pkg ALL] [open]
+- Section: Dossier — Stage 2: competing sources and the dossier screens (spec line 3)
+- Text:
+
+> Numbered section references such as §4 and §7 refer to `stage-1.md`.
+
+### R2.3  [pkg ALL] [open]
+- Section: Dossier — Stage 2: competing sources and the dossier screens (spec line 6)
+- Text:
+
+> Sources disagree.
+
+### R2.4  [pkg ALL] [open]
+- Section: Dossier — Stage 2: competing sources and the dossier screens (spec line 6)
+- Text:
+
+> A dossier now keeps every value its evidence supports, as candidates, and selects one per field by a fixed rule.
+
+### R2.5  [pkg ALL] [open]
+- Section: Dossier — Stage 2: competing sources and the dossier screens (spec line 6)
+- Text:
+
+> Researchers read dossiers, their evidence and the fields in dispute in a browser.
+
+### R2.6  [pkg ALL] [open]
+- Section: Dossier — Stage 2: competing sources and the dossier screens (spec line 10)
+- Text:
+
+> The following applies to all operations, in addition to the stage-1 list:
+
+### R2.7  [pkg ALL] [open]
+- Section: Dossier — Stage 2: competing sources and the dossier screens (spec line 12)
+- Text:
+
+> 3. A field's selected value is the one the selection rule below picks from the field's
+>    candidates; the same candidates always yield the same value.
+
+### R2.8  [pkg R2R] [open]
+- Section: Page kind and publication time (spec line 17)
+- Text:
+
+> Two header lines (§4, Pages) now carry requirements:
+
+### R2.9  [pkg R2R] [open]
+- Section: Page kind and publication time (spec line 21)
+- Text:
+
+> | `Kind: own`, `Kind: filing`, `Kind: news`, `Kind: aggregator` | The page's **kind**: the company's own site, a filing registry, a news report, or an aggregator of company data |
+
+### R2.10  [pkg R2R] [open]
+- Section: Page kind and publication time (spec line 22)
+- Text:
+
+> | `Published: <RFC 3339 timestamp>` | When the page was published |
+
+### R2.11  [pkg R2R] [open]
+- Section: Page kind and publication time (spec line 24)
+- Text:
+
+> A page with no `Kind` line, or with a value not listed above, is of kind `own` when the host of its URL, normalised as `stage-1.md` normalises a domain, is the company's domain, and of kind `aggregator` otherwise.
+
+### R2.12  [pkg R2R] [open]
+- Section: Page kind and publication time (spec line 24)
+- Text:
+
+> A page with no `Published` line, or with a value that is not an RFC 3339 timestamp, has no publication time.
+
+### R2.13  [pkg R2R] [open]
+- Section: Page text (spec line 31)
+- Text:
+
+> From this stage, a page's **text** is the text a browser shows once the page has loaded, without clicking controls.
+
+### R2.14  [pkg R2R] [open]
+- Section: Page text (spec line 31)
+- Text:
+
+> Activating disclosure controls is not required.
+
+### R2.15  [pkg R2R] [open]
+- Section: Page text (spec line 31)
+- Text:
+
+> The graded corpus contains no facts that require a click to reveal them.
+
+### R2.16  [pkg R2R] [open]
+- Section: Page text (spec line 31)
+- Text:
+
+> Evidence (§4) is read from page text so defined, and a citation's excerpt must appear in the page's text.
+
+### R2.17  [pkg R2R] [open]
+- Section: Page text (spec line 31)
+- Text:
+
+> A citation's `provider` is the provider that served the text the excerpt was copied from.
+
+### R2.18  [pkg R2R] [open]
+- Section: Web access (spec line 40)
+- Text:
+
+> From this stage an extract through `nimble` may ask Nimble to load the page in a browser and serve the text the browser shows once the page has loaded, with no control activated:
+
+### R2.19  [pkg R2R] [open]
+- Section: Web access (spec line 40)
+- Text:
+
+> `provider_options={"render":
+
+### R2.20  [pkg R2R] [open]
+- Section: Web access (spec line 40)
+- Text:
+
+> True}` on WebRouter's extract.
+
+### R2.21  [pkg R2R] [open]
+- Section: Web access (spec line 44)
+- Text:
+
+> Two optional browser vendors are also available, in addition to the providers in §2:
+
+### R2.22  [pkg R2R] [open]
+- Section: Web access (spec line 46)
+- Text:
+
+> - `kernel`, through `open_browser`;
+
+### R2.23  [pkg R2R] [open]
+- Section: Web access (spec line 47)
+- Text:
+
+> - `browserbase`, through `open_browser` and `browse`.
+
+### R2.24  [pkg R2R] [open]
+- Section: Web access (spec line 49)
+- Text:
+
+> A service may use Nimble's rendered extract alone to obtain every page's browser text; neither browser vendor is required.
+
+### R2.25  [pkg R2R] [open]
+- Section: Web access (spec line 52)
+- Text:
+
+> The deployment provides these environment variables in addition to those in §2:
+
+### R2.26  [pkg R2R] [open]
+- Section: Web access (spec line 56)
+- Text:
+
+> | `KERNEL_API_KEY` | Credential for the `kernel` provider |
+
+### R2.27  [pkg R2R] [open]
+- Section: Web access (spec line 57)
+- Text:
+
+> | `KERNEL_BASE_URL` | Base URL of the `kernel` provider endpoint |
+
+### R2.28  [pkg R2R] [open]
+- Section: Web access (spec line 58)
+- Text:
+
+> | `BROWSERBASE_API_KEY` | Credential for the `browserbase` provider |
+
+### R2.29  [pkg R2R] [open]
+- Section: Web access (spec line 59)
+- Text:
+
+> | `BROWSERBASE_BASE_URL` | Base URL of the `browserbase` provider endpoint |
+
+### R2.30  [pkg R2R] [open]
+- Section: Web access (spec line 61)
+- Text:
+
+> WebRouter reads the keys from the environment.
+
+### R2.31  [pkg R2R] [open]
+- Section: Web access (spec line 61)
+- Text:
+
+> A service that uses these vendors passes their base URLs to WebRouter in `provider_config`, beside those of §2:
+
+### R2.32  [pkg R2R] [open]
+- Section: Web access (spec line 64)
+- Text:
+
+> ```python
+> provider_config={"kernel": {"base_url": <KERNEL_BASE_URL>},
+>                  "browserbase": {"base_url": <BROWSERBASE_BASE_URL>}}
+> ```
+
+### R2.33  [pkg R2R] [open]
+- Section: Web access (spec line 69)
+- Text:
+
+> These calls cost, in the units of §9:
+
+### R2.34  [pkg R2R] [open]
+- Section: Web access (spec line 73)
+- Text:
+
+> | Extract through `nimble` that loads the page in a browser | 3 per URL requested, including a URL for which no page is returned |
+
+### R2.35  [pkg R2R] [open]
+- Section: Web access (spec line 74)
+- Text:
+
+> | Open a session through `kernel` | 0 |
+
+### R2.36  [pkg R2R] [open]
+- Section: Web access (spec line 75)
+- Text:
+
+> | Open a session through `browserbase` | 2 |
+
+### R2.37  [pkg R2R] [open]
+- Section: Web access (spec line 76)
+- Text:
+
+> | Each page served to a session, through either | 1 |
+
+### R2.38  [pkg R2R] [open]
+- Section: Web access (spec line 77)
+- Text:
+
+> | Browse run through `browserbase` | 4 |
+
+### R2.39  [pkg R2R] [open]
+- Section: Web access (spec line 79)
+- Text:
+
+> A failed open, a failed page load and releasing a session cost nothing.
+
+### R2.40  [pkg R2R] [open]
+- Section: Web access (spec line 81)
+- Text:
+
+> Each provider keeps at most 4 sessions open at once; opening another is answered with an error.
+
+### R2.41  [pkg R2R] [open]
+- Section: Web access (spec line 81)
+- Text:
+
+> A session that no client has been connected to for 60 seconds is closed by the provider.
+
+### R2.42  [pkg R2R] [open]
+- Section: Rate limits (spec line 87)
+- Text:
+
+> From this stage a provider may answer any call with 429.
+
+### R2.43  [pkg R2R] [open]
+- Section: Rate limits (spec line 87)
+- Text:
+
+> A call answered 429 costs nothing (`stage-1.md` §9).
+
+### R2.44  [pkg R2R] [open]
+- Section: Rate limits (spec line 87)
+- Text:
+
+> The same call (the same provider, operation and arguments) made again less than one second after a 429 for it was answered is answered 429 again.
+
+### R2.45  [pkg R2R] [open]
+- Section: Rate limits (spec line 87)
+- Text:
+
+> No call is answered 429 more than three times in a row, except that opening a session while its provider keeps 4 open (Web access) is answered 429 until one of them closes.
+
+### R2.46  [pkg R2R] [open]
+- Section: Rate limits (spec line 87)
+- Text:
+
+> Time a build spends waiting to make a call again after a 429 does not count toward the 10 seconds of `stage-1.md` §8.
+
+### R2.47  [pkg R2S] [open]
+- Section: Candidates (spec line 96)
+- Text:
+
+> A **candidate** is one value for one field, supported by one excerpt of one page.
+
+### R2.48  [pkg R2R] [open]
+- Section: Candidates (spec line 96)
+- Text:
+
+> Every value that a page of the evidence (§4) supports for a field is a candidate of that field, once for each such page.
+
+### R2.49  [pkg R2R] [open]
+- Section: Candidates (spec line 96)
+- Text:
+
+> The evidence now also holds the page that each research claim of the evidence cites, whether or not the citation supports its claim: a build reads that page as it reads any other.
+
+### R2.50  [pkg R2R] [open]
+- Section: Candidates (spec line 96)
+- Text:
+
+> A research claim whose citation does not support it is still not a candidate.
+
+### R2.51  [pkg R2R] [open]
+- Section: Candidates (spec line 96)
+- Text:
+
+> A candidate's `provider` is a provider that served the text its excerpt is taken from; when several did, any of them may be given.
+
+### R2.52  [pkg R2S] [open]
+- Section: Candidates (spec line 104)
+- Text:
+
+> Each field gains `candidates`:
+
+### R2.53  [pkg R2R] [open]
+- Section: Candidates (spec line 106)
+- Text:
+
+> ```json
+> {
+>   "value": "Dana Ruiz",
+>   "status": "contested",
+>   "citations": [ { "url": "https://acme-robotics.test/about", "excerpt": "...", "provider": "nimble" } ],
+>   "candidates": [
+>     { "value": "Dana Ruiz", "url": "https://acme-robotics.test/about",
+>       "excerpt": "Dana Ruiz has led Acme Robotics as chief executive since 2021.",
+>       "provider": "nimble", "kind": "own",
+>       "published_at": "2026-01-10T00:00:00+00:00",
+>       "retrieved_at": "2026-03-01T09:00:00+00:00", "selected": true },
+>     { "value": "Sam Ortiz", "url": "https://bizdata.test/acme-robotics",
+>       "excerpt": "Acme Robotics CEO: Sam Ortiz.",
+>       "provider": "tavily", "kind": "aggregator",
+>       "published_at": "2026-02-20T00:00:00+00:00",
+>       "retrieved_at": "2026-03-01T09:00:00+00:00", "selected": false }
+>   ]
+> }
+> ```
+
+### R2.54  [pkg R2R] [open]
+- Section: Candidates (spec line 126)
+- Text:
+
+> - `url`, `excerpt` and `provider` follow the citation rules in §4.
+
+### R2.55  [pkg R2S] [open]
+- Section: Candidates (spec line 127)
+- Text:
+
+> - `kind` is the page's kind, and `published_at` its publication time or null. Only an
+>   imported candidate (below) has a null `kind`; it has the authority of `aggregator`.
+
+### R2.56  [pkg R2R] [open]
+- Section: Candidates (spec line 129)
+- Text:
+
+> - `retrieved_at` is the time of the build that gathered the candidate (§8, Builds).
+
+### R2.57  [pkg R2S] [open]
+- Section: Candidates (spec line 130)
+- Text:
+
+> - `selected` is true on exactly one candidate of a field that has candidates, the one the
+>   rule picks, and false on the others.
+
+### R2.58  [pkg R2S] [open]
+- Section: Candidates (spec line 132)
+- Text:
+
+> - `candidates` lists the candidates of the last build that completed `ready`, in the order
+>   the selection rule ranks them, the selected one first. A field with no candidate has
+>   `"candidates": []` and is `unknown`.
+
+### R2.59  [pkg R2S] [open]
+- Section: Candidates (spec line 135)
+- Text:
+
+> - Two values are the same value when they are equal as JSON values; strings are compared
+>   exactly, after removing surrounding whitespace.
+
+### R2.60  [pkg R2S] [open]
+- Section: The selection rule (spec line 140)
+- Text:
+
+> Rank a field's candidates, highest first, by:
+
+### R2.61  [pkg R2S] [open]
+- Section: The selection rule (spec line 142)
+- Text:
+
+> 1. **Authority** of the page's kind: `own` and `filing` rank equal and highest, then `news`,
+>    then `aggregator`.
+
+### R2.62  [pkg R2S] [open]
+- Section: The selection rule (spec line 144)
+- Text:
+
+> 2. **Recency** within the same authority: the later `published_at` ranks higher. A candidate
+>    without a publication time ranks below every candidate of the same authority that has one.
+
+### R2.63  [pkg R2S] [open]
+- Section: The selection rule (spec line 146)
+- Text:
+
+> 3. **URL**: when authority and publication time are equal, the candidate whose `url` is
+>    smaller, comparing the strings by Unicode code point, ranks higher; between two
+>    candidates with the same URL, they rank by provider in the order `nimble`, `tavily`,
+>    `kernel`, `browserbase`.
+
+### R2.64  [pkg R2S] [open]
+- Section: The selection rule (spec line 150)
+- Text:
+
+> 4. **Value**: between two candidates with the same URL and provider, the one whose value is
+>    smaller ranks higher: integers compare as numbers, strings by Unicode code point after
+>    removing surrounding whitespace.
+
+### R2.65  [pkg R2S] [open]
+- Section: The selection rule (spec line 154)
+- Text:
+
+> The highest-ranked candidate is the selected one.
+
+### R2.66  [pkg R2S] [open]
+- Section: The selection rule (spec line 154)
+- Text:
+
+> The field's `value` is the selected candidate's value, and its `citations` are the `url`, `excerpt` and `provider` of every candidate with that value, in rank order.
+
+### R2.67  [pkg R2S] [open]
+- Section: The selection rule (spec line 158)
+- Text:
+
+> A candidate of lower authority is selected only when no candidate of higher authority exists for that field.
+
+### R2.68  [pkg R2S] [open]
+- Section: The selection rule (spec line 158)
+- Text:
+
+> The rule runs over all of a field's candidates.
+
+### R2.69  [pkg R2S] [open]
+- Section: Status (spec line 163)
+- Text:
+
+> `status` is now one of three values:
+
+### R2.70  [pkg R2S] [open]
+- Section: Status (spec line 167)
+- Text:
+
+> | `known` | The field has candidates, and they all have the same value |
+
+### R2.71  [pkg R2S] [open]
+- Section: Status (spec line 168)
+- Text:
+
+> | `contested` | The field's candidates carry two or more different values |
+
+### R2.72  [pkg R2S] [open]
+- Section: Status (spec line 169)
+- Text:
+
+> | `unknown` | The field has no candidate; `value` is null |
+
+### R2.73  [pkg R2S] [open]
+- Section: Status (spec line 171)
+- Text:
+
+> A `contested` field still has a selected `value` and its citations.
+
+### R2.74  [pkg R2S] [open]
+- Section: Status (spec line 173)
+- Text:
+
+> `GET /dossiers` (§8) is unchanged.
+
+### R2.75  [pkg R2S] [open]
+- Section: Status (spec line 173)
+- Text:
+
+> The `legal_name` it lists is the selected value.
+
+### R2.76  [pkg R2U1] [open]
+- Section: Screens (spec line 177)
+- Text:
+
+> The following screens must be reachable by URL.
+
+### R2.77  [pkg R2U1] [open]
+- Section: Screens (spec line 177)
+- Text:
+
+> Other screens must be reachable through the UI.
+
+### R2.78  [pkg R2U1] [open]
+- Section: Screens (spec line 177)
+- Text:
+
+> Server-side and client-side rendering are both permitted.
+
+### R2.79  [pkg R2U1] [open]
+- Section: Screens (spec line 182)
+- Text:
+
+> | `/` | The dossier list with search, and a form to research a domain |
+
+### R2.80  [pkg R2U1] [open]
+- Section: Screens (spec line 183)
+- Text:
+
+> | `/dossiers/{domain}` | One dossier: its state, its six fields with their values, status and citations, a refresh and a reload |
+
+### R2.81  [pkg R2U1] [open]
+- Section: Screens (spec line 184)
+- Text:
+
+> | `/dossiers/{domain}/evidence` | Every candidate of every field of that dossier |
+
+### R2.82  [pkg R2U1] [open]
+- Section: Screens (spec line 185)
+- Text:
+
+> | `/contested` | Every contested field across all dossiers |
+
+### R2.83  [pkg R2U1] [open]
+- Section: Screens (spec line 186)
+- Text:
+
+> | `/signup` | Signup |
+
+### R2.84  [pkg R2U1] [open]
+- Section: Screens (spec line 187)
+- Text:
+
+> | `/login` | Login |
+
+### R2.85  [pkg R2U1] [open]
+- Section: Screens (spec line 189)
+- Text:
+
+> The browser and the API share `/dossiers/{domain}`.
+
+### R2.86  [pkg R2U1] [open]
+- Section: Screens (spec line 189)
+- Text:
+
+> Return the UI for `Accept: text/html`; API requests without that header receive JSON.
+
+### R2.87  [pkg R2U1] [open]
+- Section: Screens (spec line 189)
+- Text:
+
+> `/`, `/dossiers/{domain}/evidence` and `/contested` are browser routes; they read the API's dossier data.
+
+### R2.88  [pkg R2U1] [open]
+- Section: Screens (spec line 189)
+- Text:
+
+> The domain in a browser route is normalised as in §4.
+
+### R2.89  [pkg R2U1] [open]
+- Section: Screens (spec line 194)
+- Text:
+
+> The UI must expose the `data-testid` attributes listed below for integration testing.
+
+### R2.90  [pkg R2U1] [open]
+- Section: Screens (spec line 194)
+- Text:
+
+> Additional elements are permitted, and the visual implementation is the team's choice subject to the product-quality requirements below.
+
+### R2.91  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 200)
+- Text:
+
+> The browser experience must feel like a coherent, presentation-ready research product, not a thin wrapper of raw controls.
+
+### R2.92  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 200)
+- Text:
+
+> Aim for a calm, legible, evidence-first character: a reader opening a dossier should see at a glance which fields are known, which are unknown and which are contested, and where each value came from.
+
+### R2.93  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 205)
+- Text:
+
+> A field's value and its status must be the clearest information on the dossier screen, with its citations directly beside it.
+
+### R2.94  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 205)
+- Text:
+
+> Fields, citations, candidates and contested fields should be easy to scan, and status, provider, page kind and publication time should be understandable without interpreting raw API data.
+
+### R2.95  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 205)
+- Text:
+
+> Use a consistent visual system for typography, spacing, colour, controls and feedback.
+
+### R2.96  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 205)
+- Text:
+
+> Primary actions — research, refresh — must be easy to identify.
+
+### R2.97  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 205)
+- Text:
+
+> Known, unknown, contested, building, failed, loading, successful, refused and uncertain states must be visually distinct as well as satisfying the behavioural requirements below.
+
+### R2.98  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 205)
+- Text:
+
+> Format names, years, headcount ranges, money and timestamps for people first; expose technical identifiers only where they help the user.
+
+### R2.99  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 205)
+- Text:
+
+> Each citation shows its excerpt as quoted text and links to its URL.
+
+### R2.100  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 216)
+- Text:
+
+> The required flows must remain clear and usable at a 375 CSS-pixel viewport and at conventional desktop widths, without horizontal page scrolling.
+
+### R2.101  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 216)
+- Text:
+
+> Inputs need visible labels, keyboard focus must be apparent, and text and controls need sufficient contrast.
+
+### R2.102  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 216)
+- Text:
+
+> Provide considered empty, loading and error states, and keep navigation consistent across the required routes.
+
+### R2.103  [pkg R2U1] [open]
+- Section: Product and visual direction (spec line 216)
+- Text:
+
+> A custom illustration, brand asset or exact visual match to a reference is not required.
+
+### R2.104  [pkg R2U1] [open]
+- Section: Signup and login (spec line 226)
+- Text:
+
+> | `signup-email`, `signup-password`, `signup-display-name` | Inputs |
+
+### R2.105  [pkg R2U1] [open]
+- Section: Signup and login (spec line 227)
+- Text:
+
+> | `signup-submit` | Button |
+
+### R2.106  [pkg R2U1] [open]
+- Section: Signup and login (spec line 228)
+- Text:
+
+> | `login-email`, `login-password`, `login-submit` | Inputs and button |
+
+### R2.107  [pkg R2U1] [open]
+- Section: Signup and login (spec line 229)
+- Text:
+
+> | `auth-error` | Error message. Present only when there is one |
+
+### R2.108  [pkg R2U1] [open]
+- Section: Signup and login (spec line 230)
+- Text:
+
+> | `current-user` | Visible on every screen when signed in. Text contains the display name |
+
+### R2.109  [pkg R2U1] [open]
+- Section: Signup and login (spec line 231)
+- Text:
+
+> | `logout-button` | Button |
+
+### R2.110  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 237)
+- Text:
+
+> | `research-domain` | Input for the domain to research |
+
+### R2.111  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 238)
+- Text:
+
+> | `research-submit` | Button. Sends `POST /dossiers` |
+
+### R2.112  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 239)
+- Text:
+
+> | `research-error` | Error message, when the request is refused — including an invalid domain |
+
+### R2.113  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 240)
+- Text:
+
+> | `research-uncertain` | Shown when the outcome of a research request is unknown (below) |
+
+### R2.114  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 241)
+- Text:
+
+> | `dossier-search` | Input. Filters the list as `q` does on `GET /dossiers` |
+
+### R2.115  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 242)
+- Text:
+
+> | `dossier-list` | Container. Children ordered by domain ascending |
+
+### R2.116  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 243)
+- Text:
+
+> | `dossier-item-{domain}` | One per listed dossier. Carries `data-state="{state}"`. Text contains the domain, and the legal name when known. Links to `/dossiers/{domain}` |
+
+### R2.117  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 244)
+- Text:
+
+> | `empty-dossiers` | Shown instead of the list when no dossier matches |
+
+### R2.118  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 246)
+- Text:
+
+> A research request that succeeds, with 202 or 200, opens `/dossiers/{domain}` for the normalised domain.
+
+### R2.119  [pkg ALL] [open]
+- Section: Dossier list — `/` (spec line 246)
+- Text:
+
+> A domain that already has a dossier, including one created by another client after this browser read the list, opens that dossier and starts no build.
+
+### R2.120  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 254)
+- Text:
+
+> | `dossier-domain` | Text is exactly the normalised domain |
+
+### R2.121  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 255)
+- Text:
+
+> | `dossier-state` | Text is exactly `building`, `ready` or `failed` |
+
+### R2.122  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 256)
+- Text:
+
+> | `dossier-spent` | Formatted `spent_units`. Carries `data-units="{integer}"` |
+
+### R2.123  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 257)
+- Text:
+
+> | `dossier-researched-at` | Text contains `researched_at`, formatted. Absent when it is null |
+
+### R2.124  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 258)
+- Text:
+
+> | `field-{field}` | One per field, six in all, in the order of the table in `stage-1.md` §4. Carries `data-status="{status}"` |
+
+### R2.125  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 259)
+- Text:
+
+> | `field-value-{field}` | The formatted value. Carries `data-value` (below). Present only when the value is not null |
+
+### R2.126  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 260)
+- Text:
+
+> | `field-contested-{field}` | A marker. Present only when the field is `contested` |
+
+### R2.127  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 261)
+- Text:
+
+> | `field-citations-{field}` | Container of the field's citations, in API order |
+
+### R2.128  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 262)
+- Text:
+
+> | `citation-{field}-{n}` | The field's `n`th citation, counting from 1. Text contains the excerpt. Contains a link whose `href` is the citation's `url`. Carries `data-provider="{provider}"` |
+
+### R2.129  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 263)
+- Text:
+
+> | `dossier-evidence-link` | Link to `/dossiers/{domain}/evidence` |
+
+### R2.130  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 264)
+- Text:
+
+> | `dossier-refresh` | Button. Sends `POST /dossiers/{domain}/refresh` |
+
+### R2.131  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 265)
+- Text:
+
+> | `refresh-error` | Error message, when a refresh is refused |
+
+### R2.132  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 266)
+- Text:
+
+> | `refresh-uncertain` | Shown when the outcome of a refresh is unknown (below) |
+
+### R2.133  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 267)
+- Text:
+
+> | `dossier-reload` | Button. Reads the dossier again without starting a build |
+
+### R2.134  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 268)
+- Text:
+
+> | `dossier-not-found` | Shown instead of the fields when no dossier exists for the domain |
+
+### R2.135  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 270)
+- Text:
+
+> `data-value` is the API value as text: a string value unchanged, an integer in plain decimal digits.
+
+### R2.136  [pkg ALL] [open]
+- Section: Dossier — `/dossiers/{domain}` (spec line 273)
+- Text:
+
+> While the dossier's state is `building`, the screen reads the dossier again at least every 2 seconds until the state is `ready` or `failed`, and then shows the new fields without a manual reload.
+
+### R2.137  [pkg R2U2] [open]
+- Section: Evidence — `/dossiers/{domain}/evidence` (spec line 281)
+- Text:
+
+> | `evidence-{field}` | One container per field, six in all. Children in API `candidates` order |
+
+### R2.138  [pkg R2U2] [open]
+- Section: Evidence — `/dossiers/{domain}/evidence` (spec line 282)
+- Text:
+
+> | `candidate-{field}-{n}` | The field's `n`th candidate, counting from 1. Text contains the formatted value and the excerpt. Carries `data-value`, `data-provider`, `data-kind`, `data-url`, `data-published-at` (the RFC 3339 `published_at`, empty when null) and `data-selected="true"` or `"false"` |
+
+### R2.139  [pkg R2U2] [open]
+- Section: Evidence — `/dossiers/{domain}/evidence` (spec line 283)
+- Text:
+
+> | `evidence-empty-{field}` | Shown instead of candidates when the field has none |
+
+### R2.140  [pkg R2U2] [open]
+- Section: Contested fields — `/contested` (spec line 289)
+- Text:
+
+> | `contested-list` | Container. Children ordered by domain ascending, then by field in the order of the table in `stage-1.md` §4 |
+
+### R2.141  [pkg R2U2] [open]
+- Section: Contested fields — `/contested` (spec line 290)
+- Text:
+
+> | `contested-item-{domain}-{field}` | One per contested field of any dossier. Carries `data-value` for the selected value. Text contains the domain, the field and every distinct candidate value. Links to `/dossiers/{domain}/evidence` |
+
+### R2.142  [pkg R2U2] [open]
+- Section: Contested fields — `/contested` (spec line 291)
+- Text:
+
+> | `empty-contested` | Shown instead of the list when no field is contested |
+
+### R2.143  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 295)
+- Text:
+
+> After any successful action, the data on the same page must show the new state without a manual reload.
+
+### R2.144  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 295)
+- Text:
+
+> Navigation must wait for the write to succeed before it refreshes the data.
+
+### R2.145  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 295)
+- Text:
+
+> Any mechanism is fine, including a full navigation.
+
+### R2.146  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 295)
+- Text:
+
+> Apart from the reading while a dossier is `building`, there is no live-update requirement: another client may change state, but this browser need only read again after its own action, an explicit reload or a build it is waiting on.
+
+### R2.147  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 301)
+- Text:
+
+> - `dossier-reload` reads the dossier again. **Latest read wins:** a delayed earlier read must
+>   not overwrite a later one, including when responses arrive out of order. This applies to the
+>   reads while a dossier is `building` as well.
+
+### R2.148  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 304)
+- Text:
+
+> - Another client may refresh a dossier after this browser reads it. A refresh from this
+>   browser while that build runs is answered 202 like any other and the screen follows the
+>   running build to its end.
+
+### R2.149  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 307)
+- Text:
+
+> - If a research or refresh response is lost, including after the request commits, show
+>   `research-uncertain` or `refresh-uncertain` (nonempty text), not `research-error` or
+>   `refresh-error`. Keep the request retryable with the **same key and body**. A successful
+>   retry removes both the error and the uncertainty elements, shows the dossier, and starts at
+>   most one build. Unknown outcomes are not confirmed refusals.
+
+### R2.150  [pkg R2U1] [open]
+- Section: Refresh and competing clients (spec line 313)
+- Text:
+
+> No background polling beyond the reading while `building`, live synchronization, or recovery across page reloads is required.
+
+### R2.151  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> A stage-2 service must accept an export produced by the same team's stage-1 service.
+
+### R2.152  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> A browser signed in before that export/import upgrade must remain signed in afterwards.
+
+### R2.153  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> Imported dossiers appear in the list and on their screens.
+
+### R2.154  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> Each imported field gains one candidate for every value that text the providers served to the dossier's last stage-1 build that completed `ready` supports for that field (`stage-1.md` §4), once for each page whose served text supports it.
+
+### R2.155  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> The candidate's excerpt is taken from that text and supports the value; its `provider` is the provider that served that text, its `kind` and `published_at` are as the exported state records them or else null, and its `retrieved_at` is the dossier's `researched_at`.
+
+### R2.156  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> Each imported field's `value`, `status` and `citations` then follow from its candidates by the selection rule and Status, as after a build.
+
+### R2.157  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> A research or refresh request whose response was lost before export remains retryable after import with the same body and key; the UI must recover the original response and show the imported dossier.
+
+### R2.158  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> These requirements apply when import completes between browser requests; migration during an in-flight request is not required.
+
+### R2.159  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 318)
+- Text:
+
+> No page reload or new screen is required.
+
+### R2.160  [pkg R2S] [open]
+- Section: Existing clients after an upgrade (spec line 333)
+- Text:
+
+> The candidates of an imported dossier are replaced by those of its next completed build.
+
+
+## Status table (stage 2)
+
+| Pkg | Ledger scope | Status |
+|---|---|---|
+| R2R | all `[pkg R2R]` | open |
+| R2S | all `[pkg R2S]` | open |
+| R2U1 | all `[pkg R2U1]` | open |
+| R2U2 | all `[pkg R2U2]` | open |
+| ALL | process/global (R2.1–R2.3 etc.) | open |
+
+## In-flight list (stage 2)
+
+| Item | Holder | Latest report |
+|---|---|---|
+| stage-2 seed merge (lead 980ce6c) | @gatekeeper | requested |
+| R2S | @builder-a | assigned |
+| R2R | @builder-b | assigned |
+| PT2 | @prover | assigned |
+
+## Rejections (stage 2)
+(none yet)
