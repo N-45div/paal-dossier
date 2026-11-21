@@ -7,7 +7,7 @@ import os
 
 from aiohttp import web
 
-from app import auth, changes, control, dossiers, snapshot
+from app import auth, changes, control, dossiers, snapshot, values_api
 from app.clock import Clock
 from app.errors import ApiError, error_response, json_response
 from app.state import STORE, Store
@@ -59,6 +59,7 @@ def build_app(clock: Clock | None = None) -> web.Application:
     app.router.add_get("/dossiers/{domain}", dossiers.get_one)
     app.router.add_post("/dossiers/{domain}/refresh", dossiers.refresh)
     app.router.add_get("/dossiers/{domain}/history", changes.history)
+    app.router.add_get("/dossiers/{domain}/values", values_api.values)
     app.router.add_get("/changes", changes.changes)
     ui_routes.register(app)
     return app
