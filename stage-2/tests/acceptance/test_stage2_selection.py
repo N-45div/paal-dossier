@@ -135,3 +135,18 @@ def test_equal_authority_and_date_selects_smaller_url(env):
     assert fld["value"] == 2012, fld["value"]
     assert [c["selected"] for c in fld["candidates"]] == [True, False]
     _check_field_selection("founded_year", fld, d, TIE)
+
+
+TIE2 = "tie2-co.test"
+
+
+def test_equal_authority_date_and_url_selects_smaller_value(env):
+    # R2.60-R2.68 (value order after authority, recency, url, provider): one page gives two
+    # different founding years; the smaller value ranks first and is selected.
+    d = _build(env, TIE2)
+    fld = d["fields"]["founded_year"]
+    assert fld["status"] == "contested"
+    assert [c["value"] for c in fld["candidates"]] == [2010, 2012], fld["candidates"]
+    assert fld["value"] == 2010, fld["value"]
+    assert [c["selected"] for c in fld["candidates"]] == [True, False]
+    _check_field_selection("founded_year", fld, d, TIE2)
