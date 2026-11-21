@@ -1,13 +1,13 @@
-# Dossier service — run instructions (stage 2)
+# Dossier service — run instructions (stage 3)
 
-Everything the service needs is inside the image. Build and start it from the `stage-2/` folder:
+Everything the service needs is inside the image. Build and start it from the `stage-3/` folder:
 
 ```sh
-docker build -t dossier-stage2 .
-docker run --rm -p 8080:8080 -e PORT=8080 dossier-stage2
+docker build -t dossier-stage3 .
+docker run --rm -p 8080:8080 -e PORT=8080 dossier-stage3
 ```
 
-The image name `dossier-stage2` in these examples is a free choice: use any name, and use the
+The image name `dossier-stage3` in these examples is a free choice: use any name, and use the
 same name in the `docker run` line.
 
 Then check it:
@@ -27,7 +27,7 @@ docker run --rm -p 8080:8080 \
   -e NIMBLE_API_KEY=<key> \
   -e TAVILY_API_KEY=<key> \
   -e TAVILY_BASE_URL=<tavily endpoint> \
-  dossier-stage2
+  dossier-stage3
 ```
 
 Leave `NIMBLE_BASE_URL` unset to use the live Nimble endpoint, or set it to the provider
@@ -69,12 +69,15 @@ Fetch the result with `GET /dossiers/acme-robotics.test` (bearer token required)
 ## Ports and state
 
 - The service listens on `0.0.0.0:$PORT` (default `8080`).
-- All state is in memory and is lost when the container stops.
+- State is durable on the container filesystem, in `$DOSSIER_DATA_DIR` (default `/srv/dossier/data`,
+  file `state.json`). It survives a stop and a restart of the same container (`docker start`). It is
+  lost when the container is removed (`docker rm`) unless that path is mounted as a volume.
+- A build running at the moment of an abrupt stop is recorded as `failed` after the restart.
 - `POST /_test/reset` replaces all state with a fixture, `POST /_test/clock` moves the clock.
 
 ## Tests
 
-The unit tests run without Docker from the `stage-2/` folder, with `aiohttp` installed:
+The unit tests run without Docker from the `stage-3/` folder, with `aiohttp` installed:
 
 ```sh
 pip install "aiohttp>=3.9,<4"
