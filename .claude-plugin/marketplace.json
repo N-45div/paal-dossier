@@ -1,0 +1,11 @@
+{
+  "name": "paal",
+  "owner": { "name": "N Divij" },
+  "plugins": [
+    {
+      "name": "paal",
+      "source": "./",
+      "description": "Stand up a five-seat agent factory in Band Desktop."
+    }
+  ]
+}

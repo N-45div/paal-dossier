@@ -1,0 +1,8 @@
+{
+  "name": "paal",
+  "description": "Stand up a five-seat agent factory in Band Desktop: seats, mandates, worktree repository, room and dispatch.",
+  "version": "0.1.0",
+  "author": { "name": "N Divij" },
+  "homepage": "https://github.com/N-45div/Paal",
+  "license": "MIT"
+}
