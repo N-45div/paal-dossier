@@ -1,9 +1,9 @@
 #!/bin/sh
-# Build the stage-1 service image from the stage-1 folder and the mock web, start both on
+# Build the stage-2 service image from the stage-2 folder and the mock web, start both on
 # the Prover's port range (18200-18299), run the acceptance suite, then remove what this
 # script started. Heavy work runs under the band-wide lock /tmp/factory-heavy.lock.
 #
-# Usage: stage-1/tests/acceptance/run_suite.sh [pytest args...]
+# Usage: stage-2/tests/acceptance/run_suite.sh [pytest args...]
 #   MOCK_SRC   mock web build context (default: the read-only sample challenge folder)
 #   CORPUS     corpus set mounted into the mock (default: its sample set)
 #   SVC_PORT / MOCK_PORT  host ports (default 18210 / 18220)
@@ -20,11 +20,11 @@ CORPUS=${CORPUS:-$MOCK_SRC/corpus/sample}
 SVC_PORT=${SVC_PORT:-18210}
 MOCK_PORT=${MOCK_PORT:-18220}
 MOCK_ADMIN=${MOCK_ADMIN:-local-admin}
-NET=prover-stage1-net
-WEB=prover-stage1-web
-SVC=prover-stage1-svc
-WEB_IMG=prover-stage1-web
-SVC_IMG=prover-stage1-svc
+NET=prover-stage2-net
+WEB=prover-stage2-web
+SVC=prover-stage2-svc
+WEB_IMG=prover-stage2-web
+SVC_IMG=prover-stage2-svc
 PY=${PYTHON:-python3}
 
 # Merged corpus: the sample set (without its check file key.json and its traits) plus the
