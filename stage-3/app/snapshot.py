@@ -1,9 +1,9 @@
 """Export and import of the whole service state (spec §10, stage 2 Rul-S2-2).
 
-The exported `state` carries ``schema: "stage2"`` and each dossier's candidates. Import also
-accepts a stage-1 export, which has no schema marker and records only the selected fields
-with their citations; each verified citation becomes one imported candidate. Import validates
-the whole object before it replaces anything, so an invalid object changes nothing."""
+The exported `state` carries ``schema: "stage3"``: the whole state with build records, history,
+the change feed and its next seq (persist.state_json). Import accepts that as it is. Stage-2 and
+stage-1 exports are converted by app.imports (one ready build each, the feed starts empty). Import
+validates the whole object before it replaces anything, so an invalid object changes nothing."""
 
 from __future__ import annotations
 
@@ -13,71 +13,44 @@ from aiohttp import web
 
 from app.export_readers import _obj, _text
 from app.imports import import_stage1, import_stage2
-from app.candidates import Candidate
 from app.domain import normalise_domain
 from app.errors import json_response, validation_failed
 from app.idempotency import MAX_KEY_LENGTH
+from app.persist import state_from, state_json
 from app.state import STORE, Dossier, IdemRecord, State, Store, User
-from app.support import FIELDS
 from app.validation import read_json_object
 
 TRACK = "dossier"
 FORMAT_VERSION = 1
-SCHEMA = "stage2"
+STAGE2_SCHEMA = "stage2"
+STAGE3_SCHEMA = "stage3"
 
 
 def export_state(state: State) -> dict[str, Any]:
-    """A snapshot of the state as of this instant. A running build is not in it: a dossier
-    exports the outcome and candidates of its last completed build (§10)."""
-    return {
-        "schema": SCHEMA,
-        "users": [
-            {"id": user.id, "email": user.email, "display_name": user.display_name,
-             "password_hash": user.password_hash}
-            for user in state.users_by_id.values()
-        ],
-        "tokens": [{"token": token, "user_id": user_id}
-                   for token, user_id in state.tokens.items()],
-        "dossiers": [_export_dossier(dossier) for dossier in state.dossiers_by_domain.values()],
-        "idempotency": [
-            {"user_id": slot[0], "key": slot[1], "method": slot[2], "path": slot[3],
-             "canonical": record.canonical, "body": record.body}
-            for slot, record in state.idempotency.items()
-        ],
-    }
-
-
-def _export_candidate(candidate: Candidate) -> dict[str, Any]:
-    return {"value": candidate.value, "url": candidate.url, "excerpt": candidate.excerpt,
-            "provider": candidate.provider, "kind": candidate.kind,
-            "published_at": candidate.published_at}
-
-
-def _export_dossier(dossier: Dossier) -> dict[str, Any]:
-    return {
-        "id": dossier.id,
-        "domain": dossier.domain,
-        "state": dossier.last_outcome,
-        "researched_at": dossier.researched_at.isoformat() if dossier.researched_at else None,
-        "spent_units": dossier.spent_units,
-        "candidates": {
-            name: [_export_candidate(c) for c in dossier.candidates.get(name, [])]
-            for name in FIELDS
-        },
-    }
+    """The stage-3 export: the whole state, including build records, history, the change feed
+    and its next seq (§10, Upgrades). A running build is not in it."""
+    return {"schema": STAGE3_SCHEMA, **state_json(state)}
 
 
 def import_state(raw: Any) -> State:
-    """Build a State from an exported `state` object, or raise 422 with nothing changed."""
+    """Build a State from an exported `state` object, or raise 422 with nothing changed.
+
+    Stage-3 exports are loaded as they are. Stage-2 and stage-1 exports go through the
+    converters in app.imports, which never touch stage-3 records."""
     if not isinstance(raw, dict):
         raise validation_failed("state must be an object")
     schema = raw.get("schema")
-    if schema not in (None, SCHEMA):
+    if schema == STAGE3_SCHEMA:
+        try:
+            return state_from(raw)
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
+            raise validation_failed(f"stage-3 export is malformed: {exc}") from exc
+    if schema not in (None, STAGE2_SCHEMA):
         raise validation_failed("unknown export schema")
     state = State()
     _import_users(raw, state)
     _import_tokens(raw, state)
-    if schema == SCHEMA:
+    if schema == STAGE2_SCHEMA:
         _import_dossiers(raw, state, import_stage2)
     else:
         _import_dossiers(raw, state, import_stage1)
