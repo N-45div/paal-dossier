@@ -8,6 +8,7 @@ stage-1 export. ``published_at`` is an RFC 3339 string with an explicit offset, 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 KINDS: tuple[str, ...] = ("own", "filing", "news", "aggregator")
@@ -16,12 +17,19 @@ PROVIDERS: tuple[str, ...] = ("nimble", "tavily", "kernel", "browserbase")
 
 @dataclass(frozen=True)
 class Candidate:
+    """One candidate. Stage 3 (Rul-S3-1): ``title`` is set only for an `executives` candidate
+    (``value`` is then the person's name); ``true_from`` is copied from the candidate's page
+    version; ``learned_at`` is filled by the history fold, not by the research engine."""
+
     value: Any
     url: str
     excerpt: str
     provider: str
     kind: str | None = None
     published_at: str | None = None
+    title: str | None = None
+    true_from: date | None = None
+    learned_at: datetime | None = None
 
 
 def normalise_value(value: Any) -> Any:
