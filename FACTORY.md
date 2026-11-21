@@ -144,13 +144,28 @@ dispatch -> @lead reads the stage spec, writes the ledger (every "must" = one id
 
 **Shared memory (Cognee Cloud).** Every seat reaches one Cognee Cloud tenant over MCP
 (`setup/cognee.sh cloud`), dataset `paal-org-brain`. Before a run, that dataset holds the
-retrospectives of earlier runs; the Lead recalls them before planning each stage (run 6's
-Lead did so at its first step and got back the review rules that earlier runs learned the
-hard way). During a run, [`setup/memory-scribe.py`](setup/memory-scribe.py) copies every
-verdict, ruling, freeze and blocker from the room into the same dataset every 20 minutes,
-verbatim, so the next stage can recall what the last one decided even when no seat stored it.
-The scribe only reads the room and writes memory; it never posts and adds nothing a seat did
-not say. It matches the decision words the mandates use, never anything about the problem.
+retrospectives of earlier runs. During a run,
+[`setup/memory-scribe.py`](setup/memory-scribe.py) copies every verdict, ruling, freeze and
+blocker from the room into the same dataset every 20 minutes, verbatim, so the record does
+not depend on a seat remembering to store it. The scribe only reads the room and writes
+memory; it never posts and adds nothing a seat did not say. It matches the decision words the
+mandates use, never anything about the problem.
+
+What run 6 actually did with it:
+
+- **Seats:** two calls, both by the Lead. At its first step it recalled the lessons of runs
+  1 to 5 (the review rules that earlier runs learned the hard way). When stage 1 froze, it
+  stored that stage's retrospective. No other seat called memory, and the Lead did not
+  recall again in stages 2 to 4: the ledger, the git history and the room gave it what it
+  needed.
+- **Scribe:** 17 batches, 136 decisions stored, from the first verdict to the final report.
+- **After the run:** the dataset answers questions about the run. Asked which stage 4
+  handoffs were rejected and why, it returned both commits and the traceability gap that
+  caused each rejection. The next run's Lead starts from that record.
+
+The lesson: memory earns its place across runs, not within one. Inside a run the room and
+the ledger are faster and exact. A mandate that told every seat to recall before each
+package would cost turns and add little.
 
 **Live research (Nimble).** Seats never hold a live provider key: everything a seat runs is in
 the published room log, and checks run against the mock web. After each stage freezes,
