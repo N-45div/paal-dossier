@@ -1,0 +1,49 @@
+{
+ "domain": "recency-co.test",
+ "names": [
+  "Recency Co"
+ ],
+ "research": {
+  "nimble": {
+   "0": []
+  }
+ },
+ "pages": [
+  {
+   "url": "https://news-a.test/recency",
+   "kind": "news",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-01-01T00:00:00Z",
+   "true_from": "2026-01-01",
+   "title": "recency-co.test news 1",
+   "text": "Recency Co employs 120 people, a wire says.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "recency-co.test"
+   }
+  },
+  {
+   "url": "https://news-b.test/recency",
+   "kind": "news",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-01",
+   "title": "recency-co.test news 2",
+   "text": "Recency Co employs 1,200 people, a later wire says.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "recency-co.test"
+   }
+  }
+ ]
+}
