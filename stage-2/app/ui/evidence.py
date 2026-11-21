@@ -22,7 +22,7 @@ def evidence_body(domain: str) -> str:
   </header>
   <div class="fields" id="evidence-fields"></div>
   <div class="not-found" hidden>
-    <section class="panel"><h1>Dossier not found</h1>
+    <section class="panel"><h2>Dossier not found</h2>
       <p data-testid="dossier-not-found">No dossier exists for {safe}.</p>
       <p><a href="/">Back to dossiers</a></p></section>
   </div>

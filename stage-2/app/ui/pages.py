@@ -54,9 +54,11 @@ def domain_screen(request: web.Request, *, suffix: str, title: str, body_for, sc
     return html(page(title, body_for(domain), script=script))
 
 
-def dossier_not_found_body(raw: str) -> str:
+def dossier_not_found_body(raw: str, heading_level: int = 1) -> str:
+    """The not-found block. Inside a dossier screen its heading is a level below the domain h1."""
+    heading = f"h{heading_level}"
     return (
-        '<section class="panel"><h1>Dossier not found</h1>'
+        f'<section class="panel"><{heading}>Dossier not found</{heading}>'
         '<p data-testid="dossier-not-found">No dossier exists for '
         f"{escape(raw)}.</p>"
         '<p><a href="/">Back to dossiers</a></p></section>'
@@ -89,7 +91,7 @@ def dossier_body(domain: str) -> str:
   <p class="auth-needed" hidden id="dossier-auth">
     <a href="/login">Log in</a> to view this dossier.</p>
   <div class="fields" id="dossier-fields"></div>
-  <div class="not-found" hidden>{dossier_not_found_body(domain)}</div>
+  <div class="not-found" hidden>{dossier_not_found_body(domain, heading_level=2)}</div>
 </div>
 """
 
