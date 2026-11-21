@@ -99,3 +99,23 @@ class SeveralDomainsAndFieldsTest(unittest.TestCase):
             for field, entry in non_initial:
                 key = (field, entry.type, entry.value)
                 self.assertEqual(feed_times[key], entry.learned_at, (domain, key))
+
+
+class DisappearingValueTest(unittest.TestCase):
+    """A value that becomes null: the history and feed entries carry the build's time, and the
+    entry's value, true_from and citations are null or empty (R3.56, R3.62)."""
+
+    def test_history_and_feed_take_the_build_time_when_the_value_disappears(self):
+        records = [
+            ready(0, T1, {URL_A: (date(2026, 1, 10), {"hq_city": ["Lisbon"]})}),
+            ready(1, T2, {URL_A: (date(2026, 3, 20), {"hq_city": []})}),
+        ]
+        feed, hist = _replay(records)
+        gone = [e for e in hist["hq_city"] if e.value is None]
+        self.assertEqual(len(gone), 1)
+        entry = gone[0]
+        self.assertEqual((entry.type, entry.learned_at, entry.true_from, entry.citations),
+                         ("change", T2, None, ()))
+        self.assertEqual([(r.field, r.type, r.value, r.learned_at, r.true_from)
+                          for r in feed],
+                         [("hq_city", "change", None, T2, None)])
