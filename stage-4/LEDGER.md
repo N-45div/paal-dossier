@@ -3816,14 +3816,14 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 
 ## Requirements (spec stage-4.md; every quote is verbatim; status: open | built | tested | accepted)
 
-### R4.1  [pkg ALL] [open]
+### R4.1  [pkg ALL] [accepted]
 - Section: Introduction (spec line 3)
 - Text:
 
 > All requirements from stages 1–3 continue to apply, with the additions below. Numbered section
 > references such as §4, §8 and §9 refer to `stage-1.md`.
 
-### R4.2  [pkg ALL] [open]
+### R4.2  [pkg ALL] [accepted]
 - Section: Introduction (spec line 6)
 - Text:
 
@@ -3833,50 +3833,50 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > continues when provider calls fail. There are three idempotent write paths: stage 1's two
 > and `POST /batches`.
 
-### R4.3  [pkg ALL] [open]
+### R4.3  [pkg ALL] [accepted]
 - Section: Introduction (spec line 12)
 - Text:
 
 > The following applies to all operations, in addition to the earlier lists:
 
-### R4.4  [pkg ALL] [open]
+### R4.4  [pkg ALL] [accepted]
 - Section: Introduction (spec line 14)
 - Text:
 
 > 5. Spending never exceeds a budget that this specification or the caller sets.
 
-### R4.5  [pkg R4A] [open]
+### R4.5  [pkg R4A] [accepted]
 - Section: Lineage header lines (spec line 18)
 - Text:
 
 > Three header lines (§4, Pages) now carry requirements:
 
-### R4.6  [pkg R4A] [open]
+### R4.6  [pkg R4A] [accepted]
 - Section: Lineage header lines (spec line 22)
 - Text:
 
 > | `Registrant: <domain>` | The domain whose owner publishes the page |
 
-### R4.7  [pkg R4A] [open]
+### R4.7  [pkg R4A] [accepted]
 - Section: Lineage header lines (spec line 23)
 - Text:
 
 > | `Canonical: <URL>` | The page is a copy; the URL is the original |
 
-### R4.8  [pkg R4A] [open]
+### R4.8  [pkg R4A] [accepted]
 - Section: Lineage header lines (spec line 24)
 - Text:
 
 > | `First-Published-By: <domain>` | The page republishes material first published by that domain |
 
-### R4.9  [pkg R4A] [open]
+### R4.9  [pkg R4A] [accepted]
 - Section: Lineage header lines (spec line 26)
 - Text:
 
 > Domains in these lines, and the host of a `Canonical` URL, are normalised as in §4. A page
 > with no valid `Registrant` line has the host of its own URL, normalised, as its registrant.
 
-### R4.10  [pkg R4A] [open]
+### R4.10  [pkg R4A] [accepted]
 - Section: Own pages (spec line 31)
 - Text:
 
@@ -3884,7 +3884,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > Any other page that states `Kind: own` has kind `aggregator` for the selection rule in
 > `stage-2.md`, and its candidates report `"kind": "aggregator"`.
 
-### R4.11  [pkg R4A] [open]
+### R4.11  [pkg R4A] [accepted]
 - Section: Own pages (spec line 35)
 - Text:
 
@@ -3892,38 +3892,38 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > normalised, is a **lookalike**: a site presenting itself as a company it is not registered
 > to.
 
-### R4.12  [pkg R4A] [open]
+### R4.12  [pkg R4A] [accepted]
 - Section: Origins (spec line 41)
 - Text:
 
 > Every page has one **origin**, a domain, taken from the first of these that applies:
 
-### R4.13  [pkg R4A] [open]
+### R4.13  [pkg R4A] [accepted]
 - Section: Origins (spec line 43)
 - Text:
 
 > 1. Its `First-Published-By` domain.
 
-### R4.14  [pkg R4A] [open]
+### R4.14  [pkg R4A] [accepted]
 - Section: Origins (spec line 44)
 - Text:
 
 > 2. When its `Canonical` URL is not the page's own URL, the origin of the page at that URL
 >    (its **original**), by these same rules.
 
-### R4.15  [pkg R4A] [open]
+### R4.15  [pkg R4A] [accepted]
 - Section: Origins (spec line 46)
 - Text:
 
 > 3. The company's domain, when the page is a lookalike.
 
-### R4.16  [pkg R4A] [open]
+### R4.16  [pkg R4A] [accepted]
 - Section: Origins (spec line 47)
 - Text:
 
 > 4. Its registrant.
 
-### R4.17  [pkg R4A] [open]
+### R4.17  [pkg R4A] [accepted]
 - Section: Origins (spec line 49)
 - Text:
 
@@ -3932,19 +3932,19 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > fourth, or where no provider serves a page at the URL, the host of that URL takes the place
 > of the original's origin.
 
-### R4.18  [pkg R4A] [open]
+### R4.18  [pkg R4A] [accepted]
 - Section: Origins (spec line 54)
 - Text:
 
 > Pages with the same origin are one source, however many URLs, providers or kinds they have.
 
-### R4.19  [pkg R4A] [open]
+### R4.19  [pkg R4A] [accepted]
 - Section: Origins (spec line 56)
 - Text:
 
 > Candidates gain `origin`, the origin of their page. Each field gains three keys:
 
-### R4.20  [pkg R4A] [open]
+### R4.20  [pkg R4A] [accepted]
 - Section: Origins (spec line 58)
 - Text:
 
@@ -3955,20 +3955,20 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   "corroborated": true, "corroborated_since": "2026-03-01T09:00:00+00:00" }
 > ```
 
-### R4.21  [pkg R4A] [open]
+### R4.21  [pkg R4A] [accepted]
 - Section: Origins (spec line 65)
 - Text:
 
 > - `origins` lists the distinct origins of the candidates whose value is the selected value,
 >   sorted ascending. It is `[]` for an `unknown` field.
 
-### R4.22  [pkg R4A] [open]
+### R4.22  [pkg R4A] [accepted]
 - Section: Origins (spec line 67)
 - Text:
 
 > - `corroborated` is true when `origins` has two or more entries, otherwise false.
 
-### R4.23  [pkg R4A] [open]
+### R4.23  [pkg R4A] [accepted]
 - Section: Origins (spec line 68)
 - Text:
 
@@ -3981,14 +3981,14 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   gathered at the imported `researched_at`. When a stage-3 export is imported, the candidates
 >   of each of its builds count as gathered at that build's time.
 
-### R4.24  [pkg R4A] [open]
+### R4.24  [pkg R4A] [accepted]
 - Section: Origins (spec line 77)
 - Text:
 
 > Imported candidates whose export records no origin take the host of their URL, normalised,
 > as their origin.
 
-### R4.25  [pkg R4A] [open]
+### R4.25  [pkg R4A] [accepted]
 - Section: Origins (spec line 80)
 - Text:
 
@@ -3996,21 +3996,21 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > members. A member's candidates are those with its title and name (`executives`) or with its
 > name (`investors`).
 
-### R4.26  [pkg R4A] [open]
+### R4.26  [pkg R4A] [accepted]
 - Section: Origins (spec line 84)
 - Text:
 
 > - `origins` lists the distinct origins of the candidates of all members, sorted ascending.
 >   It is `[]` for an `unknown` field.
 
-### R4.27  [pkg R4A] [open]
+### R4.27  [pkg R4A] [accepted]
 - Section: Origins (spec line 86)
 - Text:
 
 > - `corroborated` is true when the candidates of every member have two or more distinct
 >   origins, and false otherwise, including for an `unknown` field.
 
-### R4.28  [pkg R4A] [open]
+### R4.28  [pkg R4A] [accepted]
 - Section: Origins (spec line 88)
 - Text:
 
@@ -4021,7 +4021,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   gathered, whether or not a later build gathered it again. Imported candidates count as
 >   above.
 
-### R4.29  [pkg R4B] [open]
+### R4.29  [pkg R4B] [accepted]
 - Section: Investors (spec line 97)
 - Text:
 
@@ -4029,7 +4029,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > dossier's fields hold it, after `executives`, and the feed entries one build adds are
 > numbered with `investors` last.
 
-### R4.30  [pkg R4B] [open]
+### R4.30  [pkg R4B] [accepted]
 - Section: Investors (spec line 101)
 - Text:
 
@@ -4046,21 +4046,21 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > investor name normalises to the text as the excerpt writes it. Rules 1 to 4 of A.2 apply;
 > in place of rule 5, an excerpt supports each investor name it contains.
 
-### R4.31  [pkg R4B] [open]
+### R4.31  [pkg R4B] [accepted]
 - Section: Investors (spec line 114)
 - Text:
 
 > The `value` of a candidate of `investors` is one investor name. A research claim is never a
 > candidate of `investors`.
 
-### R4.32  [pkg R4B] [open]
+### R4.32  [pkg R4B] [accepted]
 - Section: Investors (spec line 117)
 - Text:
 
 > An investor name is a **member** when, among the field's candidates, one with that name has
 > `kind` `own` or `filing`, or those with that name have two or more distinct origins.
 
-### R4.33  [pkg R4B] [open]
+### R4.33  [pkg R4B] [accepted]
 - Section: Investors (spec line 120)
 - Text:
 
@@ -4069,7 +4069,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > exactly when it has a member, and `unknown` otherwise, in place of the rules that make a
 > field `known` exactly when the evidence supports a value for it.
 
-### R4.34  [pkg R4B] [open]
+### R4.34  [pkg R4B] [accepted]
 - Section: Investors (spec line 125)
 - Text:
 
@@ -4082,27 +4082,27 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   "corroborated": true, "corroborated_since": "2026-03-01T09:00:00+00:00" }
 > ```
 
-### R4.35  [pkg R4B] [open]
+### R4.35  [pkg R4B] [accepted]
 - Section: Investors (spec line 134)
 - Text:
 
 > - `selected` is true on every candidate whose name is a member, and false on the others.
 
-### R4.36  [pkg R4B] [open]
+### R4.36  [pkg R4B] [accepted]
 - Section: Investors (spec line 135)
 - Text:
 
 > - `candidates` lists every candidate in the order the selection rule in `stage-2.md` ranks
 >   them.
 
-### R4.37  [pkg R4B] [open]
+### R4.37  [pkg R4B] [accepted]
 - Section: Investors (spec line 137)
 - Text:
 
 > - `citations` are, for each member in the order of the value, the `url`, `excerpt` and
 >   `provider` of every candidate with its name, in rank order.
 
-### R4.38  [pkg R4B] [open]
+### R4.38  [pkg R4B] [accepted]
 - Section: Investors (spec line 139)
 - Text:
 
@@ -4110,14 +4110,14 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   with its name, or null when all of them are null. The field's `true_from` is the latest of
 >   its members' `true_from`, or null when the value is null or any member's is null.
 
-### R4.39  [pkg R4B] [open]
+### R4.39  [pkg R4B] [accepted]
 - Section: Investors (spec line 142)
 - Text:
 
 > - `GET /dossiers/{domain}/values` decides membership from the candidates at `true_at` and
 >   gives the value, `true_from` and `citations` from them by these rules.
 
-### R4.40  [pkg R4B] [open]
+### R4.40  [pkg R4B] [tested]
 - Section: Investors (spec line 145)
 - Text:
 
@@ -4127,7 +4127,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > null and its `true_from` is on or before the earlier value's. The entry is `correction` when
 > every name in exactly one of the two values counts as a correction, and `change` otherwise.
 
-### R4.41  [pkg R4B] [open]
+### R4.41  [pkg R4B] [accepted]
 - Section: Investors (spec line 151)
 - Text:
 
@@ -4135,27 +4135,27 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > `data-testid` attributes of `stage-2.md`, and "no field is contested" on `/contested` means
 > none of the six fields of §4 is.
 
-### R4.42  [pkg R4C] [open]
+### R4.42  [pkg R4C] [accepted]
 - Section: Batches (spec line 157)
 - Text:
 
 > `POST /batches` starts builds, and so joins `POST /dossiers` and
 > `POST /dossiers/{domain}/refresh` as a request that makes provider calls (§8, Builds).
 
-### R4.43  [pkg R4C] [open]
+### R4.43  [pkg R4C] [accepted]
 - Section: Batches (spec line 160)
 - Text:
 
 > A batch researches several companies under one shared budget. A batch belongs to the user who
 > created it; another user's batch is 404 `not_found`.
 
-### R4.44  [pkg R4C] [open]
+### R4.44  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 165)
 - Text:
 
 > **An idempotent write path.** `Idempotency-Key` is required; see §7.
 
-### R4.45  [pkg R4C] [open]
+### R4.45  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 167)
 - Text:
 
@@ -4166,7 +4166,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > { "domains": ["acme-robotics.test", "brightgear.test"], "budget_units": 200 }
 > ```
 
-### R4.46  [pkg R4C] [open]
+### R4.46  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 174)
 - Text:
 
@@ -4177,31 +4177,31 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >                 { "domain": "brightgear.test", "state": "ready" } ] }
 > ```
 
-### R4.47  [pkg R4C] [open]
+### R4.47  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 183)
 - Text:
 
 > | `domains` missing, empty or longer than 50 entries | 422 `validation_failed` |
 
-### R4.48  [pkg R4C] [open]
+### R4.48  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 184)
 - Text:
 
 > | An entry of `domains` invalid after normalisation (§4) | 422 `validation_failed` |
 
-### R4.49  [pkg R4C] [open]
+### R4.49  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 185)
 - Text:
 
 > | Two entries of `domains` the same after normalisation | 422 `validation_failed` |
 
-### R4.50  [pkg R4C] [open]
+### R4.50  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 186)
 - Text:
 
 > | `budget_units` missing, not an integer, below 1 or above 100000 | 422 `validation_failed` |
 
-### R4.51  [pkg R4C] [open]
+### R4.51  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 188)
 - Text:
 
@@ -4209,20 +4209,20 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > string, `true` or `1.5` included. The row above takes precedence over the 400
 > `malformed_request` of §5 for a field of the wrong JSON type.
 
-### R4.52  [pkg R4C] [open]
+### R4.52  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 192)
 - Text:
 
 > - `dossiers` lists the normalised domains in the order given, each with its dossier's state.
 
-### R4.53  [pkg R4C] [open]
+### R4.53  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 193)
 - Text:
 
 > - A domain with no dossier gets one, and the batch runs its first build. A domain that
 >   already has a dossier is not researched by the batch and costs it nothing.
 
-### R4.54  [pkg R4C] [open]
+### R4.54  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 195)
 - Text:
 
@@ -4230,7 +4230,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   exceeds `budget_units`. Each build in a batch still spends at most 80 units, and its cost
 >   also counts in its dossier's `spent_units`.
 
-### R4.55  [pkg R4C] [open]
+### R4.55  [pkg R4C] [accepted]
 - Section: `POST /batches` (spec line 198)
 - Text:
 
@@ -4238,21 +4238,21 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   and its remaining builds complete with the pages and research claims they have obtained:
 >   each of their fields is `known` exactly when those support a value for it.
 
-### R4.56  [pkg R4C] [open]
+### R4.56  [pkg R4C] [accepted]
 - Section: `GET /batches/{id}` (spec line 204)
 - Text:
 
 > Returns the batch in the shape above. `state` is `running` while any of its builds runs, then
 > `done`. Unknown batch is 404 `not_found`.
 
-### R4.57  [pkg R4P] [open]
+### R4.57  [pkg R4P] [accepted]
 - Section: Provider failure (spec line 209)
 - Text:
 
 > A provider may answer a call with an error (any 5xx status, or 429). The build continues: it
 > may make the same request again, through that provider or another.
 
-### R4.58  [pkg R4P] [open]
+### R4.58  [pkg R4P] [accepted]
 - Section: Provider failure (spec line 212)
 - Text:
 
@@ -4260,7 +4260,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   completes `ready`, with every field `known` that the evidence (§4) reachable through the
 >   providers that answer supports.
 
-### R4.59  [pkg R4P] [open]
+### R4.59  [pkg R4P] [accepted]
 - Section: Provider failure (spec line 215)
 - Text:
 
@@ -4268,20 +4268,22 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   completes `ready`, with every field `known` that the evidence reachable by search and
 >   extract supports.
 
-### R4.60  [pkg R4P] [open]
+### R4.60  [pkg R4P] [accepted]
 - Section: Provider failure (spec line 218)
 - Text:
 
 > - A build in which every call to every provider fails completes `failed` (§8), within the
 >   time bound of §8.
 
-### R4.61  [pkg R4P] [open]
+- Measurements (builder-a-s4 80eb3a6): fake router, 1.0 s per call, real retry constants: all-fail worst 6.91 s, throttled-then-ok 5.56 s (builder-a). Real mock, all methods `error`: failed, spent 0, 4.55 s (prover, test_stage4_provider_failure.py). Bound 10 s met. Awaiting Gatekeeper acceptance.
+
+### R4.61  [pkg R4P] [accepted]
 - Section: Provider failure (spec line 220)
 - Text:
 
 > - A call a provider refuses with an error status costs nothing (§9).
 
-### R4.62  [pkg R4D] [open]
+### R4.62  [pkg R4D] [accepted]
 - Section: Restarts (spec line 224)
 - Text:
 
@@ -4289,7 +4291,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > builds are running at the stop, everything else is still answered as before the stop, and
 > each build that was running:
 
-### R4.63  [pkg R4D] [open]
+### R4.63  [pkg R4D] [accepted]
 - Section: Restarts (spec line 228)
 - Text:
 
@@ -4298,7 +4300,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   answers within one second. It may end `failed` although some of its calls succeeded; it
 >   then leaves the fields as they were (§8).
 
-### R4.64  [pkg R4D] [open]
+### R4.64  [pkg R4D] [accepted]
 - Section: Restarts (spec line 232)
 - Text:
 
@@ -4306,7 +4308,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   most 80 units (§9), and a batch's builds together never spend more than its
 >   `budget_units`.
 
-### R4.65  [pkg R4D] [open]
+### R4.65  [pkg R4D] [accepted]
 - Section: Restarts (spec line 235)
 - Text:
 
@@ -4314,14 +4316,14 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 >   dossier's `spent_units` and, for a batch's build, in the batch's `spent_units`. They may
 >   also count calls that were in flight at the stop and that no provider billed.
 
-### R4.66  [pkg R4D] [open]
+### R4.66  [pkg R4D] [accepted]
 - Section: Restarts (spec line 239)
 - Text:
 
 > After the restart, `POST /dossiers/{domain}/refresh` starts a new build of each such dossier
 > as it does for any other.
 
-### R4.67  [pkg R4U] [open]
+### R4.67  [pkg R4U] [accepted]
 - Section: Upgrades (spec line 244)
 - Text:
 
@@ -4332,7 +4334,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > with the keys this stage adds. Citations carried in the
 > imported state remain citations served to this service.
 
-### R4.68  [pkg R4U] [open]
+### R4.68  [pkg R4U] [accepted]
 - Section: Upgrades (spec line 251)
 - Text:
 
@@ -4347,12 +4349,12 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 | Pkg | Ledger scope | Status |
 |---|---|---|
 | R4S | seed | open |
-| R4A | all `[pkg R4A]` | open |
-| R4P | all `[pkg R4P]` | open |
-| R4D | all `[pkg R4D]` | open |
-| R4B | all `[pkg R4B]` | open |
-| R4C | all `[pkg R4C]` | open |
-| R4U | all `[pkg R4U]` | open |
+| R4A | all `[pkg R4A]` | accepted at main f62cb56 (R4.40 acceptance test pending) |
+| R4P | all `[pkg R4P]` | accepted at main f62cb56 (R4.40 acceptance test pending) |
+| R4D | all `[pkg R4D]` | accepted at main f62cb56 (R4.40 acceptance test pending) |
+| R4B | all `[pkg R4B]` | accepted at main f62cb56 (R4.40 acceptance test pending) |
+| R4C | all `[pkg R4C]` | accepted at main f62cb56 (R4.40 acceptance test pending) |
+| R4U | all `[pkg R4U]` | accepted at main f62cb56 (R4.40 acceptance test pending) |
 | ALL | process/global | open |
 
 ## In-flight list (stage 4)
@@ -4365,4 +4367,5 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 | PT4 | @prover | assigned |
 
 ## Rejections (stage 4)
-(none yet)
+- 80eb3a6 REJECTED by Gatekeeper (test traceability: ids R4.6-R4.9, R4.12-R4.16, R4.29-R4.41, R4.45, R4.58-R4.60 named by no test). Fixed by naming commits and new tests (R4.31, R4.41, R4.58, R4.60); accepted as cd2a44c, merged to main f62cb56.
+- 7d2985f REJECTED (same naming gap), superseded by cd2a44c.
