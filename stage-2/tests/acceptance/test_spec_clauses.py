@@ -143,7 +143,7 @@ def test_field_shape_has_exact_keys_and_six_fields(env):
     for name, fld in d["fields"].items():
         assert set(fld) >= {"value", "status", "citations"}, name  # stage 2 adds candidates
         if fld["value"] is not None:
-            assert fld["status"] == "known"
+            assert fld["status"] in ("known", "contested")  # stage 2: contested when values disagree
             for c in fld["citations"]:
                 assert set(c) == {"url", "excerpt", "provider"}, (name, c)
         else:

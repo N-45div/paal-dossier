@@ -180,8 +180,8 @@ def check_dossier_fields(dossier: dict, domain: str, calls: list[dict]):
             assert fld["citations"] == [], f"{name}: unknown field with citations"
             continue
         known += 1
-        assert fld["status"] == "known", name
-        assert fld["citations"], f"{name}: known field without a citation"
+        assert fld["status"] in ("known", "contested"), name  # stage 2 adds contested
+        assert fld["citations"], f"{name}: field without a citation"
         value = fld["value"]
         if name == "founded_year" or name == "funding_total":
             assert isinstance(value, int) and not isinstance(value, bool), (name, value)
