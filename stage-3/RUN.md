@@ -5,6 +5,13 @@ Everything the service needs is inside the image. Build and start it from the `s
 ```sh
 docker build -t dossier-stage3 .
 docker run --rm -p 8080:8080 -e PORT=8080 dossier-stage3
+
+To keep state across a stop, start a named container without `--rm` and restart it with `docker start`:
+
+```sh
+docker run -d --name dossier-stage3 -p 8080:8080 -e PORT=8080 dossier-stage3
+docker stop dossier-stage3 && docker start dossier-stage3
+```
 ```
 
 The image name `dossier-stage3` in these examples is a free choice: use any name, and use the
@@ -70,8 +77,8 @@ Fetch the result with `GET /dossiers/acme-robotics.test` (bearer token required)
 
 - The service listens on `0.0.0.0:$PORT` (default `8080`).
 - State is durable on the container filesystem, in `$DOSSIER_DATA_DIR` (default `/srv/dossier/data`,
-  file `state.json`). It survives a stop and a restart of the same container (`docker start`). It is
-  lost when the container is removed (`docker rm`) unless that path is mounted as a volume.
+  file `state.json`). It survives a stop and a restart of the same container (`docker start`). With `--rm` the
+  container is removed on stop, so its state is removed too; mount the path as a volume to keep it.
 - A build running at the moment of an abrupt stop is recorded as `failed` after the restart.
 - `POST /_test/reset` replaces all state with a fixture, `POST /_test/clock` moves the clock.
 
