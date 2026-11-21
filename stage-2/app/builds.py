@@ -7,8 +7,10 @@ import logging
 from datetime import datetime
 
 from app import research
-from app.research import BuildOutcome
+from app.candidates import dedupe
+from app.outcome import BuildOutcome, candidates_of
 from app.state import Dossier, Store
+from app.support import FIELDS
 
 log = logging.getLogger("dossier.builds")
 
@@ -67,5 +69,6 @@ def apply_outcome(dossier: Dossier, outcome: BuildOutcome, built_at: datetime,
     dossier.spent_units += outcome.spent_units - reported
     dossier.last_outcome = "ready" if outcome.ok else "failed"
     if outcome.ok:
-        dossier.fields = dict(outcome.fields)
+        gathered = candidates_of(outcome)
+        dossier.candidates = {name: dedupe(gathered[name]) for name in FIELDS}
         dossier.researched_at = built_at

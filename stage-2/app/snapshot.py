@@ -1,6 +1,8 @@
-"""Export and import of the whole service state (spec §10).
+"""Export and import of the whole service state (spec §10, stage 2 Rul-S2-2).
 
-The exported `state` is this module's own JSON format (format_version 1). Import validates
+The exported `state` carries ``schema: "stage2"`` and each dossier's candidates. Import also
+accepts a stage-1 export, which has no schema marker and records only the selected fields
+with their citations; each verified citation becomes one imported candidate. Import validates
 the whole object before it replaces anything, so an invalid object changes nothing."""
 
 from __future__ import annotations
@@ -9,22 +11,25 @@ from typing import Any
 
 from aiohttp import web
 
+from app.candidates import KINDS, PROVIDERS, Candidate, dedupe, from_citation
 from app.clock import parse_rfc3339
 from app.domain import normalise_domain
 from app.errors import json_response, validation_failed
 from app.idempotency import MAX_KEY_LENGTH
-from app.research import FIELD_NAMES, FieldResult
 from app.state import STORE, Dossier, IdemRecord, State, Store, User
+from app.support import FIELDS, supported_values
 from app.validation import read_json_object
 
 TRACK = "dossier"
 FORMAT_VERSION = 1
+SCHEMA = "stage2"
 
 
 def export_state(state: State) -> dict[str, Any]:
     """A snapshot of the state as of this instant. A running build is not in it: a dossier
-    exports the outcome and fields of its last completed build (§10)."""
+    exports the outcome and candidates of its last completed build (§10)."""
     return {
+        "schema": SCHEMA,
         "users": [
             {"id": user.id, "email": user.email, "display_name": user.display_name,
              "password_hash": user.password_hash}
@@ -41,6 +46,12 @@ def export_state(state: State) -> dict[str, Any]:
     }
 
 
+def _export_candidate(candidate: Candidate) -> dict[str, Any]:
+    return {"value": candidate.value, "url": candidate.url, "excerpt": candidate.excerpt,
+            "provider": candidate.provider, "kind": candidate.kind,
+            "published_at": candidate.published_at}
+
+
 def _export_dossier(dossier: Dossier) -> dict[str, Any]:
     return {
         "id": dossier.id,
@@ -48,10 +59,9 @@ def _export_dossier(dossier: Dossier) -> dict[str, Any]:
         "state": dossier.last_outcome,
         "researched_at": dossier.researched_at.isoformat() if dossier.researched_at else None,
         "spent_units": dossier.spent_units,
-        "fields": {
-            name: {"value": dossier.fields[name].value,
-                   "citations": list(dossier.fields[name].citations)}
-            for name in FIELD_NAMES
+        "candidates": {
+            name: [_export_candidate(c) for c in dossier.candidates.get(name, [])]
+            for name in FIELDS
         },
     }
 
@@ -60,10 +70,16 @@ def import_state(raw: Any) -> State:
     """Build a State from an exported `state` object, or raise 422 with nothing changed."""
     if not isinstance(raw, dict):
         raise validation_failed("state must be an object")
+    schema = raw.get("schema")
+    if schema not in (None, SCHEMA):
+        raise validation_failed("unknown export schema")
     state = State()
     _import_users(raw, state)
     _import_tokens(raw, state)
-    _import_dossiers(raw, state)
+    if schema == SCHEMA:
+        _import_dossiers(raw, state, _stage2_candidates)
+    else:
+        _import_dossiers(raw, state, _stage1_candidates)
     _import_idempotency(raw, state)
     return state
 
@@ -112,7 +128,7 @@ def _import_tokens(raw: dict[str, Any], state: State) -> None:
         state.tokens[token] = user_id
 
 
-def _import_dossiers(raw: dict[str, Any], state: State) -> None:
+def _import_dossiers(raw: dict[str, Any], state: State, candidates_of) -> None:
     ids: set[str] = set()
     for entry in _list(raw, "dossiers"):
         item = _obj(entry, "dossier")
@@ -129,33 +145,70 @@ def _import_dossiers(raw: dict[str, Any], state: State) -> None:
         if not isinstance(spent, int) or isinstance(spent, bool) or spent < 0:
             raise validation_failed("dossier spent_units must be a non-negative integer")
         researched = item.get("researched_at")
-        dossier = Dossier(
+        state.dossiers_by_domain[domain] = Dossier(
             id=dossier_id,
             domain=domain,
             last_outcome=outcome,
-            fields=_import_fields(item.get("fields")),
+            candidates={name: dedupe(found) for name, found in candidates_of(item, domain).items()},
             researched_at=parse_rfc3339(researched) if researched is not None else None,
             spent_units=spent,
         )
-        state.dossiers_by_domain[domain] = dossier
 
 
-def _import_fields(raw: Any) -> dict[str, FieldResult]:
-    fields_obj = _obj(raw, "dossier fields")
-    result: dict[str, FieldResult] = {}
-    for name in FIELD_NAMES:
-        item = _obj(fields_obj.get(name), f"field {name}")
-        value = item.get("value")
+def _stage2_candidates(item: dict[str, Any], domain: str) -> dict[str, list[Candidate]]:
+    """Candidates of a stage-2 export, validated field by field."""
+    raw = _obj(item.get("candidates"), "dossier candidates")
+    result: dict[str, list[Candidate]] = {}
+    for name in FIELDS:
+        entries = raw.get(name)
+        if not isinstance(entries, list):
+            raise validation_failed(f"candidates of {name} must be a list")
+        result[name] = [_stage2_candidate(_obj(e, "candidate")) for e in entries]
+    return result
+
+
+def _stage2_candidate(item: dict[str, Any]) -> Candidate:
+    value = item.get("value")
+    if isinstance(value, bool) or not isinstance(value, (int, str)) or value == "":
+        raise validation_failed("candidate value must be a non-empty string or an integer")
+    kind = item.get("kind")
+    if kind is not None and kind not in KINDS:
+        raise validation_failed("candidate kind is not a known page kind")
+    provider = _text(item, "provider", "candidate")
+    if provider not in PROVIDERS:
+        raise validation_failed("candidate provider is not known")
+    published = item.get("published_at")
+    if published is not None:
+        parse_rfc3339(_text(item, "published_at", "candidate"))
+    return Candidate(value=value, url=_text(item, "url", "candidate"),
+                     excerpt=_text(item, "excerpt", "candidate"), provider=provider,
+                     kind=kind, published_at=published)
+
+
+def _stage1_candidates(item: dict[str, Any], domain: str) -> dict[str, list[Candidate]]:
+    """Candidates of a stage-1 export (Rul-S2-2): one per verified citation of each field."""
+    fields = _obj(item.get("fields"), "dossier fields")
+    result: dict[str, list[Candidate]] = {}
+    for name in FIELDS:
+        entry = _obj(fields.get(name), f"field {name}")
+        value = entry.get("value")
         if value is not None and (isinstance(value, bool) or not isinstance(value, (str, int))):
             raise validation_failed(f"field {name} has an invalid value")
-        citations = item.get("citations")
+        citations = entry.get("citations")
         if not isinstance(citations, list):
             raise validation_failed(f"field {name} citations must be a list")
+        cands: list[Candidate] = []
         for citation in citations:
             cite = _obj(citation, "citation")
             for key in ("url", "excerpt", "provider"):
                 _text(cite, key, "citation")
-        result[name] = FieldResult(value=value, citations=list(citations))
+            if value is None:
+                continue
+            # A stage-1 citation was verified when it was written; keep it only while it
+            # still supports the field's value under Appendix A.
+            if supported_values(domain, cite["excerpt"]).get(name) == value:
+                cands.append(from_citation(value, cite))
+        result[name] = cands
     return result
 
 
@@ -198,4 +251,3 @@ async def import_(request: web.Request) -> web.Response:
     new_state = import_state(body["state"])
     store.replace(new_state)  # all-or-nothing: nothing above touched the current state
     return web.Response(status=204)
-

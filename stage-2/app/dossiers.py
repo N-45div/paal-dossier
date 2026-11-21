@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import secrets
+from datetime import datetime
 
 from aiohttp import web
 
@@ -12,7 +13,10 @@ from app.builds import start_build
 from app.domain import normalise_domain
 from app.errors import ApiError, json_response, not_found, validation_failed
 from app.idempotency import check_key_length, read_key, run_idempotent
-from app.research import FIELD_NAMES, FieldResult
+from app.negotiation import HTML_RENDERER, wants_html
+from app.candidates import Candidate, normalise_value
+from app.selection import Decision
+from app.support import FIELDS as FIELD_NAMES
 from app.state import STORE, Dossier, Store
 from app.validation import read_json_object, required_string
 
@@ -32,21 +36,39 @@ def summary(dossier: Dossier) -> dict:
     return {"dossier_id": dossier.id, "domain": dossier.domain, "state": dossier.live_state}
 
 
-def field_json(result: FieldResult) -> dict:
-    known = result.value is not None
+def candidate_json(candidate: Candidate, selected: bool, retrieved_at: datetime | None) -> dict:
     return {
-        "value": result.value,
-        "status": "known" if known else "unknown",
-        "citations": list(result.citations) if known else [],
+        "value": normalise_value(candidate.value),
+        "url": candidate.url,
+        "excerpt": candidate.excerpt,
+        "provider": candidate.provider,
+        "kind": candidate.kind,
+        "published_at": candidate.published_at,
+        "retrieved_at": retrieved_at.isoformat() if retrieved_at else None,
+        "selected": selected,
+    }
+
+
+def field_json(decision: Decision, retrieved_at: datetime | None) -> dict:
+    return {
+        "value": decision.value,
+        "status": decision.status,
+        "citations": decision.citations,
+        "candidates": [
+            candidate_json(candidate, index == 0, retrieved_at)
+            for index, candidate in enumerate(decision.ranked)
+        ],
     }
 
 
 def details(dossier: Dossier) -> dict:
+    decisions = dossier.decisions
     return {
         **summary(dossier),
         "researched_at": dossier.researched_at.isoformat() if dossier.researched_at else None,
         "spent_units": dossier.spent_units,
-        "fields": {name: field_json(dossier.fields[name]) for name in FIELD_NAMES},
+        "fields": {name: field_json(decisions[name], dossier.researched_at)
+                   for name in FIELD_NAMES},
     }
 
 
@@ -100,6 +122,9 @@ async def refresh(request: web.Request) -> web.Response:
 
 
 async def get_one(request: web.Request) -> web.Response:
+    renderer = request.app.get(HTML_RENDERER)
+    if renderer is not None and wants_html(request):
+        return await renderer(request)  # the browser shell; it authenticates in the page
     store = _store(request)
     authenticate(request, store)
     dossier = store.state.dossiers_by_domain.get(valid_domain(request.match_info["domain"]))
@@ -129,14 +154,14 @@ async def list_all(request: web.Request) -> web.Response:
 
 
 def _legal_name(dossier: Dossier) -> str:
-    value = dossier.fields["legal_name"].value
+    value = dossier.decisions["legal_name"].value
     return value if isinstance(value, str) else ""
 
 
 def _list_item(dossier: Dossier) -> dict:
     return {
         **summary(dossier),
-        "legal_name": dossier.fields["legal_name"].value,
+        "legal_name": dossier.decisions["legal_name"].value,
         "researched_at": dossier.researched_at.isoformat() if dossier.researched_at else None,
         "spent_units": dossier.spent_units,
     }

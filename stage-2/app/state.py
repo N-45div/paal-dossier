@@ -11,7 +11,8 @@ from datetime import datetime
 from aiohttp import web
 
 from app.clock import Clock
-from app.research import FieldResult, unknown_fields
+from app.candidates import Candidate
+from app.selection import Decision, decide
 
 
 @dataclass
@@ -31,13 +32,18 @@ class Dossier:
     domain: str
     building: bool = False
     last_outcome: str = "failed"
-    fields: dict[str, FieldResult] = field(default_factory=unknown_fields)
+    # Candidates of the last build that completed ready (stage 2); the decisions follow.
+    candidates: dict[str, list[Candidate]] = field(default_factory=dict)
     researched_at: datetime | None = None
     spent_units: int = 0
 
     @property
     def live_state(self) -> str:
         return "building" if self.building else self.last_outcome
+
+    @property
+    def decisions(self) -> dict[str, Decision]:
+        return decide(self.candidates)
 
 
 @dataclass
