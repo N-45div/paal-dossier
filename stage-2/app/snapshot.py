@@ -11,7 +11,7 @@ from typing import Any
 
 from aiohttp import web
 
-from app.candidates import KINDS, PROVIDERS, Candidate, from_citation
+from app.candidates import KINDS, PROVIDERS, Candidate, dedupe, from_citation
 from app.clock import parse_rfc3339
 from app.domain import normalise_domain
 from app.errors import json_response, validation_failed
@@ -149,7 +149,7 @@ def _import_dossiers(raw: dict[str, Any], state: State, candidates_of) -> None:
             id=dossier_id,
             domain=domain,
             last_outcome=outcome,
-            candidates=candidates_of(item, domain),
+            candidates={name: dedupe(found) for name, found in candidates_of(item, domain).items()},
             researched_at=parse_rfc3339(researched) if researched is not None else None,
             spent_units=spent,
         )

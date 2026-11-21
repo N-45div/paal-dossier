@@ -12,9 +12,19 @@ class CandidateTest(unittest.TestCase):
         second = Candidate("Dana Ruiz", "https://a.test/x", "Dana Ruiz leads.", "nimble", "own")
         self.assertEqual(dedupe([first, second]), [first])
 
-    def test_different_provider_is_a_different_candidate(self):
+    def test_one_candidate_per_value_per_page_rul_s2_8(self):
         a = Candidate("Dana Ruiz", "https://a.test/x", "Dana Ruiz leads.", "nimble")
-        b = Candidate("Dana Ruiz", "https://a.test/x", "Dana Ruiz leads.", "tavily")
+        b = Candidate("Dana Ruiz", "https://a.test/x", "Dana Ruiz is CEO.", "tavily")
+        self.assertEqual(dedupe([a, b]), [a])
+
+    def test_two_values_on_one_page_are_two_candidates(self):
+        a = Candidate("Dana Ruiz", "https://a.test/x", "Dana Ruiz leads.", "nimble")
+        b = Candidate("Sam Ortiz", "https://a.test/x", "Sam Ortiz was CEO.", "nimble")
+        self.assertEqual(dedupe([a, b]), [a, b])
+
+    def test_same_value_on_two_pages_is_two_candidates(self):
+        a = Candidate("Dana Ruiz", "https://a.test/x", "Dana Ruiz leads.", "nimble")
+        b = Candidate("Dana Ruiz", "https://a.test/y", "Dana Ruiz leads.", "nimble")
         self.assertEqual(len(dedupe([a, b])), 2)
 
     def test_stage1_outcome_yields_one_candidate_per_citation(self):

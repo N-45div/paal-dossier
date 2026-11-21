@@ -29,14 +29,15 @@ def normalise_value(value: Any) -> Any:
     return value.strip() if isinstance(value, str) else value
 
 
-def identity(candidate: Candidate) -> tuple[Any, str, str, str]:
-    """Two candidates are the same when value, url, excerpt and provider agree."""
-    return (normalise_value(candidate.value), candidate.url, candidate.excerpt, candidate.provider)
+def identity(candidate: Candidate) -> tuple[Any, str]:
+    """Rul-S2-8: a candidate is identified by its value and its page (url). A page gives at
+    most one candidate per value; the excerpt and provider of the first one are kept."""
+    return (normalise_value(candidate.value), candidate.url)
 
 
 def dedupe(candidates: list[Candidate]) -> list[Candidate]:
-    """Keep the first of each identical candidate, in the given order."""
-    seen: set[tuple[Any, str, str, str]] = set()
+    """Keep the first candidate of each (value, url), in the given order."""
+    seen: set[tuple[Any, str]] = set()
     unique: list[Candidate] = []
     for candidate in candidates:
         key = identity(candidate)

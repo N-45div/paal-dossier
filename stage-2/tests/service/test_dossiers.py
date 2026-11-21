@@ -314,6 +314,8 @@ class DossierTest(unittest.IsolatedAsyncioTestCase):
         resp = await self.client.get("/dossiers/acme-robotics.test", headers=self.headers(None))
         dossier = await resp.json()
         self.assertEqual(dossier["dossier_id"], "d_old")
+        # Rul-S2-8: two citations of one page with one value give one candidate
+        self.assertEqual(len(dossier["fields"]["founded_year"]["candidates"]), 1)
         legal_field = dossier["fields"]["legal_name"]
         self.assertEqual((legal_field["value"], legal_field["status"]),
                          ("Acme Robotics, Inc.", "known"))
