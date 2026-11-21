@@ -1,0 +1,38 @@
+{
+ "domain": "eff-co.test",
+ "names": [
+  "Eff Co"
+ ],
+ "pages": [
+  {
+   "url": "https://eff-co.test/about",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-03-20T00:00:00Z",
+   "true_from": "2026-02-01",
+   "title": "eff-co.test about",
+   "text": "Eff Co is a company building sensors for farms. Dana Ruiz is the chief executive of Eff Co.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "eff-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": [
+    {
+     "field": "ceo",
+     "value": "Dana Ruiz",
+     "url": "https://eff-co.test/about",
+     "excerpt": "Dana Ruiz is the chief executive of Eff Co."
+    }
+   ]
+  }
+ }
+}
