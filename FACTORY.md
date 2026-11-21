@@ -175,6 +175,34 @@ Results stay outside the result repository, so the band never sees them; after t
 stage, the `runway.com` result of the highest completed stage is committed as
 `dossier-runway.com.json`.
 
+**What the live web taught us (stage 4, 15 real companies).** The frozen stage 4 build was
+run live against 15 companies and scored on three public, stable facts.
+
+| Fact | Right |
+|---|---|
+| CEO | 11 of 15 |
+| HQ city | 8 of 15 |
+| Founding year | 10 of 15 |
+
+- **Fields filled:** 83 of 120.
+- **Time and spend:** each dossier took 58 to 150 seconds and 52 to 59 spend units.
+- **Every build finished `ready`,** even though Nimble's extract endpoint returned HTTP 500
+  errors during the runs.
+- **The status the service gives each value is reliable.** Values marked `known` were right
+  13 times out of 14; values marked `contested` were right 16 times out of 26.
+
+None of the mistakes appears in the mock corpus, and each follows a pattern:
+
+- **Headlines that put a famous name beside the company.** Vercel's CEO came out as a head
+  of state pictured with him; Shopify's as a short seller named in an article.
+- **Other dates read as the founding year:** a subsidiary's incorporation, an acquisition,
+  the CEO's birth year.
+- **Regional offices read as the headquarters:** Figma London, Shopify Toronto.
+- **Team-page layout:** Linear's CEO came out as the name printed next to the real CEO's
+  label. This was the one wrong value marked `known`.
+
+These findings are stored in `paal-org-brain`, so the next run's Lead starts from them.
+
 ## Standing it up
 
 See [`SETUP.md`](SETUP.md) (machine, Band Desktop settings, seats, shared memory) and
