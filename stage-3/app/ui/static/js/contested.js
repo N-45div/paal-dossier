@@ -3,7 +3,7 @@
 import { call, errorMessage, NetworkError } from "/static/js/api.js";
 import { clearSession } from "/static/js/session.js";
 import { createLatestReads } from "/static/js/latest.js";
-import { FIELD_LABELS, formatValue } from "/static/js/format.js";
+import { FIELD_LABELS, formatValue, sixFields } from "/static/js/format.js";
 
 const statusLine = document.getElementById("contested-status");
 const list = document.getElementById("contested-list");
@@ -25,7 +25,7 @@ async function allDossiers() {
 
 function contestedItems(dossier) {
   const items = [];
-  for (const [name, field] of Object.entries(dossier.fields)) {
+  for (const [name, field] of sixFields(dossier.fields)) {
     if (field.status !== "contested" || field.value === null) continue;
     const values = [...new Set(field.candidates.map((candidate) => formatValue(name, candidate.value)))];
     items.push({ domain: dossier.domain, name, field, values });
