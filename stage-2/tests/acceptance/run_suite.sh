@@ -14,7 +14,7 @@ if [ -z "${PROVER_LOCKED:-}" ]; then
 fi
 
 HERE=$(cd "$(dirname "$0")" && pwd)
-STAGE=$(cd "$HERE/../.." && pwd)
+STAGE=${STAGE_SRC:-$(cd "$HERE/../.." && pwd)}
 MOCK_SRC=${MOCK_SRC:-/home/ndivij/buildathon/sf-buildathon-2026/challenges/dossier/web}
 CORPUS=${CORPUS:-$MOCK_SRC/corpus/sample}
 SVC_PORT=${SVC_PORT:-18210}
