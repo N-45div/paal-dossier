@@ -52,7 +52,9 @@ async def _run():
                 break
             await page.wait_for_timeout(500)
 
-        # now the stale read: the first read after this point is delayed and says `building`
+        # The page-load read is the stale one: it is delayed 3 s and says `building`. While it
+        # is in flight the user presses Reload, so a later read is issued and answered at once
+        # with the service's current state (ready). The stale answer arrives last.
         seen = {"n": 0}
 
         async def handler(route):
@@ -71,20 +73,25 @@ async def _run():
 
         await page.route("**/dossiers/*", handler)
         await page.goto(f"{BASE_URL}/dossiers/{SAMPLE}")
-        # the later read answers `ready`; wait past the delayed earlier read's arrival
-        await page.wait_for_timeout(5500)
-        state = await page.get_by_test_id("dossier-state").inner_text()
+        await page.wait_for_timeout(300)
+        await page.get_by_test_id("dossier-reload").click()
+        await page.wait_for_timeout(800)
+        before = (await page.get_by_test_id("dossier-state").inner_text()).strip()
+        # the stale `building` answer lands at about 3 s; check just after it, before any poll
+        await page.wait_for_timeout(2500)
+        state = (await page.get_by_test_id("dossier-state").inner_text()).strip()
         await page.unroute("**/dossiers/*")
         await ctx.close()
         await browser.close()
-        return seen["n"], state.strip(), errors
+        return seen["n"], before, state, errors
 
 
 def test_latest_read_wins_over_a_delayed_earlier_read(tmp_path):
     # R2.136
     if not os.path.exists(CHROME):
         pytest.skip(f"no Chromium at {CHROME}")
-    reads, state, errors = asyncio.run(_run())
+    reads, before, state, errors = asyncio.run(_run())
     assert reads >= 2, f"the screen made only {reads} read(s); the test did not reorder reads"
+    assert before in ("ready", "failed"), f"later read not applied: {before!r}"
     assert state in ("ready", "failed"), f"stale read overwrote the later state: {state!r}"
     assert not errors, errors
