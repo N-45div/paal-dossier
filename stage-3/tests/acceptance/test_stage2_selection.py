@@ -36,6 +36,17 @@ def _check_executives(fld, dossier):
     for c in cands:
         assert set(c) >= CAND_KEYS | {"title"}, set(c)
         assert c["title"] in EXEC_TITLES, c["title"]
+    # R3.21, checked against the independent rank oracle, not the service's own flags: within each
+    # title, the top-ranked candidate is selected and no other candidate of that title is.
+    for t in EXEC_TITLES:
+        group = [c for c in cands if c["title"] == t]
+        if not group:
+            continue
+        keys = [rank_key(c) for c in group]
+        assert len(set(keys)) == len(keys), ("tied candidates for title", t)
+        top = min(group, key=rank_key)
+        for c in group:
+            assert c["selected"] is (c is top), (t, c["value"], c["selected"], "expected", top["value"])
     selected = [c for c in cands if c["selected"]]
     titles = [c["title"] for c in selected]
     assert len(titles) == len(set(titles)), titles
