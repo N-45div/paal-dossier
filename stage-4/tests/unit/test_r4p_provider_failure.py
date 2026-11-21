@@ -44,6 +44,7 @@ class ServerErrorRouter:
 @pytest.fixture(autouse=True)
 def fast(monkeypatch):
     monkeypatch.setattr(research, "RETRY_DELAY_S", 0)
+    monkeypatch.setattr(gateway, "SERVER_ERROR_WAIT_S", 0)
     monkeypatch.setenv("NIMBLE_API_KEY", "test-key")
 
 
