@@ -23,6 +23,7 @@ MOCK_ADMIN=${MOCK_ADMIN:-local-admin}
 NET=prover-stage3-net
 WEB=prover-stage3-web
 SVC=prover-stage3-svc
+export SVC_CONTAINER="$SVC"
 WEB_IMG=prover-stage3-web
 SVC_IMG=prover-stage3-svc
 PY=${PYTHON:-python3}
