@@ -9,7 +9,7 @@ while the selected value stays the same."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
@@ -175,30 +175,36 @@ def classify(previous: Selected | None, new: Selected) -> str:
 
 
 def build_entries(previous: dict[str, Selected] | None,
-                  current: dict[str, Selected], first: bool) -> list[Entry]:
+                  current: dict[str, Selected], first: bool, *, built_at: datetime) -> list[Entry]:
     """The entries one ready build adds, in FIELDS order. `first` marks the dossier's first ready
-    build: each field with a value there gets an `initial` entry and no feed entry."""
+    build: each field with a value there gets an `initial` entry and no feed entry. `built_at` is
+    the time of this build."""
     entries = []
     for name in SEVEN:
         new = current[name]
         before = previous.get(name) if previous is not None else None
         if first:
             if new.value is not None:
-                entries.append(_entry(name, "initial", None, new))
+                entries.append(_entry(name, "initial", None, new, built_at))
             continue
         if not differs(before, new):
             continue
         kind = classify(before, new)
-        entries.append(_entry(name, kind, before.value if before is not None else None, new))
+        entries.append(_entry(name, kind, before.value if before is not None else None, new,
+                              built_at))
     return entries
 
 
-def _entry(name: str, kind: str, previous: Any, new: Selected) -> Entry:
+def _entry(name: str, kind: str, previous: Any, new: Selected, built_at: datetime) -> Entry:
+    """A history or feed entry. `learned_at` is the selected value's own time when the value is
+    not null; a null value (the field disappeared) takes the build's time, since the build is what
+    made it null (ruling on R3.56, R3.62)."""
+    has_value = new.value is not None
     return Entry(
         field=name, type=kind, previous=previous, value=new.value,
-        true_from=new.true_from if new.value is not None else None,
-        learned_at=new.learned_at if new.value is not None else None,
-        citations=new.citations if new.value is not None else (),
+        true_from=new.true_from if has_value else None,
+        learned_at=new.learned_at if has_value else built_at,
+        citations=new.citations if has_value else (),
     )
 
 
@@ -206,8 +212,9 @@ def history(records: list[BuildRecord]) -> dict[str, list[Entry]]:
     """Every field's history, oldest first: the entries of every ready build in order."""
     result: dict[str, list[Entry]] = {name: [] for name in SEVEN}
     previous: dict[str, Selected] | None = None
-    for _, current in views(records):
-        for entry in build_entries(previous, current, first=previous is None):
+    for record, current in views(records):
+        for entry in build_entries(previous, current, first=previous is None,
+                                   built_at=record.time):
             result[entry.field].append(entry)
         previous = current
     return result
@@ -215,11 +222,10 @@ def history(records: list[BuildRecord]) -> dict[str, list[Entry]]:
 
 def feed_entries(previous: dict[str, Selected] | None, current: dict[str, Selected],
                  first: bool, *, built_at: datetime) -> list[Entry]:
-    """The change-feed entries a build adds: its `change` and `correction` entries. Each one's
-    `learned_at` is the time of the build that added it (GET /changes), whatever the selected
-    value's own learned time is, including when the value disappears."""
-    return [replace(entry, learned_at=built_at)
-            for entry in build_entries(previous, current, first)
+    """The change-feed entries a build adds: its `change` and `correction` entries. Their
+    `learned_at` is the time of the build that added them (GET /changes, R3.62), the same as the
+    history entry of the same change (see `_entry`)."""
+    return [entry for entry in build_entries(previous, current, first, built_at=built_at)
             if entry.type != "initial"]
 
 
