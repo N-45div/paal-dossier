@@ -9,7 +9,7 @@ while the selected value stays the same."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from typing import Any
 
@@ -214,9 +214,12 @@ def history(records: list[BuildRecord]) -> dict[str, list[Entry]]:
 
 
 def feed_entries(previous: dict[str, Selected] | None, current: dict[str, Selected],
-                 first: bool) -> list[Entry]:
-    """The change-feed entries a build adds: its `change` and `correction` entries."""
-    return [entry for entry in build_entries(previous, current, first)
+                 first: bool, *, built_at: datetime) -> list[Entry]:
+    """The change-feed entries a build adds: its `change` and `correction` entries. Each one's
+    `learned_at` is the time of the build that added it (GET /changes), whatever the selected
+    value's own learned time is, including when the value disappears."""
+    return [replace(entry, learned_at=built_at)
+            for entry in build_entries(previous, current, first)
             if entry.type != "initial"]
 
 

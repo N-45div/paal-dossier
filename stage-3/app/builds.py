@@ -86,7 +86,7 @@ def apply_outcome(state: State, dossier: Dossier, outcome: BuildOutcome, built_a
     if outcome.ok:
         current = dossier.current_view()
         entries = feed_entries(previous[1] if previous else None, current[1],
-                               first=previous is None)
+                               first=previous is None, built_at=built_at)
         state.next_seq = append_build(state.feed, state.next_seq, dossier.domain, entries)
 
 
