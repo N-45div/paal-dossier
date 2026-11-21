@@ -4117,7 +4117,7 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 > - `GET /dossiers/{domain}/values` decides membership from the candidates at `true_at` and
 >   gives the value, `true_from` and `citations` from them by these rules.
 
-### R4.40  [pkg R4B] [tested]
+### R4.40  [pkg R4B] [accepted]
 - Section: Investors (spec line 145)
 - Text:
 
@@ -4369,3 +4369,6 @@ Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53. Copied here as 
 ## Rejections (stage 4)
 - 80eb3a6 REJECTED by Gatekeeper (test traceability: ids R4.6-R4.9, R4.12-R4.16, R4.29-R4.41, R4.45, R4.58-R4.60 named by no test). Fixed by naming commits and new tests (R4.31, R4.41, R4.58, R4.60); accepted as cd2a44c, merged to main f62cb56.
 - 7d2985f REJECTED (same naming gap), superseded by cd2a44c.
+
+## Frozen revision (stage 4)
+Frozen at main 49333169f50c813bc7d65ee190ded6a5539fcc07 (Gatekeeper final accept: acceptance 271 passed 0 failed, unit and service 519, UI 2, restart check 18/18, event harness isolated mode stages 1-4 pass, frozen folders clean). R4.40 acceptance test (prover-s3 8f6abc2) merged; its status is accepted. Stage 4 is the last stage of the track; no later folder.
