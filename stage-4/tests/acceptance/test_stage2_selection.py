@@ -128,6 +128,11 @@ def test_status_known_when_all_candidates_agree_and_unknown_without_any(env):
     # R2.69-R2.74
     d = _build(env, "brightwater-labs.test")
     for name, fld in d["fields"].items():
+        if name == "investors":
+            # R4.33: investors is known exactly when it has a member (its value is the array of member
+            # names, one candidate per name), and unknown otherwise; distinct names are not a contest.
+            assert fld["status"] == ("known" if fld["value"] is not None else "unknown"), (name, fld)
+            continue
         if fld["candidates"]:
             values = {json.dumps(c["value"]) for c in fld["candidates"]}
             assert fld["status"] == ("known" if len(values) == 1 else "contested"), name
