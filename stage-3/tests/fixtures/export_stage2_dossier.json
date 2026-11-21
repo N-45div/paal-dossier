@@ -1,0 +1,45 @@
+{
+ "dossier": {
+  "candidates": {
+   "ceo": [
+    {
+     "excerpt": "Dana Ruiz has led Acme Robotics as chief executive since 2021.",
+     "kind": "own",
+     "provider": "nimble",
+     "published_at": null,
+     "url": "https://acme-robotics.test/about",
+     "value": "Dana Ruiz"
+    }
+   ],
+   "founded_year": [
+    {
+     "excerpt": "Acme Robotics was founded in 2014.",
+     "kind": "own",
+     "provider": "nimble",
+     "published_at": null,
+     "url": "https://acme-robotics.test/about",
+     "value": 2014
+    }
+   ],
+   "funding_total": [],
+   "headcount_range": [],
+   "hq_city": [
+    {
+     "excerpt": "Acme Robotics is headquartered in Lisbon.",
+     "kind": "own",
+     "provider": "nimble",
+     "published_at": "2026-01-10T23:30:00-05:00",
+     "url": "https://acme-robotics.test/about",
+     "value": "Lisbon"
+    }
+   ],
+   "legal_name": []
+  },
+  "domain": "acme-robotics.test",
+  "id": "d_e515befd43c9a073",
+  "researched_at": "2026-11-21T07:44:38.696056+00:00",
+  "spent_units": 34,
+  "state": "ready"
+ },
+ "source": "frozen stage-2 service, generated in-process from its own /_test/export (research engine fixed)"
+}
