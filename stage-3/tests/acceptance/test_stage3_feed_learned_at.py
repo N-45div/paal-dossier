@@ -13,6 +13,8 @@ VERS_CO = "vers-co.test"
 T0 = "2026-03-01T09:00:00+00:00"
 T1 = "2026-04-01T09:00:00+00:00"
 T2 = "2026-05-01T09:00:00+00:00"
+T3 = "2026-06-01T09:00:00+00:00"   # history-co runs after vers-co: the clock may not move backwards
+T4 = "2026-07-01T09:00:00+00:00"
 
 
 def _instant(s):
@@ -42,15 +44,16 @@ def _feed(env, domain, field="ceo"):
 
 def test_feed_change_entries_carry_the_adding_builds_time(env):
     # Two refreshes at later clocks on two companies; every change entry's learned_at is its build.
-    _run_builds(env, HISTORY_CO, [(0, T0), (1, T1)])
     _run_builds(env, VERS_CO, [(0, T0), (1, T1), (2, T2)])
+    _run_builds(env, HISTORY_CO, [(0, T3), (1, T4)])
     history = _feed(env, HISTORY_CO)
     vers = _feed(env, VERS_CO)
+    # Ann -> Cy (2025 after 2020) is a change; Cy -> Bo (2022, before 2025) is a correction (R3.32)
     assert [c["type"] for c in history] == ["change"], history
-    assert [c["type"] for c in vers] == ["change", "change"], vers
+    assert [c["type"] for c in vers] == ["change", "correction"], vers
     for entry in history:
         assert entry["learned_at"] is not None, entry
-        assert _instant(entry["learned_at"]) == _instant(T1), entry
+        assert _instant(entry["learned_at"]) == _instant(T4), entry
     assert _instant(vers[0]["learned_at"]) == _instant(T1), vers[0]
     assert _instant(vers[1]["learned_at"]) == _instant(T2), vers[1]
 
@@ -61,7 +64,7 @@ def test_history_entries_carry_the_same_build_time_as_the_feed(env):
     r = call("GET", f"/dossiers/{VERS_CO}/history", token=env["ada"], timeout=10)
     assert r.status_code == 200, r.text
     ceo = r.json()["fields"]["ceo"]
-    assert [e["type"] for e in ceo] == ["initial", "change", "change"], ceo
+    assert [e["type"] for e in ceo] == ["initial", "change", "correction"], ceo
     assert [_instant(e["learned_at"]) for e in ceo] == [_instant(T0), _instant(T1), _instant(T2)], ceo
     feed = _feed(env, VERS_CO)
     assert [_instant(c["learned_at"]) for c in feed] == [_instant(T1), _instant(T2)], feed
