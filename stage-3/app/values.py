@@ -35,8 +35,7 @@ def _gather(spans: list[_Span], version: PageVersion) -> list[_Span]:
             and s.version.true_from < version.true_from]
     if kept:
         latest = max(kept, key=lambda s: s.version.true_from)
-        if latest.end is None:
-            latest.end = version.true_from
+        latest.end = version.true_from  # overwrites any end set by a version now replaced
     return kept + [_Span(version=version, end=None)]
 
 
