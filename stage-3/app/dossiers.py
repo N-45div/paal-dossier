@@ -56,6 +56,19 @@ def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: 
     return body
 
 
+def _selected_flags(view: Selected) -> list[bool]:
+    """Which ranked candidates are selected (R3.21): the top one of the field; for executives,
+    the top one of each title, since each title has its own selected person."""
+    if view.field != "executives":
+        return [index == 0 for index in range(len(view.ranked))]
+    seen: set[str | None] = set()
+    flags: list[bool] = []
+    for candidate, _ in view.ranked:
+        flags.append(candidate.title not in seen)
+        seen.add(candidate.title)
+    return flags
+
+
 def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
     """A field: the selected value with its two times and citations, then its candidates."""
     selected_value = view.value is not None
@@ -66,8 +79,8 @@ def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
         "learned_at": view.learned_at.isoformat() if view.learned_at and selected_value else None,
         "citations": list(view.citations),
         "candidates": [
-            candidate_json(candidate, learned, index == 0, retrieved_at)
-            for index, (candidate, learned) in enumerate(view.ranked)
+            candidate_json(candidate, learned, selected, retrieved_at)
+            for (candidate, learned), selected in zip(view.ranked, _selected_flags(view))
         ],
     }
 
