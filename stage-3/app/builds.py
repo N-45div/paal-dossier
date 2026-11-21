@@ -75,7 +75,7 @@ def apply_outcome(state: State, dossier: Dossier, outcome: BuildOutcome, built_a
     dossier.last_outcome = "ready" if outcome.ok else "failed"
     previous = dossier.current_view()
     if outcome.ok:
-        versions = versions_of(_gathered(outcome), pages={})
+        versions = versions_of(_gathered(outcome), pages=outcome.pages)
         record = BuildRecord(index=len(dossier.records), time=built_at, ok=True,
                              spent_units=outcome.spent_units, versions=versions)
     else:
@@ -90,4 +90,7 @@ def apply_outcome(state: State, dossier: Dossier, outcome: BuildOutcome, built_a
 
 
 def _gathered(outcome: BuildOutcome) -> dict[str, list]:
-    return {name: dedupe(found) for name, found in candidates_of(outcome).items()}
+    gathered = {name: dedupe(found) for name, found in candidates_of(outcome).items()}
+    executives = (outcome.candidates or {}).get("executives", [])
+    gathered["executives"] = dedupe(executives)
+    return gathered

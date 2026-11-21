@@ -20,7 +20,8 @@ import logging
 from typing import Any, Callable
 
 from app.budget import BUILD_BUDGET_UNITS, Ledger
-from app.evidence import collect_candidates, decide_fields
+from app.evidence import collect_candidates, collect_executives, decide_fields
+from app.pages import page_meta
 from app.gateway import CitedClaim, NimbleGateway, ServedPage
 from app.outcome import BuildOutcome, FieldResult, unknown_fields
 from app.support import FIELDS, company_name
@@ -101,12 +102,15 @@ async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) 
         logger.exception("build for %s failed", domain)
     if not gathered.answered:
         return _failed(ledger.spent)
-    candidates = collect_candidates(domain, gathered.pages_in_order())
+    pages = gathered.pages_in_order()
+    candidates = collect_candidates(domain, pages)
+    candidates["executives"] = collect_executives(domain, pages)
     return BuildOutcome(
         ok=True,
         spent_units=ledger.spent,
         fields=decide_fields(candidates),
         candidates=candidates,
+        pages={page.url: page_meta(page.headers, page.url, domain).true_from for page in pages},
     )
 
 
