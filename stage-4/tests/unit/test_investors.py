@@ -129,3 +129,44 @@ def test_a_name_only_in_the_earlier_value_is_a_change():
                         {"Bluebird Capital": date(2024, 5, 2), "Northwind Ventures": date(2024, 5, 2)})
     new = _selected(["Bluebird Capital"], date(2024, 5, 2), {"Bluebird Capital": date(2024, 5, 2)})
     assert classify(earlier, new) == "change"
+
+
+def test_r440_all_new_names_with_earlier_true_from_on_or_before_is_a_correction():
+    from app.history import classify
+    earlier = _selected(["Bluebird Capital"], date(2024, 5, 2), {"Bluebird Capital": date(2024, 5, 2)})
+    new = _selected(["Bluebird Capital", "Northwind Ventures", "Harbor Partners"], date(2024, 5, 2),
+                    {"Bluebird Capital": date(2024, 5, 2), "Northwind Ventures": date(2024, 1, 1),
+                     "Harbor Partners": date(2023, 1, 1)})
+    assert classify(earlier, new) == "correction"
+
+
+def test_r440_one_removed_name_makes_a_change():
+    from app.history import classify
+    earlier = _selected(["Bluebird Capital", "Harbor Partners"], date(2024, 5, 2),
+                        {"Bluebird Capital": date(2024, 5, 2), "Harbor Partners": date(2024, 5, 2)})
+    new = _selected(["Bluebird Capital", "Northwind Ventures"], date(2024, 5, 2),
+                    {"Bluebird Capital": date(2024, 5, 2), "Northwind Ventures": date(2023, 1, 1)})
+    assert classify(earlier, new) == "change"
+
+
+def test_r440_null_true_from_of_the_new_name_makes_a_change():
+    from app.history import classify
+    earlier = _selected(["Bluebird Capital"], date(2024, 5, 2), {"Bluebird Capital": date(2024, 5, 2)})
+    new = _selected(["Bluebird Capital", "Northwind Ventures"], date(2024, 5, 2),
+                    {"Bluebird Capital": date(2024, 5, 2)})
+    assert classify(earlier, new) == "change"
+
+
+def test_r440_null_earlier_true_from_makes_a_change():
+    from app.history import classify
+    earlier = _selected(["Bluebird Capital"], None, {"Bluebird Capital": None})
+    new = _selected(["Bluebird Capital", "Northwind Ventures"], date(2024, 5, 2),
+                    {"Bluebird Capital": date(2024, 5, 2), "Northwind Ventures": date(2023, 1, 1)})
+    assert classify(earlier, new) == "change"
+
+
+def test_r440_empty_earlier_value_is_a_change_never_a_correction():
+    from app.history import classify
+    earlier = _selected([], None)
+    new = _selected(["Bluebird Capital"], date(2024, 5, 2), {"Bluebird Capital": date(2023, 1, 1)})
+    assert classify(earlier, new) == "change"
