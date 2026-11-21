@@ -67,3 +67,35 @@ class FeedLearnedAtTest(unittest.TestCase):
         feed, _ = _replay(records)
         self.assertEqual([r.learned_at for r in feed], [T2])
         self.assertEqual([r.seq for r in feed], [1])
+
+
+class SeveralDomainsAndFieldsTest(unittest.TestCase):
+    """Every change, correction and initial entry has a non-null learned_at equal to its build's
+    time, across domains, fields, an A to B to A change and a field unknown at the first build."""
+
+    def test_every_non_initial_entry_has_its_builds_time_across_domains(self):
+        domains = {
+            "acme.test": [
+                ready(0, T1, {URL_A: (date(2026, 1, 1), {"ceo": ["Dana Ruiz"]})}),
+                ready(1, T2, {URL_A: (date(2026, 3, 1), {"ceo": ["Lee Park"]})}),
+                ready(2, T3, {URL_B: (date(2026, 2, 1), {"ceo": ["Dana Ruiz"]})}),
+            ],
+            "beta.test": [
+                ready(0, T1, {URL_A: (date(2026, 1, 1), {"ceo": ["Sam Ortiz"]})}),
+                # hq_city was unknown at the first build; its first value is a change.
+                ready(1, T2, {URL_A: (date(2026, 1, 1), {"ceo": ["Sam Ortiz"],
+                                                          "hq_city": ["Porto"]})}),
+            ],
+        }
+        for domain, records in domains.items():
+            feed, hist = _replay(records)
+            for row in feed:
+                self.assertIsNotNone(row.learned_at, (domain, row))
+            non_initial = [(f, e) for f, entries in hist.items() for e in entries
+                           if e.type != "initial"]
+            for field, entry in non_initial:
+                self.assertIsNotNone(entry.learned_at, (domain, field, entry))
+            feed_times = {(r.field, r.type, r.value): r.learned_at for r in feed}
+            for field, entry in non_initial:
+                key = (field, entry.type, entry.value)
+                self.assertEqual(feed_times[key], entry.learned_at, (domain, key))
