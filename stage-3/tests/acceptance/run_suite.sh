@@ -20,11 +20,11 @@ CORPUS=${CORPUS:-$MOCK_SRC/corpus/sample}
 SVC_PORT=${SVC_PORT:-18210}
 MOCK_PORT=${MOCK_PORT:-18220}
 MOCK_ADMIN=${MOCK_ADMIN:-local-admin}
-NET=prover-stage2-net
-WEB=prover-stage2-web
-SVC=prover-stage2-svc
-WEB_IMG=prover-stage2-web
-SVC_IMG=prover-stage2-svc
+NET=prover-stage3-net
+WEB=prover-stage3-web
+SVC=prover-stage3-svc
+WEB_IMG=prover-stage3-web
+SVC_IMG=prover-stage3-svc
 PY=${PYTHON:-python3}
 
 # Merged corpus: the sample set (without its check file key.json and its traits) plus the
