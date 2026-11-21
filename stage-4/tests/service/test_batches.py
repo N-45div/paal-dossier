@@ -111,6 +111,7 @@ class BatchTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(resp.status, 400)
 
     async def test_accepted_batch_has_its_shape_and_starts_builds(self):
+        """R4.45: POST /batches takes domains and budget_units under an Idempotency-Key."""
         with mock.patch.object(research, "run_build", spending_build):
             resp = await self.post_batch({"domains": ["Acme-Robotics.test", "brightgear.test"],
                                           "budget_units": 200})
