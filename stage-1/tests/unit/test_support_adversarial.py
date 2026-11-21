@@ -62,6 +62,32 @@ class SentenceSplitting(unittest.TestCase):
         self.assertEqual(sv("Acme Robotics was founded in 2014 by Dr. Jane Doe."), {})
 
 
+class SuffixAtSentenceEnd(unittest.TestCase):
+    """R1.257 ruling: 'Ltd.' and 'AS.' ending a sentence split it; the suffix list has no
+    period for them, so the period is a sentence terminator. 'Inc.' keeps its period and
+    does not split."""
+
+    def test_ltd_period_at_sentence_end_splits(self):
+        self.assertEqual(
+            split_sentences("Acme Robotics was founded in 2014 as Foo Ltd. Dana leads it."),
+            ["Acme Robotics was founded in 2014 as Foo Ltd.", "Dana leads it."])
+
+    def test_as_period_at_sentence_end_splits(self):
+        self.assertEqual(
+            split_sentences("Acme Robotics was founded in 2014 as Foo AS. Dana leads it."),
+            ["Acme Robotics was founded in 2014 as Foo AS.", "Dana leads it."])
+
+    def test_inc_period_does_not_split(self):
+        self.assertEqual(
+            split_sentences("Acme Robotics Inc. was founded in 2014. Dana leads it."),
+            ["Acme Robotics Inc. was founded in 2014.", "Dana leads it."])
+
+    def test_ltd_sentence_end_is_not_a_single_excerpt(self):
+        self.assertEqual(
+            supported_values(D, "Acme Robotics was founded in 2014 as Foo Ltd. Dana leads it."),
+            {})
+
+
 class PhraseMatching(unittest.TestCase):
     def test_company_name_is_case_insensitive(self):
         self.assertEqual(sv("ACME ROBOTICS was founded in 2014.")["founded_year"], 2014)
