@@ -9,6 +9,7 @@ from conftest import call, mock_reset, new_key, set_clock, start_build, await_se
 
 
 def _candidate_true_from(env, domain):
+    """The first ceo candidate's true_from; asserts the key is present (value may be null)."""
     mock_reset(0)
     set_clock("2026-03-01T09:00:00+00:00")
     assert start_build(env["ada"], domain).status_code == 202
@@ -16,7 +17,8 @@ def _candidate_true_from(env, domain):
     assert d["state"] == "ready", d["state"]
     cands = d["fields"]["ceo"]["candidates"]
     assert cands, f"{domain}: no ceo candidate"
-    return cands[0].get("true_from")
+    assert "true_from" in cands[0], f"{domain}: candidate has no true_from key"
+    return cands[0]["true_from"]
 
 
 def test_valid_effective_header_gives_true_from(env):
