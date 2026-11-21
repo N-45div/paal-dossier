@@ -105,6 +105,9 @@ def test_r2_154_stage1_import_one_candidate_per_value_per_page(env):
     payload = call("GET", "/_test/export", timeout=10).json()
     state = payload["state"]
     state.pop("schema", None)
+    # The stage-1 format lists tokens as {token, user_id} objects; the stage-3 export keeps a map.
+    if isinstance(state.get("tokens"), dict):
+        state["tokens"] = [{"token": t, "user_id": u} for t, u in state["tokens"].items()]
     stage1_dossiers = []
     for entry in state["dossiers"]:
         if entry["domain"] != DUP:
@@ -117,9 +120,13 @@ def test_r2_154_stage1_import_one_candidate_per_value_per_page(env):
             {"url": url, "excerpt": "Dup Co was founded in 2010 by two engineers.",
              "provider": "nimble"},
         ]}
+        # The stage-3 export keeps build records, not a researched_at: the stage-1 time is the
+        # time of the last build that completed ready (records with ok true).
+        ready_builds = [rec for rec in entry["records"] if rec["ok"]]
+        assert ready_builds, "dup-co must have a ready build in the export"
         stage1_dossiers.append({"id": entry["id"], "domain": DUP, "state": "ready",
                                 "spent_units": entry["spent_units"],
-                                "researched_at": entry["researched_at"], "fields": fields})
+                                "researched_at": ready_builds[-1]["time"], "fields": fields})
     assert stage1_dossiers, "dup-co must be in the export"
     state["dossiers"] = stage1_dossiers
     r = call("POST", "/_test/import", body=payload, timeout=10)

@@ -13,7 +13,7 @@ import pytest
 from conftest import (SAMPLE_DOMAINS, await_settled, call, get_dossier, login, mock_calls,
                       mock_faults, new_key, parse_ts, reset_service, seed_fixture, set_clock,
                       start_build, total_cost)
-from oracle import (FIELDS, HEADCOUNT_RANGES, LEGAL_SUFFIXES, NEGATING, STATEMENT,
+from oracle import (FIELDS, HEADCOUNT_RANGES, LEGAL_SUFFIXES, NEGATING, RESPONSE_FIELDS, STATEMENT,
                     prose_sentences, split_header, split_sentences, supported_values)
 
 D = "acme-robotics.test"
@@ -135,11 +135,12 @@ def test_ids_are_opaque_and_at_most_64_characters(env):
 
 
 def test_field_shape_has_exact_keys_and_six_fields(env):
-    # R1.85, R1.94, R1.96, R1.97, R1.98
+    # R1.85, R1.94, R1.96, R1.97, R1.98; stage 3: the six fields plus executives, last
     domain = SAMPLE_DOMAINS[0]
     start_build(env["ada"], domain)
     d = await_settled(env["ada"], domain)
-    assert set(d["fields"]) == set(FIELDS)
+    assert set(d["fields"]) == set(RESPONSE_FIELDS)
+    assert tuple(d["fields"]) == RESPONSE_FIELDS, list(d["fields"])
     for name, fld in d["fields"].items():
         assert set(fld) >= {"value", "status", "citations"}, name  # stage 2 adds candidates
         if fld["value"] is not None:
