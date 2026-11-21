@@ -15,9 +15,10 @@ from app.errors import ApiError, json_response, not_found, validation_failed
 from app.idempotency import check_key_length, read_key, run_idempotent
 from app.negotiation import HTML_RENDERER, wants_html
 from app.candidates import Candidate, normalise_value
-from app.selection import Decision
-from app.support import FIELDS as FIELD_NAMES
+from app.clock import parse_rfc3339
+from app.history import Selected, snapshot_at, unknown_views
 from app.state import STORE, Dossier, Store
+from app.support import FIELDS
 from app.validation import read_json_object, required_string
 
 _DIGITS = re.compile(r"[0-9]+")
@@ -36,7 +37,8 @@ def summary(dossier: Dossier) -> dict:
     return {"dossier_id": dossier.id, "domain": dossier.domain, "state": dossier.live_state}
 
 
-def candidate_json(candidate: Candidate, selected: bool, retrieved_at: datetime | None) -> dict:
+def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: bool,
+                   retrieved_at: datetime | None) -> dict:
     return {
         "value": normalise_value(candidate.value),
         "url": candidate.url,
@@ -45,30 +47,48 @@ def candidate_json(candidate: Candidate, selected: bool, retrieved_at: datetime 
         "kind": candidate.kind,
         "published_at": candidate.published_at,
         "retrieved_at": retrieved_at.isoformat() if retrieved_at else None,
+        "true_from": candidate.true_from.isoformat() if candidate.true_from else None,
+        "learned_at": learned_at.isoformat() if learned_at else None,
         "selected": selected,
     }
 
 
-def field_json(decision: Decision, retrieved_at: datetime | None) -> dict:
+def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
+    """A field: the selected value with its two times and citations, then its candidates."""
+    selected_value = view.value is not None
     return {
-        "value": decision.value,
-        "status": decision.status,
-        "citations": decision.citations,
+        "value": view.value,
+        "status": view.status,
+        "true_from": view.true_from.isoformat() if view.true_from and selected_value else None,
+        "learned_at": view.learned_at.isoformat() if view.learned_at and selected_value else None,
+        "citations": list(view.citations),
         "candidates": [
-            candidate_json(candidate, index == 0, retrieved_at)
-            for index, candidate in enumerate(decision.ranked)
+            candidate_json(candidate, learned, index == 0, retrieved_at)
+            for index, (candidate, learned) in enumerate(view.ranked)
         ],
     }
 
 
-def details(dossier: Dossier) -> dict:
-    decisions = dossier.decisions
+def details(dossier: Dossier, as_of: datetime | None = None) -> dict:
+    """The dossier as it is, or as it stood at `as_of` (stage 3). `as_of` is parsed by the caller."""
+    if as_of is None:
+        current = dossier.current_view()
+        record, fields = current if current is not None else (None, unknown_views())
+        spent = dossier.spent_units
+        state = dossier.live_state
+    else:
+        found = snapshot_at(dossier.records, as_of)
+        if found is None:
+            raise not_found("no ready build of this dossier at or before as_of")
+        record, fields, spent = found
+        state = "ready"
     return {
         **summary(dossier),
-        "researched_at": dossier.researched_at.isoformat() if dossier.researched_at else None,
-        "spent_units": dossier.spent_units,
-        "fields": {name: field_json(decisions[name], dossier.researched_at)
-                   for name in FIELD_NAMES},
+        "state": state,
+        "researched_at": record.time.isoformat() if record is not None else None,
+        "spent_units": spent,
+        "fields": {name: field_json(fields[name], record.time if record else None)
+                   for name in FIELDS},
     }
 
 
@@ -127,18 +147,25 @@ async def get_one(request: web.Request) -> web.Response:
         return await renderer(request)  # the browser shell; it authenticates in the page
     store = _store(request)
     authenticate(request, store)
+    as_of = _as_of_param(request)
     dossier = store.state.dossiers_by_domain.get(valid_domain(request.match_info["domain"]))
     if dossier is None:
         raise not_found("no dossier for this domain")
-    return json_response(details(dossier))
+    return json_response(details(dossier, as_of))
+
+
+def _as_of_param(request: web.Request) -> datetime | None:
+    """The `as_of` query parameter: an RFC 3339 instant with an explicit offset, or None."""
+    raw = request.query.get("as_of")
+    return parse_rfc3339(raw) if raw is not None else None
 
 
 async def list_all(request: web.Request) -> web.Response:
     store = _store(request)
     authenticate(request, store)
     query = request.query
-    limit = _integer_param(query.get("limit"), DEFAULT_LIMIT, 1, MAX_LIMIT, "limit")
-    offset = _integer_param(query.get("offset"), 0, 0, None, "offset")
+    limit = integer_param(query.get("limit"), DEFAULT_LIMIT, 1, MAX_LIMIT, "limit")
+    offset = integer_param(query.get("offset"), 0, 0, None, "offset")
     needle = query.get("q", "").lower()
 
     matches = [
@@ -167,7 +194,7 @@ def _list_item(dossier: Dossier) -> dict:
     }
 
 
-def _integer_param(raw: str | None, default: int, low: int, high: int | None, name: str) -> int:
+def integer_param(raw: str | None, default: int, low: int, high: int | None, name: str) -> int:
     if raw is None:
         return default
     if not _DIGITS.fullmatch(raw):

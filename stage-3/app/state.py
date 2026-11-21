@@ -10,8 +10,11 @@ from datetime import datetime
 
 from aiohttp import web
 
-from app.clock import Clock
 from app.candidates import Candidate
+from app.clock import Clock
+from app.feed import FeedRow
+from app.history import Selected, views
+from app.records import BuildRecord
 from app.selection import Decision, decide
 
 
@@ -26,20 +29,36 @@ class User:
 @dataclass
 class Dossier:
     """`building` is True while a build runs. `last_outcome` is the outcome of the last
-    completed build ('ready' or 'failed'); it is 'failed' until a build has completed."""
+    completed build ('ready' or 'failed'); it is 'failed' until a build has completed.
+
+    `records` holds one record per completed build (Rul-S3-1), in build order. The current
+    candidates and selected values are those of the last ready record."""
 
     id: str
     domain: str
     building: bool = False
     last_outcome: str = "failed"
-    # Candidates of the last build that completed ready (stage 2); the decisions follow.
-    candidates: dict[str, list[Candidate]] = field(default_factory=dict)
-    researched_at: datetime | None = None
+    records: list[BuildRecord] = field(default_factory=list)
     spent_units: int = 0
 
     @property
     def live_state(self) -> str:
         return "building" if self.building else self.last_outcome
+
+    def current_view(self) -> tuple[BuildRecord, dict[str, Selected]] | None:
+        """The last ready build and the selected value of every field after it."""
+        ready = views(self.records)
+        return ready[-1] if ready else None
+
+    @property
+    def candidates(self) -> dict[str, list[Candidate]]:
+        current = self.current_view()
+        return current[0].candidates() if current is not None else {}
+
+    @property
+    def researched_at(self) -> datetime | None:
+        current = self.current_view()
+        return current[0].time if current is not None else None
 
     @property
     def decisions(self) -> dict[str, Decision]:
@@ -66,6 +85,9 @@ class State:
     dossiers_by_domain: dict[str, Dossier] = field(default_factory=dict)
     # (user id, idempotency key, method, raw path) -> record
     idempotency: dict[tuple[str, str, str, str], IdemRecord] = field(default_factory=dict)
+    # The change feed, append-only, and the seq the next entry takes (Rul-S3-4).
+    feed: list[FeedRow] = field(default_factory=list)
+    next_seq: int = 1
 
 
 class Store:
