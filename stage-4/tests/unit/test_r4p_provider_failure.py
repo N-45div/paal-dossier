@@ -57,6 +57,7 @@ def run(monkeypatch, failing: set[str], status: int):
 
 @pytest.mark.parametrize("status", [500, 502, 503, 504])
 def test_every_5xx_answer_costs_nothing(monkeypatch, status):
+    # R4.61: a 5xx answer costs nothing; R4.60: with every call failing the build ends failed.
     outcome, net = run(monkeypatch, {"search", "extract", "research"}, status)
     assert not outcome.ok
     assert outcome.spent_units == 0
@@ -64,7 +65,31 @@ def test_every_5xx_answer_costs_nothing(monkeypatch, status):
 
 
 @pytest.mark.parametrize("status", [500, 503])
-def test_research_failing_with_5xx_still_completes_ready(monkeypatch, status):
+def test_r4_59_research_failing_with_5xx_still_completes_ready(monkeypatch, status):
+    # R4.59: every research run fails while search and extract answer; the build completes ready.
     outcome, net = run(monkeypatch, {"research"}, status)
     assert outcome.ok
     assert net == outcome.spent_units
+
+
+def test_r4_58_every_search_failing_while_extract_and_research_answer_completes_ready(monkeypatch):
+    # R4.58: every call to one provider fails (here every search, Nimble otherwise answers); the build
+    # completes ready from the extracts and research that answer, and its spend is what was billed.
+    outcome, net = run(monkeypatch, {"search"}, 500)
+    assert outcome.ok
+    assert net == outcome.spent_units
+
+
+def test_r4_60_every_call_failing_with_the_real_retry_constants_ends_failed_within_the_bound(monkeypatch):
+    # R4.60 (time bound of section 8, R1.191): every call to every provider fails and the build ends
+    # failed within 10 seconds, measured with the real retry constants on a fake router that raises at once.
+    import time
+
+    monkeypatch.setattr(research, "RETRY_DELAY_S", 1.5)
+    monkeypatch.setattr(gateway, "SERVER_ERROR_WAIT_S", 0.2)
+    started = time.monotonic()
+    outcome, net = run(monkeypatch, {"search", "extract", "research"}, 503)
+    elapsed = time.monotonic() - started
+    assert not outcome.ok
+    assert outcome.spent_units == 0 and net == 0
+    assert elapsed < 10, f"all-fail build took {elapsed:.2f} s; the bound is 10 s"

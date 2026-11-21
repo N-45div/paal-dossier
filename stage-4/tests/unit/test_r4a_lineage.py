@@ -21,17 +21,21 @@ def page(url: str, **headers: str) -> ServedPage:
 class LineageHeadersTest(unittest.TestCase):
 
     def test_registrant_defaults_to_the_host_of_the_own_url(self):
+        # R4.9: a page with no valid Registrant line has the host of its own URL as registrant.
         assert lineage_of({}, "https://Acme-Robotics.test/about").registrant == COMPANY
 
     def test_invalid_registrant_falls_back_to_the_host(self):
+        # R4.9: an invalid Registrant line falls back to the host of the page's own URL.
         assert lineage_of({"Registrant": "not a domain"}, "https://news.test/x").registrant == "news.test"
 
     def test_registrant_and_first_published_by_are_normalised(self):
+        # R4.6 (Registrant line) and R4.8 (First-Published-By line), both normalised as in section 4 (R4.9).
         lineage = lineage_of({"Registrant": "WWW.Acme-Robotics.test.",
                               "First-Published-By": "Wire.Test"}, "https://mirror.test/x")
         assert (lineage.registrant, lineage.first_published_by) == (COMPANY, "wire.test")
 
     def test_canonical_must_be_an_http_url_with_a_host(self):
+        # R4.7: the Canonical line names the original URL; only an http(s) URL with a host counts.
         assert lineage_of({"Canonical": "https://acme-robotics.test/a"}, "https://x.test/").canonical \
             == "https://acme-robotics.test/a"
         assert lineage_of({"Canonical": "ftp://acme-robotics.test/a"}, "https://x.test/").canonical is None
@@ -67,6 +71,9 @@ class KindsTest(unittest.TestCase):
 
 
 class OriginRulesTest(unittest.TestCase):
+    """R4.12: each page's origin is taken from the first rule that applies, in this order:
+    R4.13 First-Published-By, R4.14 the original of Canonical, R4.15 the company for a lookalike,
+    R4.16 the registrant. R4.17: each original is fetched once."""
 
     def _origin(self, pages: dict[str, ServedPage], start: str, fetches: list[str] | None = None) -> str:
         calls = [] if fetches is None else fetches
@@ -79,10 +86,12 @@ class OriginRulesTest(unittest.TestCase):
         return asyncio.run(resolver.origin(pages[start]))
 
     def test_rule_one_first_published_by(self):
+        # R4.13: rule 1, the First-Published-By domain.
         pages = {"https://news.test/a": page("https://news.test/a", **{"First-Published-By": "wire.test"})}
         assert self._origin(pages, "https://news.test/a") == "wire.test"
 
     def test_rule_two_follows_canonical_to_the_original(self):
+        # R4.14: rule 2, the origin of the page at the Canonical URL (its original).
         original = page("https://acme-robotics.test/a")
         pages = {"https://mirror.test/a": page("https://mirror.test/a", Canonical="https://acme-robotics.test/a"),
                  "https://acme-robotics.test/a": original}
@@ -91,6 +100,7 @@ class OriginRulesTest(unittest.TestCase):
         assert fetches == ["https://acme-robotics.test/a"]
 
     def test_three_canonical_hops_are_followed(self):
+        # R4.14: rule 2 applied through three Canonical hops.
         pages = {
             "https://a.test/1": page("https://a.test/1", Canonical="https://b.test/2"),
             "https://b.test/2": page("https://b.test/2", Canonical="https://c.test/3"),
@@ -100,6 +110,7 @@ class OriginRulesTest(unittest.TestCase):
         assert self._origin(pages, "https://a.test/1") == "wire.test"
 
     def test_a_fourth_canonical_hop_gives_the_host_of_that_url(self):
+        # R4.14: rule 2 stops after three hops; the URL it reaches then gives its host.
         pages = {
             "https://a.test/1": page("https://a.test/1", Canonical="https://b.test/2"),
             "https://b.test/2": page("https://b.test/2", Canonical="https://c.test/3"),
@@ -111,19 +122,23 @@ class OriginRulesTest(unittest.TestCase):
         assert self._origin(pages, "https://a.test/1") == "e.test"
 
     def test_no_provider_serving_the_original_gives_its_host(self):
+        # R4.14: when no provider serves the original, the host of the Canonical URL stands in.
         pages = {"https://mirror.test/a": page("https://mirror.test/a", Canonical="https://gone.test/a")}
         assert self._origin(pages, "https://mirror.test/a") == "gone.test"
 
     def test_a_lookalike_takes_the_company_domain(self):
+        # R4.15: rule 3, the company's domain for a lookalike page.
         pages = {"https://acme-robotics-news.test/x": page(
             "https://acme-robotics-news.test/x", Kind="own", Registrant="other.test")}
         assert self._origin(pages, "https://acme-robotics-news.test/x") == COMPANY
 
     def test_rule_four_is_the_registrant(self):
+        # R4.16: rule 4, the registrant.
         pages = {"https://news.test/x": page("https://news.test/x")}
         assert self._origin(pages, "https://news.test/x") == "news.test"
 
     def test_each_original_is_fetched_once(self):
+        # R4.17: a build obtains each original that rule 2 needs once, however many pages point to it.
         pages = {
             "https://m1.test/a": page("https://m1.test/a", Canonical="https://acme-robotics.test/a"),
             "https://m2.test/a": page("https://m2.test/a", Canonical="https://acme-robotics.test/a"),
