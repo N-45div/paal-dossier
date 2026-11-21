@@ -20,7 +20,8 @@ import logging
 from typing import Any, Callable
 
 from app.budget import BUILD_BUDGET_UNITS, Ledger
-from app.evidence import collect_candidates, collect_executives, decide_fields, collect_investors
+from app.evidence import collect_candidates, collect_executives, collect_investors, decide_fields
+from app.origins import OriginResolver
 from app.pages import page_meta
 from app.gateway import CitedClaim, NimbleGateway, ServedPage
 from app.outcome import BuildOutcome, FieldResult, unknown_fields
@@ -93,9 +94,11 @@ async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) 
     if not gateway.available:  # nothing can be called: fail at once, spend nothing
         logger.error("no Nimble client for build of %s", domain)
         return _failed(0)
+    origins: dict[str, str] = {}
     try:
         async with asyncio.timeout(BUILD_DEADLINE_S):
             await _gather(domain, gateway, gathered)
+            origins = await _origins(domain, gateway, gathered.pages_in_order())
     except TimeoutError:
         logger.warning("build for %s reached its deadline", domain)
     except Exception:  # a bug must end this build as failed, never crash the service
@@ -103,16 +106,28 @@ async def run_build(domain: str, on_spend: Callable[[int], None] | None = None) 
     if not gathered.answered:
         return _failed(ledger.spent)
     pages = gathered.pages_in_order()
-    candidates = collect_candidates(domain, pages)
-    candidates["executives"] = collect_executives(domain, pages)
-    candidates["investors"] = collect_investors(domain, pages)
+    candidates = collect_candidates(domain, pages, origins)
+    candidates["executives"] = collect_executives(domain, pages, origins)
+    candidates["investors"] = collect_investors(domain, pages, origins)
     return BuildOutcome(
         ok=True,
         spent_units=ledger.spent,
         fields=decide_fields(candidates),
         candidates=candidates,
         pages={page.url: page_meta(page.headers, page.url, domain).true_from for page in pages},
+        origins=origins,
     )
+
+
+async def _origins(domain: str, gateway: NimbleGateway, pages: list[ServedPage]) -> dict[str, str]:
+    """The origin of each gathered page. Originals are fetched through the gateway, so each is
+    a paid provider call that counts in the build's spend and cap (Rul-S4-3)."""
+
+    async def fetch(url: str) -> ServedPage | None:
+        page, _ = await gateway.extract(url)
+        return page
+
+    return await OriginResolver(domain, fetch).resolve(pages)
 
 
 def _failed(spent_units: int) -> BuildOutcome:

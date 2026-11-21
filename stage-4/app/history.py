@@ -17,7 +17,7 @@ from app.candidates import Candidate, normalise_value
 from app.executives import decide_executives
 from app.records import BuildRecord
 from app.selection import decide_field
-from app.investors import decide_investors, url_host
+from app.investors import candidate_origin, decide_investors
 from app.support import FIELDS
 
 # The seven fields of a dossier (stage 3): the six of stage 1, then executives.
@@ -100,7 +100,7 @@ def _decide(name: str, found: list[Candidate]) -> Any:
     if name == "executives":
         return decide_executives(found)
     if name == "investors":
-        return decide_investors(found, url_host)
+        return decide_investors(found, candidate_origin)
     return _SixDecision(decide_field(found))
 
 

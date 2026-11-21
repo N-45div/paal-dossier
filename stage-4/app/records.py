@@ -23,6 +23,8 @@ class PageVersion:
     url: str
     true_from: date | None
     candidates: dict[str, tuple[Candidate, ...]] = field(default_factory=dict)
+    # Stage 4 (R4.12): the origin of this page; None for a version imported without one.
+    origin: str | None = None
 
 
 @dataclass
@@ -56,15 +58,17 @@ def default_true_from(published_at: str | None) -> date | None:
     return parse_rfc3339(published_at).astimezone(timezone.utc).date()
 
 
-def version_for(url: str, true_from: date | None, found: dict[str, list[Candidate]]) -> PageVersion:
+def version_for(url: str, true_from: date | None, found: dict[str, list[Candidate]],
+                origin: str | None = None) -> PageVersion:
     """A page version of one URL: each candidate is stamped with the version's true_from."""
     stamped: dict[str, tuple[Candidate, ...]] = {}
     for name, items in found.items():
         stamped[name] = tuple(replace(candidate, true_from=true_from) for candidate in items)
-    return PageVersion(url=url, true_from=true_from, candidates=stamped)
+    return PageVersion(url=url, true_from=true_from, candidates=stamped, origin=origin)
 
 
-def versions_of(found: dict[str, list[Candidate]], pages: dict[str, date | None]) -> tuple[PageVersion, ...]:
+def versions_of(found: dict[str, list[Candidate]], pages: dict[str, date | None],
+                origins: dict[str, str] | None = None) -> tuple[PageVersion, ...]:
     """Group a build's candidates by URL. ``pages`` lists every gathered URL with its
     true_from; a URL in ``pages`` without candidates still gets an empty version. A candidate
     whose URL is not in ``pages`` takes its true_from from its publication time."""
@@ -81,6 +85,7 @@ def versions_of(found: dict[str, list[Candidate]], pages: dict[str, date | None]
             # Unlisted pages: their candidates' own publication dates decide, uniformly.
             sample = next(iter(by_url[url].values()))[0]
             true_from = default_true_from(sample.published_at)
-        versions.append(version_for(url, true_from, by_url.get(url, {})))
+        versions.append(version_for(url, true_from, by_url.get(url, {}),
+                                    (origins or {}).get(url)))
     return tuple(versions)
 

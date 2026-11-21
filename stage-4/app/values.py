@@ -17,7 +17,7 @@ from typing import Any, Iterable
 
 from app.candidates import Candidate
 from app.executives import decide_executives
-from app.investors import decide_investors, url_host
+from app.investors import candidate_origin, decide_investors
 from app.records import BuildRecord, PageVersion
 from app.selection import decide_field
 from app.support import FIELDS
@@ -91,7 +91,7 @@ def values_at(records: Iterable[BuildRecord], true_at: date) -> dict[str, FieldA
     executives = decide_executives(candidates["executives"])
     answers["executives"] = FieldAt(value=executives.value, true_from=executives.true_from,
                                     citations=executives.citations)
-    investors = decide_investors(candidates["investors"], url_host)
+    investors = decide_investors(candidates["investors"], candidate_origin)
     answers["investors"] = FieldAt(value=investors.value, true_from=investors.true_from,
                                    citations=investors.citations)
     return answers

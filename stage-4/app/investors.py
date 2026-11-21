@@ -98,6 +98,11 @@ def url_host(candidate: Candidate) -> str:
     return normalise_domain(urlsplit(candidate.url).hostname or "") or ""
 
 
+def candidate_origin(candidate: Candidate) -> str:
+    """A candidate's origin (R4A): its stored origin, or the host of its URL when it has none."""
+    return candidate.origin if candidate.origin is not None else url_host(candidate)
+
+
 @dataclass(frozen=True)
 class InvestorsDecision:
     """The field's status, its members (sorted names) and its candidates in rank order."""

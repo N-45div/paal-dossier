@@ -20,7 +20,8 @@ MAX_CITATIONS = 3
 PROVIDER = "nimble"
 
 
-def collect_candidates(domain: str, pages: list[ServedPage]) -> dict[str, list[Candidate]]:
+def collect_candidates(domain: str, pages: list[ServedPage],
+                       origins: dict[str, str] | None = None) -> dict[str, list[Candidate]]:
     """Every field's candidates, pages in gather order, one per (value, page)."""
     result: dict[str, list[Candidate]] = {name: [] for name in FIELDS}
     seen: set[tuple[str, str, object]] = set()
@@ -39,11 +40,13 @@ def collect_candidates(domain: str, pages: list[ServedPage]) -> dict[str, list[C
                 kind=meta.kind,
                 published_at=meta.published_at,
                 true_from=meta.true_from,
+                origin=(origins or {}).get(page.url),
             ))
     return result
 
 
-def collect_executives(domain: str, pages: list[ServedPage]) -> list[Candidate]:
+def collect_executives(domain: str, pages: list[ServedPage],
+                       origins: dict[str, str] | None = None) -> list[Candidate]:
     """The `executives` candidates (stage 3): one per (title, name, page), taken from the first
     sentence of that page that supports it (Rul-S2-8, applied per title)."""
     found: list[Candidate] = []
@@ -67,11 +70,13 @@ def collect_executives(domain: str, pages: list[ServedPage]) -> list[Candidate]:
                     published_at=meta.published_at,
                     title=title,
                     true_from=meta.true_from,
+                    origin=(origins or {}).get(page.url),
                 ))
     return found
 
 
-def collect_investors(domain: str, pages: list[ServedPage]) -> list[Candidate]:
+def collect_investors(domain: str, pages: list[ServedPage],
+                      origins: dict[str, str] | None = None) -> list[Candidate]:
     """The `investors` candidates (stage 4, R4B): one per (name, page), taken from the first
     sentence of that page that supports it. A research claim is never one of these."""
     found: list[Candidate] = []
@@ -94,6 +99,7 @@ def collect_investors(domain: str, pages: list[ServedPage]) -> list[Candidate]:
                     kind=meta.kind,
                     published_at=meta.published_at,
                     true_from=meta.true_from,
+                    origin=(origins or {}).get(page.url),
                 ))
     return found
 

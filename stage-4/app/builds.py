@@ -76,7 +76,7 @@ def apply_outcome(state: State, dossier: Dossier, outcome: BuildOutcome, built_a
     dossier.last_outcome = "ready" if outcome.ok else "failed"
     previous = dossier.current_view()
     if outcome.ok:
-        versions = versions_of(_gathered(outcome), pages=outcome.pages)
+        versions = versions_of(_gathered(outcome), pages=outcome.pages, origins=outcome.origins)
         record = BuildRecord(index=len(dossier.records), time=built_at, ok=True,
                              spent_units=outcome.spent_units, versions=versions)
     else:
