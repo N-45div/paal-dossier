@@ -75,3 +75,21 @@ def test_r2_51_provider_is_one_that_served_the_text_when_another_is_down(env):
     for name, c in _all_candidates(d):
         assert _served_by(calls, c["provider"], c["url"]), (name, c["provider"], c["url"])
     check_dossier_fields(d, RANK, calls)
+
+
+def test_r2_54_candidate_url_excerpt_provider_follow_citation_rules(env):
+    # R2.54: a candidate's url, excerpt and provider follow the citation rules of section 4:
+    # the excerpt is copied from the prose the provider served for that url (R1.104-R1.105),
+    # and the provider is one that served it (R2.51).
+    from conftest import served_index
+    from oracle import excerpt_in_prose
+    checked = 0
+    for domain in (RANK, DUP, "recency-co.test"):
+        d = _build(env, domain)
+        idx = served_index(mock_calls())
+        for name, c in _all_candidates(d):
+            proses = idx.get((c["provider"], c["url"]), [])
+            assert proses, (domain, name, c["provider"], c["url"])
+            assert any(excerpt_in_prose(p, c["excerpt"]) for p in proses), (domain, name, c["excerpt"])
+            checked += 1
+    assert checked > 0
