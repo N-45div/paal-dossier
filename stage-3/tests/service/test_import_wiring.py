@@ -11,7 +11,7 @@ from datetime import date
 from aiohttp.test_utils import TestClient, TestServer
 
 from app.server import build_app
-from app.snapshot import SCHEMA
+from app.snapshot import STAGE2_SCHEMA
 from app.state import STORE
 
 FIXTURES = pathlib.Path(__file__).resolve().parent.parent / "fixtures"
@@ -36,7 +36,7 @@ class ImportWiringTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_stage2_export_imports_as_one_ready_build_with_page_true_from(self) -> None:
         item = dossier("export_stage2_dossier.json")
-        await self._import({"schema": SCHEMA, "users": [], "tokens": [], "dossiers": [item],
+        await self._import({"schema": STAGE2_SCHEMA, "users": [], "tokens": [], "dossiers": [item],
                             "idempotency": []})
         (domain,) = self.client.app[STORE].state.dossiers_by_domain.values()
         (record,) = domain.records

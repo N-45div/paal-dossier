@@ -70,38 +70,58 @@ def _record(raw: dict[str, Any]) -> BuildRecord:
                        ok=raw["ok"], spent_units=raw["spent_units"], versions=versions)
 
 
-def dump(state: State, clock_fixed: datetime | None) -> dict[str, Any]:
+def dossier_json(d: Dossier) -> dict[str, Any]:
+    return {"id": d.id, "domain": d.domain, "last_outcome": d.last_outcome,
+            "building": d.building, "spent_units": d.spent_units,
+            "records": [_record_json(r) for r in d.records]}
+
+
+def dossier_from(raw: dict[str, Any]) -> Dossier:
+    """A dossier from its JSON. A build recorded as running is loaded as failed (Rul-S3-2)."""
+    was_building = raw["building"]
+    return Dossier(
+        id=raw["id"], domain=raw["domain"], building=False,
+        last_outcome="failed" if was_building else raw["last_outcome"],
+        records=[_record(r) for r in raw["records"]], spent_units=raw["spent_units"],
+    )
+
+
+def feed_json(rows: list[FeedRow]) -> list[dict[str, Any]]:
+    return [{"seq": r.seq, "domain": r.domain, "field": r.field, "type": r.type,
+             "previous": r.previous, "value": r.value, "true_from": _day(r.true_from),
+             "learned_at": _when(r.learned_at)} for r in rows]
+
+
+def feed_from(raw: list[dict[str, Any]]) -> list[FeedRow]:
+    return [
+        FeedRow(seq=f["seq"], domain=f["domain"], field=f["field"], type=f["type"],
+                previous=f["previous"], value=f["value"],
+                true_from=date.fromisoformat(f["true_from"]) if f["true_from"] else None,
+                learned_at=datetime.fromisoformat(f["learned_at"]) if f["learned_at"] else None)
+        for f in raw
+    ]
+
+
+def state_json(state: State) -> dict[str, Any]:
+    """The whole state as JSON, without a format header: the body of the stage-3 export and of
+    the durable document. Dossiers are in build order; the feed is in seq order."""
     return {
-        "format": FORMAT,
-        "version": VERSION,
-        "clock": _when(clock_fixed),
         "next_seq": state.next_seq,
         "users": [{"id": u.id, "email": u.email, "display_name": u.display_name,
                    "password_hash": u.password_hash} for u in state.users_by_id.values()],
         "tokens": dict(state.tokens),
-        "dossiers": [
-            {"id": d.id, "domain": d.domain, "last_outcome": d.last_outcome,
-             "building": d.building, "spent_units": d.spent_units,
-             "records": [_record_json(r) for r in d.records]}
-            for d in state.dossiers_by_domain.values()
-        ],
+        "dossiers": [dossier_json(d) for d in state.dossiers_by_domain.values()],
         "idempotency": [
             {"user_id": k[0], "key": k[1], "method": k[2], "path": k[3],
              "canonical": rec.canonical, "body": rec.body}
             for k, rec in state.idempotency.items()
         ],
-        "feed": [
-            {"seq": r.seq, "domain": r.domain, "field": r.field, "type": r.type,
-             "previous": r.previous, "value": r.value, "true_from": _day(r.true_from),
-             "learned_at": _when(r.learned_at)}
-            for r in state.feed
-        ],
+        "feed": feed_json(state.feed),
     }
 
 
-def load(raw: dict[str, Any]) -> tuple[State, datetime | None]:
-    if raw.get("format") != FORMAT or raw.get("version") != VERSION:
-        raise ValueError("unsupported state document")
+def state_from(raw: dict[str, Any]) -> State:
+    """A State from `state_json` output. Raises KeyError, TypeError or ValueError on bad input."""
     state = State()
     state.next_seq = raw["next_seq"]
     for u in raw["users"]:
@@ -111,28 +131,25 @@ def load(raw: dict[str, Any]) -> tuple[State, datetime | None]:
         state.users_by_email[user.email] = user
     state.tokens = dict(raw["tokens"])
     for d in raw["dossiers"]:
-        was_building = d["building"]
-        dossier = Dossier(
-            id=d["id"], domain=d["domain"],
-            # A build left running by an abrupt stop becomes failed (Rul-S3-2).
-            building=False,
-            last_outcome="failed" if was_building else d["last_outcome"],
-            records=[_record(r) for r in d["records"]],
-            spent_units=d["spent_units"],
-        )
+        dossier = dossier_from(d)
         state.dossiers_by_domain[dossier.domain] = dossier
     for i in raw["idempotency"]:
         state.idempotency[(i["user_id"], i["key"], i["method"], i["path"])] = IdemRecord(
             canonical=i["canonical"], body=i["body"])
-    state.feed = [
-        FeedRow(seq=f["seq"], domain=f["domain"], field=f["field"], type=f["type"],
-                previous=f["previous"], value=f["value"],
-                true_from=date.fromisoformat(f["true_from"]) if f["true_from"] else None,
-                learned_at=datetime.fromisoformat(f["learned_at"]) if f["learned_at"] else None)
-        for f in raw["feed"]
-    ]
+    state.feed = feed_from(raw["feed"])
+    return state
+
+
+def dump(state: State, clock_fixed: datetime | None) -> dict[str, Any]:
+    return {"format": FORMAT, "version": VERSION, "clock": _when(clock_fixed),
+            **state_json(state)}
+
+
+def load(raw: dict[str, Any]) -> tuple[State, datetime | None]:
+    if raw.get("format") != FORMAT or raw.get("version") != VERSION:
+        raise ValueError("unsupported state document")
     clock = datetime.fromisoformat(raw["clock"]) if raw["clock"] else None
-    return state, clock
+    return state_from(raw), clock
 
 
 class Persister:

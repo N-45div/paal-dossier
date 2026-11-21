@@ -289,8 +289,11 @@ class DossierTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_stage1_export_imports_with_derived_candidates(self) -> None:
         exported = await (await self.client.get("/_test/export")).json()
-        state = exported["state"]
-        state.pop("schema", None)
+        # A stage-1 export has no schema marker, users, tokens and dossiers only; build that shape.
+        state = {"users": exported["state"]["users"],
+                 "tokens": [{"token": t, "user_id": u}
+                            for t, u in exported["state"]["tokens"].items()],
+                 "idempotency": [], "dossiers": []}
         legal = {"url": "https://acme-robotics.test/legal",
                  "excerpt": "Its legal name is Acme Robotics, Inc.", "provider": "nimble"}
         founded = {"url": "https://acme-robotics.test/about",
