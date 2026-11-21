@@ -39,6 +39,9 @@ from app.budget import (
 from app.support import split_header
 
 SEARCH_TIMEOUT_S = 30.0
+# Rul-S2-5: a call answered 429 is retried after at least 1.05 s, up to four attempts in all.
+RATE_LIMIT_WAIT_S = 1.05
+RATE_LIMIT_ATTEMPTS = 4
 EXTRACT_TIMEOUT_S = 30.0
 RESEARCH_TIMEOUT_S = 240.0
 
@@ -50,10 +53,11 @@ _T = TypeVar("_T")
 
 @dataclass(frozen=True)
 class ServedPage:
-    """The served text of one page: its URL and its prose (header lines removed)."""
+    """The served text of one page: its URL, its header lines and its prose."""
 
     url: str
     prose: str
+    headers: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -71,6 +75,13 @@ def _refused(error: BaseException) -> bool:
     if isinstance(error, ProviderError):
         return error.status_code is not None and 400 <= error.status_code <= 599
     return False
+
+
+def _rate_limited(error: BaseException) -> bool:
+    """True when the provider answered 429 (for a failed extract: when every URL got 429)."""
+    if isinstance(error, ExtractFailedError):
+        return bool(error.call_errors) and all(_rate_limited(item) for item in error.call_errors)
+    return isinstance(error, ProviderError) and error.status_code == 429
 
 
 def _never_issued(error: BaseException) -> bool:
@@ -115,17 +126,34 @@ class NimbleGateway:
         timeout: float,
         call: Callable[[AsyncWebRouter], Awaitable[_T | None]],
     ) -> tuple[_T | None, bool]:
+        """One logical call: retried after 429 answers (Rul-S2-5); each attempt is charged once."""
+        value, refused = None, False
+        for attempt in range(1, RATE_LIMIT_ATTEMPTS + 1):
+            value, refused, rate_limited = await self._attempt(cost, timeout, call)
+            if not rate_limited:
+                break
+            if attempt < RATE_LIMIT_ATTEMPTS:
+                await asyncio.sleep(RATE_LIMIT_WAIT_S)
+        return value, refused
+
+    async def _attempt(
+        self,
+        cost: int,
+        timeout: float,
+        call: Callable[[AsyncWebRouter], Awaitable[_T | None]],
+    ) -> tuple[_T | None, bool, bool]:
+        """Reserve, issue and settle one attempt: (value, refused, rate_limited)."""
         router = _client()
         if router is None or not self._ledger.reserve(cost):
-            return None, False
+            return None, False, False
         self._notify(cost)
         try:
-            return await asyncio.wait_for(call(router), timeout), False
+            return await asyncio.wait_for(call(router), timeout), False, False
         except Exception as error:  # every provider failure is classified below
             if _refused(error) or _never_issued(error):
                 self._ledger.release(cost)
                 self._notify(-cost)
-            return None, _refused(error)
+            return None, _refused(error), _rate_limited(error)
 
     def _notify(self, units: int) -> None:
         if self._on_spend is not None:
@@ -146,8 +174,8 @@ class NimbleGateway:
         async def call(router: AsyncWebRouter) -> ServedPage | None:
             response = await router.extract([url], provider=_PROVIDER)
             for document in response.documents:
-                _, prose = split_header(document.content)
-                return ServedPage(url=document.url, prose=prose)
+                headers, prose = split_header(document.content)
+                return ServedPage(url=document.url, prose=prose, headers=headers)
             return None
 
         return await self._charged(NIMBLE_EXTRACT_UNITS, EXTRACT_TIMEOUT_S, call)
