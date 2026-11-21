@@ -69,7 +69,7 @@ class HistoryTypingTest(unittest.TestCase):
     def test_first_build_gives_initial_entries_and_no_feed(self) -> None:
         records = [ready(0, T1, {URL_A: (date(2025, 1, 1), {"hq_city": ["Lisbon"]})})]
         self.assertEqual([e.type for e in history(records)["hq_city"]], ["initial"])
-        self.assertEqual(feed_entries(None, views(records)[0][1], first=True), [])
+        self.assertEqual(feed_entries(None, views(records)[0][1], first=True, built_at=T1), [])
 
     def test_same_selected_value_adds_nothing_even_if_true_from_changes(self) -> None:
         records = [
@@ -115,7 +115,8 @@ class HistoryTypingTest(unittest.TestCase):
             ready(1, T2, {URL_A: (None, {"hq_city": ["Porto"]})}),
         ]
         current = views(records)
-        self.assertEqual([e.type for e in feed_entries(current[0][1], current[1][1], False)],
+        self.assertEqual([e.type for e in feed_entries(current[0][1], current[1][1], False,
+                                                       built_at=T2)],
                          ["change"])
 
 
@@ -169,7 +170,7 @@ class FeedSequenceTest(unittest.TestCase):
             ready(1, T2, {URL_A: (None, {"hq_city": ["Porto"]})}),
         ]
         current = views(records)
-        entries = feed_entries(current[0][1], current[1][1], False)
+        entries = feed_entries(current[0][1], current[1][1], False, built_at=T2)
         next_seq = append_build(feed, next_seq, "a.test", entries)
         self.assertEqual([row.seq for row in feed], [1])
         self.assertEqual(next_seq, 2)
