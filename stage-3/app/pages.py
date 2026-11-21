@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, timezone
 from urllib.parse import urlsplit
 
 from app.domain import normalise_domain
 
 KINDS: tuple[str, ...] = ("own", "filing", "news", "aggregator")
 
+_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _RFC3339 = re.compile(
     r"^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
 )
@@ -24,18 +25,35 @@ _RFC3339 = re.compile(
 
 @dataclass(frozen=True)
 class PageMeta:
-    """The kind of a page and its publication time (RFC 3339 text with its offset, or None)."""
+    """The kind of a page, its publication time (RFC 3339 text with its offset, or None) and
+    the date from which its evidence holds (``true_from``, stage 3; or None)."""
 
     kind: str
     published_at: str | None
+    true_from: date | None = None
 
 
 def page_meta(headers: dict[str, str], url: str, company_domain: str) -> PageMeta:
-    """Kind and publication time of the page served at ``url`` with these header lines."""
+    """Kind, publication time and ``true_from`` of the page served at ``url``."""
+    published_at = _published(headers.get("Published"))
     return PageMeta(
         kind=_kind(headers.get("Kind"), url, company_domain),
-        published_at=_published(headers.get("Published")),
+        published_at=published_at,
+        true_from=_effective(headers.get("Effective"), published_at),
     )
+
+
+def _effective(value: str | None, published_at: str | None) -> date | None:
+    """The ``Effective`` line when it is a valid YYYY-MM-DD date; otherwise the UTC date of the
+    publication time; otherwise None (stage 3, two times per value)."""
+    if value is not None and _DATE.match(value.strip()):
+        try:
+            return date.fromisoformat(value.strip())
+        except ValueError:
+            pass
+    if published_at is None:
+        return None
+    return datetime.fromisoformat(published_at).astimezone(timezone.utc).date()
 
 
 def _kind(declared: str | None, url: str, company_domain: str) -> str:

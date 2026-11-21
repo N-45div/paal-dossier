@@ -79,7 +79,7 @@ class HistoryServiceTest(unittest.IsolatedAsyncioTestCase):
                                                headers=self.headers)).json()
         self.assertEqual([e["type"] for e in history["fields"]["hq_city"]],
                          ["initial", "change"])
-        self.assertEqual(set(history["fields"]), set(FIELDS))
+        self.assertEqual(set(history["fields"]), {*FIELDS, "executives"})  # seven fields (spec)
 
     async def test_as_of_before_first_build_is_not_found_and_invalid_is_422(self) -> None:
         async def first(domain, on_spend=None):

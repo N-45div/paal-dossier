@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 from app.candidates import Candidate, from_citation
@@ -31,6 +32,9 @@ class BuildOutcome:
     # Stage 2 (Rul-S2-1): every candidate per field. None means the research engine has
     # not produced candidates yet; candidates_of() then derives them from ``fields``.
     candidates: dict[str, list[Candidate]] | None = None
+    # Stage 3: each gathered URL with the true_from of its page (None without a date), so the
+    # build record has a version for every page it read, including pages with no candidates.
+    pages: dict[str, date | None] = field(default_factory=dict)
 
 
 def unknown_fields() -> dict[str, FieldResult]:

@@ -13,7 +13,7 @@ from app.candidates import Candidate
 from app.gateway import ServedPage
 from app.outcome import FieldResult
 from app.pages import page_meta
-from app.support import FIELDS, extract_supports
+from app.support import FIELDS, MAX_EXCERPT_LENGTH, extract_supports, prose_sentences, supported_executives
 
 MAX_CITATIONS = 3
 PROVIDER = "nimble"
@@ -37,8 +37,37 @@ def collect_candidates(domain: str, pages: list[ServedPage]) -> dict[str, list[C
                 provider=PROVIDER,
                 kind=meta.kind,
                 published_at=meta.published_at,
+                true_from=meta.true_from,
             ))
     return result
+
+
+def collect_executives(domain: str, pages: list[ServedPage]) -> list[Candidate]:
+    """The `executives` candidates (stage 3): one per (title, name, page), taken from the first
+    sentence of that page that supports it (Rul-S2-8, applied per title)."""
+    found: list[Candidate] = []
+    seen: set[tuple[str, object, str]] = set()
+    for page in pages:
+        meta = page_meta(page.headers, page.url, domain)
+        for sentence in prose_sentences(page.prose):
+            if len(sentence) > MAX_EXCERPT_LENGTH:
+                continue
+            for title, name in supported_executives(domain, sentence).items():
+                key = (title, name, page.url)
+                if key in seen:
+                    continue
+                seen.add(key)
+                found.append(Candidate(
+                    value=name,
+                    url=page.url,
+                    excerpt=sentence,
+                    provider=PROVIDER,
+                    kind=meta.kind,
+                    published_at=meta.published_at,
+                    title=title,
+                    true_from=meta.true_from,
+                ))
+    return found
 
 
 def decide_fields(candidates: dict[str, list[Candidate]]) -> dict[str, FieldResult]:

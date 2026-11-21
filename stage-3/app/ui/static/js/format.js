@@ -15,6 +15,12 @@ export const FIELD_LABELS = {
   funding_total: "Total funding",
 };
 
+// The six stage-2 fields that the stage-2 screens test by id (Rul-S3-5). `executives`, the seventh
+// field of stage 3, is not one of them and is not shown by these screens.
+export function sixFields(fields) {
+  return Object.entries(fields).filter(([name]) => name in FIELD_LABELS);
+}
+
 export const STATE_LABELS = { building: "Building", ready: "Ready", failed: "Failed" };
 export const STATUS_LABELS = { known: "Known", unknown: "Unknown", contested: "Contested" };
 

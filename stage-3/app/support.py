@@ -49,6 +49,15 @@ STATEMENT_PHRASES: dict[str, tuple[str, ...]] = {
     "funding_total": ("raised", "funding", "invested", "investment"),
 }
 
+# Stage 3 executives (Appendix A for each title, with the format of `ceo`): the title's
+# statement phrases. The field `executives` is built from these, one person per title.
+TITLES: tuple[str, ...] = ("cfo", "coo", "cto")
+TITLE_PHRASES: dict[str, tuple[str, ...]] = {
+    "cfo": ("chief financial officer", "CFO"),
+    "coo": ("chief operating officer", "COO"),
+    "cto": ("chief technology officer", "CTO"),
+}
+
 NEGATING_PHRASES: tuple[str, ...] = (
     "in talks to",
     "plans to",
@@ -320,8 +329,13 @@ def _hq_city_values(text: str) -> set[str]:
 
 def _ceo_values(text: str, domain: str, name: str) -> set[str]:
     """Runs of two or three capitalised words once the company and CEO phrases are removed."""
+    return _person_values(text, domain, name, _STATEMENT_RE["ceo"])
+
+
+def _person_values(text: str, domain: str, name: str, phrase_re: re.Pattern[str]) -> set[str]:
+    """Runs of two or three capitalised words once the company and the title's phrases are removed."""
     masked = _word_re((domain, name)).sub("|", text)
-    masked = _STATEMENT_RE["ceo"].sub("|", masked)
+    masked = phrase_re.sub("|", masked)
     runs: list[list[str]] = []
     run: list[str] = []
     previous_end = -2
@@ -396,13 +410,10 @@ def supported_values(domain: str, excerpt: str) -> dict[str, object]:
     for the field, contains no negating phrase, and whose values in the field's
     format all normalise to one value.
     """
-    text = _collapse(excerpt)
-    if not text or split_sentences(text) != [text]:
+    gated = _gate(domain, excerpt)
+    if gated is None:
         return {}
-    domain = domain.lower()
-    name = company_name(domain)
-    if _NEGATION_RE.search(text) or _word_re((domain, name)).search(text) is None:
-        return {}
+    text, domain, name = gated
     supported: dict[str, object] = {}
     for field in FIELDS:
         if _STATEMENT_RE[field].search(text) is None:
@@ -410,6 +421,39 @@ def supported_values(domain: str, excerpt: str) -> dict[str, object]:
         values = _field_values(field, text, domain, name)
         if len(values) == 1:
             supported[field] = next(iter(values))
+    return supported
+
+
+def _gate(domain: str, excerpt: str) -> tuple[str, str, str] | None:
+    """The collapsed excerpt, lower-cased domain and company name when the excerpt is a single
+    sentence that names the company and has no negating phrase (A.2); otherwise None."""
+    text = _collapse(excerpt)
+    if not text or split_sentences(text) != [text]:
+        return None
+    domain = domain.lower()
+    name = company_name(domain)
+    if _NEGATION_RE.search(text) or _word_re((domain, name)).search(text) is None:
+        return None
+    return text, domain, name
+
+
+def supported_executives(domain: str, excerpt: str) -> dict[str, str]:
+    """Title -> person's name for each title the excerpt supports (stage 3, `executives`).
+
+    The same gate as ``supported_values`` applies. A title is supported when its phrase is
+    in the excerpt and exactly one name of the ceo format follows it (A.4, A.5)."""
+    gated = _gate(domain, excerpt)
+    if gated is None:
+        return {}
+    text, domain, name = gated
+    supported: dict[str, str] = {}
+    for title in TITLES:
+        phrase_re = _word_re(TITLE_PHRASES[title])
+        if phrase_re.search(text) is None:
+            continue
+        names = _person_values(text, domain, name, phrase_re)
+        if len(names) == 1:
+            supported[title] = next(iter(names))
     return supported
 
 

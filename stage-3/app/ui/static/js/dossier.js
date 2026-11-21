@@ -4,7 +4,7 @@ import { clearSession } from "/static/js/session.js";
 import { createLatestReads } from "/static/js/latest.js";
 import { createPending } from "/static/js/pending.js";
 import {
-  FIELD_LABELS, STATUS_LABELS, formatValue, formatWhen, providerLabel,
+  FIELD_LABELS, STATUS_LABELS, formatValue, formatWhen, providerLabel, sixFields,
 } from "/static/js/format.js";
 
 const POLL_MS = 1500; // the spec asks for a read at least every 2 seconds while building
@@ -111,7 +111,7 @@ function renderField(name, field) {
 
 function renderFields(dossier) {
   fieldsBox.replaceChildren(
-    ...Object.entries(dossier.fields).map(([name, field]) => renderField(name, field)),
+    ...sixFields(dossier.fields).map(([name, field]) => renderField(name, field)),
   );
 }
 

@@ -16,7 +16,7 @@ from app.idempotency import check_key_length, read_key, run_idempotent
 from app.negotiation import HTML_RENDERER, wants_html
 from app.candidates import Candidate, normalise_value
 from app.clock import parse_rfc3339
-from app.history import Selected, snapshot_at, unknown_views
+from app.history import SEVEN, Selected, snapshot_at, unknown_views
 from app.state import STORE, Dossier, Store
 from app.support import FIELDS
 from app.validation import read_json_object, required_string
@@ -88,7 +88,7 @@ def details(dossier: Dossier, as_of: datetime | None = None) -> dict:
         "researched_at": record.time.isoformat() if record is not None else None,
         "spent_units": spent,
         "fields": {name: field_json(fields[name], record.time if record else None)
-                   for name in FIELDS},
+                   for name in SEVEN},
     }
 
 
