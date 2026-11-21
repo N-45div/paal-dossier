@@ -39,7 +39,7 @@ def summary(dossier: Dossier) -> dict:
 
 def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: bool,
                    retrieved_at: datetime | None) -> dict:
-    return {
+    body = {
         "value": normalise_value(candidate.value),
         "url": candidate.url,
         "excerpt": candidate.excerpt,
@@ -51,6 +51,9 @@ def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: 
         "learned_at": learned_at.isoformat() if learned_at else None,
         "selected": selected,
     }
+    if candidate.title is not None:  # an executives candidate carries its title (R3.18)
+        body["title"] = candidate.title
+    return body
 
 
 def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
