@@ -141,7 +141,7 @@ def test_field_shape_has_exact_keys_and_six_fields(env):
     d = await_settled(env["ada"], domain)
     assert set(d["fields"]) == set(FIELDS)
     for name, fld in d["fields"].items():
-        assert set(fld) == {"value", "status", "citations"}, name
+        assert set(fld) >= {"value", "status", "citations"}, name  # stage 2 adds candidates
         if fld["value"] is not None:
             assert fld["status"] == "known"
             for c in fld["citations"]:

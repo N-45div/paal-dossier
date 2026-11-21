@@ -84,7 +84,8 @@ class DossierTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(dossier["spent_units"], 0)
         self.assertIsNone(dossier["researched_at"])
         for name, field in dossier["fields"].items():
-            self.assertEqual(field, {"value": None, "status": "unknown", "citations": []}, name)
+            self.assertEqual(field, {"value": None, "status": "unknown", "citations": [],
+                                     "candidates": []}, name)
 
     async def test_second_create_for_same_domain_starts_no_build(self) -> None:
         first = await self.create("acme-robotics.test", "k1")
@@ -283,6 +284,51 @@ class DossierTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await replay.json())["dossier_id"], created["dossier_id"])
         still_valid = await self.client.get("/dossiers", headers=self.headers(None))
         self.assertEqual(still_valid.status, 200)  # the pre-export token still works
+
+    async def test_stage1_export_imports_with_derived_candidates(self) -> None:
+        exported = await (await self.client.get("/_test/export")).json()
+        state = exported["state"]
+        state.pop("schema", None)
+        legal = {"url": "https://acme-robotics.test/legal",
+                 "excerpt": "Its legal name is Acme Robotics, Inc.", "provider": "nimble"}
+        founded = {"url": "https://acme-robotics.test/about",
+                   "excerpt": "Acme Robotics, Inc. was founded in 2014.", "provider": "nimble"}
+        bogus = {"url": "https://acme-robotics.test/about",
+                 "excerpt": "Dana Ruiz is nice.", "provider": "nimble"}
+        unknown = {"value": None, "citations": []}
+        state["dossiers"] = [{
+            "id": "d_old", "domain": "acme-robotics.test", "state": "ready",
+            "researched_at": "2026-03-01T09:00:00+00:00", "spent_units": 34,
+            "fields": {
+                "legal_name": {"value": "Acme Robotics, Inc.", "citations": [legal]},
+                "hq_city": unknown,
+                "ceo": {"value": "Dana Ruiz", "citations": [bogus]},
+                "founded_year": {"value": 2014, "citations": [founded]},
+                "headcount_range": unknown,
+                "funding_total": unknown,
+            },
+        }]
+        imp = await self.client.post("/_test/import",
+                                     json={"track": "dossier", "format_version": 1, "state": state})
+        self.assertEqual(imp.status, 204)
+        resp = await self.client.get("/dossiers/acme-robotics.test", headers=self.headers(None))
+        dossier = await resp.json()
+        self.assertEqual(dossier["dossier_id"], "d_old")
+        legal_field = dossier["fields"]["legal_name"]
+        self.assertEqual((legal_field["value"], legal_field["status"]),
+                         ("Acme Robotics, Inc.", "known"))
+        self.assertEqual(legal_field["candidates"][0]["kind"], None)
+        self.assertEqual(legal_field["candidates"][0]["retrieved_at"],
+                         "2026-03-01T09:00:00+00:00")
+        self.assertTrue(legal_field["candidates"][0]["selected"])
+        self.assertEqual(dossier["fields"]["founded_year"]["value"], 2014)
+        # 'Dana Ruiz is nice.' does not support ceo under Appendix A, so the field is unknown.
+        self.assertEqual(dossier["fields"]["ceo"]["status"], "unknown")
+        listing = await (await self.client.get("/dossiers", headers=self.headers(None))).json()
+        self.assertEqual(listing["dossiers"][0]["legal_name"], "Acme Robotics, Inc.")
+        # the pre-export token and idempotency records survive the import
+        self.assertEqual((await self.client.get("/dossiers",
+                                                headers=self.headers(None))).status, 200)
 
     async def test_invalid_import_changes_nothing(self) -> None:
         await self.create("keep.test", "keep")
