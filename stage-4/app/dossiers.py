@@ -15,6 +15,8 @@ from app.errors import ApiError, json_response, not_found, validation_failed
 from app.idempotency import check_key_length, read_key, run_idempotent
 from app.negotiation import HTML_RENDERER, wants_html
 from app.candidates import Candidate, normalise_value
+from app.corroboration import NONE as NO_CORROBORATION
+from app.corroboration import Corroboration, corroboration, origin_of
 from app.clock import parse_rfc3339
 from app.history import SEVEN, Selected, snapshot_at, unknown_views
 from app.state import STORE, Dossier, Store
@@ -50,6 +52,7 @@ def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: 
         "true_from": candidate.true_from.isoformat() if candidate.true_from else None,
         "learned_at": learned_at.isoformat() if learned_at else None,
         "selected": selected,
+        "origin": origin_of(candidate),
     }
     if candidate.title is not None:  # an executives candidate carries its title (R3.18)
         body["title"] = candidate.title
@@ -58,7 +61,11 @@ def candidate_json(candidate: Candidate, learned_at: datetime | None, selected: 
 
 def _selected_flags(view: Selected) -> list[bool]:
     """Which ranked candidates are selected (R3.21): the top one of the field; for executives,
-    the top one of each title, since each title has its own selected person."""
+    the top one of each title, since each title has its own selected person. For investors
+    (R4.35), every candidate whose name is a member."""
+    if view.field == "investors":
+        members = set(view.value or [])
+        return [normalise_value(c.value) in members for c, _ in view.ranked]
     if view.field != "executives":
         return [index == 0 for index in range(len(view.ranked))]
     seen: set[str | None] = set()
@@ -69,8 +76,10 @@ def _selected_flags(view: Selected) -> list[bool]:
     return flags
 
 
-def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
-    """A field: the selected value with its two times and citations, then its candidates."""
+def field_json(view: Selected, retrieved_at: datetime | None,
+               lineage: Corroboration = NO_CORROBORATION) -> dict:
+    """A field: the selected value with its two times, citations and origins (R4.19-R4.28),
+    then its candidates."""
     selected_value = view.value is not None
     return {
         "value": view.value,
@@ -82,6 +91,10 @@ def field_json(view: Selected, retrieved_at: datetime | None) -> dict:
             candidate_json(candidate, learned, selected, retrieved_at)
             for (candidate, learned), selected in zip(view.ranked, _selected_flags(view))
         ],
+        "origins": lineage.origins,
+        "corroborated": lineage.corroborated,
+        "corroborated_since": (lineage.corroborated_since.isoformat()
+                               if lineage.corroborated_since else None),
     }
 
 
@@ -92,18 +105,23 @@ def details(dossier: Dossier, as_of: datetime | None = None) -> dict:
         record, fields = current if current is not None else (None, unknown_views())
         spent = dossier.spent_units
         state = dossier.live_state
+        records = dossier.records
     else:
         found = snapshot_at(dossier.records, as_of)
         if found is None:
             raise not_found("no ready build of this dossier at or before as_of")
         record, fields, spent = found
         state = "ready"
+        # The builds up to the chosen one, as the snapshot had them (R4.23: no later history).
+        records = [r for r in dossier.records if r.time <= as_of and r.index <= record.index]
+    lineage = {name: corroboration(name, records) if record is not None else NO_CORROBORATION
+               for name in SEVEN}
     return {
         **summary(dossier),
         "state": state,
         "researched_at": record.time.isoformat() if record is not None else None,
         "spent_units": spent,
-        "fields": {name: field_json(fields[name], record.time if record else None)
+        "fields": {name: field_json(fields[name], record.time if record else None, lineage[name])
                    for name in SEVEN},
     }
 

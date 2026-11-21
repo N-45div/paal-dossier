@@ -8,7 +8,7 @@ from pathlib import Path
 
 from aiohttp import web
 
-from app import auth, changes, control, dossiers, snapshot, values_api
+from app import auth, batches, changes, control, dossiers, snapshot, values_api
 from app.clock import Clock
 from app.persist import Persister, load as load_state
 from app.errors import ApiError, error_response, json_response
@@ -76,6 +76,8 @@ def build_app(clock: Clock | None = None, data_dir: Path | None = None) -> web.A
     app.router.add_get("/_test/export", snapshot.export)
     app.router.add_post("/_test/import", snapshot.import_)
     app.router.add_post("/dossiers", dossiers.create)
+    app.router.add_post("/batches", batches.create)
+    app.router.add_get("/batches/{batch_id}", batches.get_one)
     app.router.add_get("/dossiers", dossiers.list_all)
     app.router.add_get("/dossiers/{domain}", dossiers.get_one)
     app.router.add_post("/dossiers/{domain}/refresh", dossiers.refresh)

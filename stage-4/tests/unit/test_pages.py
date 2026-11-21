@@ -5,9 +5,16 @@ import pytest
 from app.pages import page_meta
 
 
-@pytest.mark.parametrize("kind", ["own", "filing", "news", "aggregator"])
+@pytest.mark.parametrize("kind", ["filing", "news", "aggregator"])
 def test_declared_kind_is_taken_exactly(kind):
     assert page_meta({"Kind": kind}, "https://elsewhere.test/x", "acme.test").kind == kind
+
+
+def test_declared_own_is_aggregator_unless_the_registrant_is_the_company():
+    # R4.10 (stage 4): Kind own counts as own only for the company's registrant.
+    assert page_meta({"Kind": "own"}, "https://elsewhere.test/x", "acme.test").kind == "aggregator"
+    assert page_meta({"Kind": "own", "Registrant": "acme.test"},
+                     "https://elsewhere.test/x", "acme.test").kind == "own"
 
 
 @pytest.mark.parametrize("declared", ["News", "OWN", " news", "blog", ""])

@@ -73,7 +73,7 @@ class ValuesServiceTest(unittest.IsolatedAsyncioTestCase):
         body = await (await self.client.get(
             "/dossiers/acme-robotics.test/values?true_at=2026-01-01"
             "&as_of=2030-01-01T00:00:00Z", headers=self.headers)).json()
-        self.assertEqual(set(body["fields"]), {*FIELDS, "executives"})
+        self.assertEqual(set(body["fields"]), {*FIELDS, "executives", "investors"})
         self.assertEqual(body["fields"]["hq_city"]["value"], "Lisbon")
         self.assertEqual(body["fields"]["hq_city"]["true_from"], "2025-01-01")
 

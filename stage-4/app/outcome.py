@@ -35,6 +35,8 @@ class BuildOutcome:
     # Stage 3: each gathered URL with the true_from of its page (None without a date), so the
     # build record has a version for every page it read, including pages with no candidates.
     pages: dict[str, date | None] = field(default_factory=dict)
+    # Stage 4 (R4.12): the origin of each gathered URL's page, by URL.
+    origins: dict[str, str] = field(default_factory=dict)
 
 
 def unknown_fields() -> dict[str, FieldResult]:

@@ -16,7 +16,8 @@ from typing import Any
 from app.candidates import Candidate
 from app.feed import FeedRow
 from app.records import BuildRecord, PageVersion
-from app.state import Dossier, IdemRecord, State, User
+from app.budget import SharedBudget
+from app.state import Batch, Dossier, IdemRecord, State, User
 
 FORMAT = "dossier-state"
 VERSION = 1
@@ -33,14 +34,15 @@ def _day(value: date | None) -> str | None:
 def _candidate_json(c: Candidate) -> dict[str, Any]:
     return {"value": c.value, "url": c.url, "excerpt": c.excerpt, "provider": c.provider,
             "kind": c.kind, "published_at": c.published_at, "title": c.title,
-            "true_from": _day(c.true_from)}
+            "true_from": _day(c.true_from), "origin": c.origin}
 
 
 def _candidate(raw: dict[str, Any]) -> Candidate:
     return Candidate(value=raw["value"], url=raw["url"], excerpt=raw["excerpt"],
                      provider=raw["provider"], kind=raw["kind"],
                      published_at=raw["published_at"], title=raw["title"],
-                     true_from=date.fromisoformat(raw["true_from"]) if raw["true_from"] else None)
+                     true_from=date.fromisoformat(raw["true_from"]) if raw["true_from"] else None,
+                     origin=raw.get("origin"))
 
 
 def _record_json(record: BuildRecord) -> dict[str, Any]:
@@ -48,7 +50,7 @@ def _record_json(record: BuildRecord) -> dict[str, Any]:
         "index": record.index, "time": _when(record.time), "ok": record.ok,
         "spent_units": record.spent_units,
         "versions": [
-            {"url": v.url, "true_from": _day(v.true_from),
+            {"url": v.url, "true_from": _day(v.true_from), "origin": v.origin,
              "candidates": {name: [_candidate_json(c) for c in found]
                             for name, found in v.candidates.items()}}
             for v in record.versions
@@ -63,6 +65,7 @@ def _record(raw: dict[str, Any]) -> BuildRecord:
             true_from=date.fromisoformat(v["true_from"]) if v["true_from"] else None,
             candidates={name: tuple(_candidate(c) for c in found)
                         for name, found in v["candidates"].items()},
+            origin=v.get("origin"),
         )
         for v in raw["versions"]
     )
@@ -121,6 +124,11 @@ def state_json(state: State, *, exporting: bool = False) -> dict[str, Any]:
             for k, rec in state.idempotency.items()
         ],
         "feed": feed_json(state.feed),
+        "batches": [
+            {"id": b.id, "user_id": b.user_id, "budget_units": b.budget.limit,
+             "spent_units": b.budget.spent, "domains": list(b.domains), "started": list(b.started)}
+            for b in state.batches.values()
+        ],
     }
 
 
@@ -141,6 +149,11 @@ def state_from(raw: dict[str, Any]) -> State:
         state.idempotency[(i["user_id"], i["key"], i["method"], i["path"])] = IdemRecord(
             canonical=i["canonical"], body=i["body"])
     state.feed = feed_from(raw["feed"])
+    for b in raw.get("batches", []):
+        batch = Batch(id=b["id"], user_id=b["user_id"],
+                      budget=SharedBudget(b["budget_units"], b["spent_units"]),
+                      domains=list(b["domains"]), started=list(b["started"]))
+        state.batches[batch.id] = batch
     return state
 
 

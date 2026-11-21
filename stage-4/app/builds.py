@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 
 from app import research
+from app.budget import SharedBudget
 from app.candidates import dedupe
 from app.feed import append_build
 from app.history import feed_entries
@@ -25,30 +26,42 @@ class _BuildSpend:
         self.total = 0
 
 
-def start_build(store: Store, dossier: Dossier, built_at: datetime) -> None:
+def start_build(store: Store, dossier: Dossier, built_at: datetime,
+                shared: SharedBudget | None = None) -> None:
     """Mark the dossier building and run its build as a background task.
 
-    `built_at` is the clock time of the request that started the build (§8)."""
+    `built_at` is the clock time of the request that started the build (§8). `shared` is the
+    batch's budget when the build belongs to a batch (R4.54)."""
     dossier.building = True
     spend = _BuildSpend()
     task = asyncio.create_task(
-        _run(store, dossier, store.state.generation, built_at, spend))
+        _run(store, dossier, store.state.generation, built_at, spend, shared))
     store.build_tasks.add(task)
     task.add_done_callback(store.build_tasks.discard)
 
 
-async def _run(store: Store, dossier: Dossier, generation: int, built_at: datetime,
-               spend: _BuildSpend) -> None:
+def _spend_recorder(store: Store, dossier: Dossier, generation: int, spend: _BuildSpend):
+    """The build's spend callback. Each change moves the dossier total at once (Rul-11), and is
+    written durably at once (Rul-S4-4, R4D): a billed call's units are on disk before anything
+    relies on them, so a stop cannot lose them. A state replaced by reset or import no longer owns
+    this build, so it is not counted."""
+
     def on_spend(units: int) -> None:
-        # Live counter (Rul-11): a reservation moves the dossier total at once. A state
-        # replaced by reset or import no longer owns this build, so it is not counted.
         if store.state.generation != generation:
             return
         spend.total += units
         dossier.spent_units += units
+        store.save()
 
+    return on_spend
+
+
+async def _run(store: Store, dossier: Dossier, generation: int, built_at: datetime,
+               spend: _BuildSpend, shared: SharedBudget | None = None) -> None:
+    on_spend = _spend_recorder(store, dossier, generation, spend)
     try:
-        outcome = await research.run_build(dossier.domain, on_spend)
+        outcome = await (research.run_build(dossier.domain, on_spend) if shared is None
+                         else research.run_build(dossier.domain, on_spend, shared))
     except asyncio.CancelledError:
         # Cancelled by a reset or import: that state no longer exists, so nothing is applied.
         raise
@@ -76,7 +89,7 @@ def apply_outcome(state: State, dossier: Dossier, outcome: BuildOutcome, built_a
     dossier.last_outcome = "ready" if outcome.ok else "failed"
     previous = dossier.current_view()
     if outcome.ok:
-        versions = versions_of(_gathered(outcome), pages=outcome.pages)
+        versions = versions_of(_gathered(outcome), pages=outcome.pages, origins=outcome.origins)
         record = BuildRecord(index=len(dossier.records), time=built_at, ok=True,
                              spent_units=outcome.spent_units, versions=versions)
     else:
@@ -94,4 +107,5 @@ def _gathered(outcome: BuildOutcome) -> dict[str, list]:
     gathered = {name: dedupe(found) for name, found in candidates_of(outcome).items()}
     executives = (outcome.candidates or {}).get("executives", [])
     gathered["executives"] = dedupe(executives)
+    gathered["investors"] = dedupe((outcome.candidates or {}).get("investors", []))
     return gathered

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, TypeVar
 
@@ -42,6 +43,14 @@ SEARCH_TIMEOUT_S = 30.0
 # Rul-S2-5: a call answered 429 is retried after at least 1.05 s, up to four attempts in all.
 RATE_LIMIT_WAIT_S = 1.05
 RATE_LIMIT_ATTEMPTS = 4
+# R4.57 (stage 4): a call answered with a 5xx is retried the same way, after a short wait. An error
+# answer costs nothing (R4.61), so the retry costs no units; the attempts stay within the build's
+# time bound and the 80-unit cap.
+SERVER_ERROR_WAIT_S = 0.2
+# §8 (R1.191): a build whose calls each answer within one second ends within 10 seconds. Retries
+# that would start after this many seconds of the build are not made, so an all-fail build still ends
+# inside that bound, whatever the answers.
+RETRY_WINDOW_S = 3.0
 EXTRACT_TIMEOUT_S = 30.0
 RESEARCH_TIMEOUT_S = 240.0
 
@@ -84,6 +93,23 @@ def _rate_limited(error: BaseException) -> bool:
     return isinstance(error, ProviderError) and error.status_code == 429
 
 
+def _server_error(error: BaseException) -> bool:
+    """True when the provider answered with a 5xx status (for a failed extract: when every URL did)."""
+    if isinstance(error, ExtractFailedError):
+        return bool(error.call_errors) and all(_server_error(item) for item in error.call_errors)
+    return isinstance(error, ProviderError) and error.status_code is not None and 500 <= error.status_code <= 599
+
+
+def _retry_wait(error: BaseException) -> float | None:
+    """How long to wait before retrying the same request, or None when it is not retried: 429 waits
+    at least RATE_LIMIT_WAIT_S (Rul-S2-5), a 5xx waits SERVER_ERROR_WAIT_S (R4.57)."""
+    if _rate_limited(error):
+        return RATE_LIMIT_WAIT_S
+    if _server_error(error):
+        return SERVER_ERROR_WAIT_S
+    return None
+
+
 def _never_issued(error: BaseException) -> bool:
     """True when the call could not be made at all (missing key, provider not installed)."""
     return isinstance(error, (ConfigurationError, ProviderNotInstalledError))
@@ -114,6 +140,7 @@ class NimbleGateway:
     def __init__(self, ledger: Ledger, on_spend: Callable[[int], None] | None = None) -> None:
         self._ledger = ledger
         self._on_spend = on_spend
+        self._started = time.monotonic()
 
     @property
     def available(self) -> bool:
@@ -126,34 +153,38 @@ class NimbleGateway:
         timeout: float,
         call: Callable[[AsyncWebRouter], Awaitable[_T | None]],
     ) -> tuple[_T | None, bool]:
-        """One logical call: retried after 429 answers (Rul-S2-5); each attempt is charged once."""
+        """One logical call: retried after 429 and 5xx answers (Rul-S2-5, R4.57), up to
+        RATE_LIMIT_ATTEMPTS attempts; each attempt that is billed is charged once."""
         value, refused = None, False
         for attempt in range(1, RATE_LIMIT_ATTEMPTS + 1):
-            value, refused, rate_limited = await self._attempt(cost, timeout, call)
-            if not rate_limited:
+            value, refused, wait = await self._attempt(cost, timeout, call)
+            if wait is None or attempt == RATE_LIMIT_ATTEMPTS or not self._within_window(wait):
                 break
-            if attempt < RATE_LIMIT_ATTEMPTS:
-                await asyncio.sleep(RATE_LIMIT_WAIT_S)
+            await asyncio.sleep(wait)
         return value, refused
+
+    def _within_window(self, wait: float) -> bool:
+        """True when a retry after ``wait`` seconds still starts inside RETRY_WINDOW_S of the build."""
+        return time.monotonic() - self._started + wait < RETRY_WINDOW_S
 
     async def _attempt(
         self,
         cost: int,
         timeout: float,
         call: Callable[[AsyncWebRouter], Awaitable[_T | None]],
-    ) -> tuple[_T | None, bool, bool]:
-        """Reserve, issue and settle one attempt: (value, refused, rate_limited)."""
+    ) -> tuple[_T | None, bool, float | None]:
+        """Reserve, issue and settle one attempt: (value, refused, wait before a retry or None)."""
         router = _client()
         if router is None or not self._ledger.reserve(cost):
-            return None, False, False
+            return None, False, None
         self._notify(cost)
         try:
-            return await asyncio.wait_for(call(router), timeout), False, False
+            return await asyncio.wait_for(call(router), timeout), False, None
         except Exception as error:  # every provider failure is classified below
             if _refused(error) or _never_issued(error):
                 self._ledger.release(cost)
                 self._notify(-cost)
-            return None, _refused(error), _rate_limited(error)
+            return None, _refused(error), _retry_wait(error)
 
     def _notify(self, units: int) -> None:
         if self._on_spend is not None:

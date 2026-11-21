@@ -11,9 +11,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from urllib.parse import urlsplit
 
-from app.domain import normalise_domain
+from app.lineage import Lineage, is_lookalike, lineage_of
 
 KINDS: tuple[str, ...] = ("own", "filing", "news", "aggregator")
 
@@ -25,21 +24,28 @@ _RFC3339 = re.compile(
 
 @dataclass(frozen=True)
 class PageMeta:
-    """The kind of a page, its publication time (RFC 3339 text with its offset, or None) and
-    the date from which its evidence holds (``true_from``, stage 3; or None)."""
+    """The kind of a page, its publication time (RFC 3339 text with its offset, or None), the date
+    from which its evidence holds (``true_from``, stage 3; or None), and its lineage (stage 4).
+    ``lookalike`` is R4.11: a page stating ``Kind: own`` whose registrant is not its URL's host."""
 
     kind: str
     published_at: str | None
     true_from: date | None = None
+    lineage: Lineage | None = None
+    lookalike: bool = False
 
 
 def page_meta(headers: dict[str, str], url: str, company_domain: str) -> PageMeta:
     """Kind, publication time and ``true_from`` of the page served at ``url``."""
     published_at = _published(headers.get("Published"))
+    declared = headers.get("Kind")
+    lineage = lineage_of(headers, url)
     return PageMeta(
-        kind=_kind(headers.get("Kind"), url, company_domain),
+        kind=_kind(declared, lineage, company_domain),
         published_at=published_at,
         true_from=_effective(headers.get("Effective"), published_at),
+        lineage=lineage,
+        lookalike=is_lookalike(declared, lineage, url),
     )
 
 
@@ -56,11 +62,12 @@ def _effective(value: str | None, published_at: str | None) -> date | None:
     return datetime.fromisoformat(published_at).astimezone(timezone.utc).date()
 
 
-def _kind(declared: str | None, url: str, company_domain: str) -> str:
-    if declared in KINDS:
+def _kind(declared: str | None, lineage: Lineage, company_domain: str) -> str:
+    """R4 Own pages: a page is `own` only when its registrant is the company's domain; a page
+    stating `Kind: own` for anyone else is an `aggregator`. Other declared kinds stand."""
+    if declared in KINDS and declared != "own":
         return declared
-    host = normalise_domain(urlsplit(url).hostname or "")
-    return "own" if host is not None and host == company_domain else "aggregator"
+    return "own" if lineage.registrant == company_domain else "aggregator"
 
 
 def _published(value: str | None) -> str | None:

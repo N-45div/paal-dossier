@@ -27,6 +27,8 @@ class Candidate:
     # `true_from` of the page version it came from (Two times per value).
     title: str | None = None
     true_from: date | None = None
+    # Stage 4 (R4.19): the origin of the candidate's page; None for one imported without it.
+    origin: str | None = None
 
 
 def normalise_value(value: Any) -> Any:
