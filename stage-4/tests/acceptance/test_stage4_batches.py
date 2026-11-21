@@ -37,7 +37,7 @@ def await_batch_done(token, batch_id, timeout=180.0):
         time.sleep(0.3)
 
 
-# R4.42-R4.45: the validation table
+# R4.47-R4.51: the validation table
 @pytest.mark.parametrize("body", [
     {"budget_units": 200},                                       # domains missing
     {"domains": [], "budget_units": 200},                         # domains empty
@@ -52,14 +52,14 @@ def await_batch_done(token, batch_id, timeout=180.0):
     {"domains": [SAMPLE_DOMAINS[0]], "budget_units": 1.5},        # float is not an integer
 ])
 def test_batch_validation_table_is_422_validation_failed(env, body):
-    # R4.42, R4.43, R4.44, R4.45 (validation rows of the Batches table)
+    # R4.47, R4.48, R4.49, R4.50, R4.51 (validation rows and the non-integer note of the Batches table)
     r = post_batch(env["ada"], body)
     assert r.status_code == 422, (body, r.status_code, r.text)
     assert r.json()["error"]["code"] == "validation_failed", r.text
 
 
 def test_batch_limit_of_fifty_domains_is_inclusive(env):
-    # R4.42: 50 entries is allowed (a boundary value)
+    # R4.47: 50 entries is allowed (a boundary value)
     domains = [f"batch{i:02d}-none.test" for i in range(50)]
     r = post_batch(env["ada"], {"domains": domains, "budget_units": 1})
     assert r.status_code == 202, r.text
@@ -67,14 +67,14 @@ def test_batch_limit_of_fifty_domains_is_inclusive(env):
 
 
 def test_budget_boundaries_are_accepted(env):
-    # R4.45: 1 and 100000 are the inclusive bounds
+    # R4.50: 1 and 100000 are the inclusive bounds
     for budget in (1, 100000):
         r = post_batch(env["ada"], {"domains": [f"edge{budget}-none.test"], "budget_units": budget})
         assert r.status_code == 202, (budget, r.text)
         assert r.json()["budget_units"] == budget
 
 
-# R4.46: the 202 body and the listing order
+# R4.46 and R4.52: the 202 body and the listing order
 def test_batch_202_body_lists_domains_in_the_given_order(env):
     domains = [SAMPLE_DOMAINS[1], SAMPLE_DOMAINS[0]]
     r = post_batch(env["ada"], {"domains": domains, "budget_units": 200})
@@ -89,13 +89,13 @@ def test_batch_202_body_lists_domains_in_the_given_order(env):
 
 
 def test_domains_are_normalised_in_the_listing(env):
-    # R4.46: the listed domains are the normalised ones (§4): case folded here
+    # R4.52: the listed domains are the normalised ones (§4): case folded here
     r = post_batch(env["ada"], {"domains": ["Batch-Norm.TEST"], "budget_units": 50})
     assert r.status_code == 202, r.text
     assert r.json()["dossiers"][0]["domain"] == "batch-norm.test"
 
 
-# R4.47 and R4.48: a dossier that already exists is not researched by the batch
+# R4.53: a dossier that already exists is not researched by the batch
 def test_existing_dossier_is_not_researched_and_costs_the_batch_nothing(env):
     existing = SAMPLE_DOMAINS[0]
     assert start_build(env["ada"], existing).status_code == 202
@@ -110,7 +110,7 @@ def test_existing_dossier_is_not_researched_and_costs_the_batch_nothing(env):
     assert after["researched_at"] == first["researched_at"]
 
 
-# R4.49: a batch builds the new dossiers, the batch ends done and its spend is within budget
+# R4.54: a batch builds the new dossiers, the batch ends done and its spend is within budget
 def test_batch_builds_new_dossiers_and_stays_within_budget(env):
     domains = [SAMPLE_DOMAINS[0], SAMPLE_DOMAINS[1]]
     r = post_batch(env["ada"], {"domains": domains, "budget_units": 200})
@@ -125,7 +125,7 @@ def test_batch_builds_new_dossiers_and_stays_within_budget(env):
     assert per_dossier == b["spent_units"], (per_dossier, b["spent_units"])
 
 
-# R4.50 and R4.51: a tight shared budget ends the batch and never exceeds it
+# R4.55: a tight shared budget ends the batch and never exceeds it
 def test_tight_shared_budget_is_never_exceeded(env):
     domains = list(SAMPLE_DOMAINS)
     r = post_batch(env["ada"], {"domains": domains, "budget_units": 1})
@@ -139,7 +139,7 @@ def test_tight_shared_budget_is_never_exceeded(env):
         assert d["spent_units"] <= 1, (domain, d["spent_units"])
 
 
-# R4.52-R4.53: idempotency
+# R4.44: idempotency
 def test_same_key_and_body_replays_the_original_response(env):
     key = new_key()
     body = {"domains": [SAMPLE_DOMAINS[2]], "budget_units": 150}
@@ -159,14 +159,14 @@ def test_same_key_different_body_is_409(env):
 
 
 def test_batch_request_without_idempotency_key_is_rejected(env):
-    # R4.52: Idempotency-Key is required (§7)
+    # R4.44: Idempotency-Key is required (§7)
     r = call("POST", BATCHES, token=env["ada"], key=None,
              body={"domains": [SAMPLE_DOMAINS[0]], "budget_units": 50})
     assert r.status_code == 400, r.text
     assert r.json()["error"]["code"] == "missing_idempotency_key", r.text
 
 
-# R4.54-R4.55: ownership and unknown ids
+# R4.43 and R4.56: ownership and unknown ids
 def test_another_users_batch_is_not_found(env):
     r = post_batch(env["ada"], {"domains": [SAMPLE_DOMAINS[0]], "budget_units": 50})
     assert r.status_code == 202, r.text
