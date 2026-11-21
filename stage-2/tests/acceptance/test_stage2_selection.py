@@ -120,3 +120,18 @@ def test_one_candidate_per_value_per_page_even_with_two_excerpts(env):
     assert fld["candidates"][0]["excerpt"] == "Dup Co was founded in 2010.", fld["candidates"][0]["excerpt"]
     assert fld["status"] == "known"
     _check_field_selection("founded_year", fld, d, DUP)
+
+
+TIE = "tie-co.test"
+
+
+def test_equal_authority_and_date_selects_smaller_url(env):
+    # R2.60-R2.68 (url order after authority and recency): two own pages with the same
+    # published_at give different values; the smaller URL ranks first and is selected.
+    d = _build(env, TIE)
+    fld = d["fields"]["founded_year"]
+    assert fld["status"] == "contested"
+    assert fld["candidates"][0]["url"] == f"https://{TIE}/a-page", fld["candidates"][0]["url"]
+    assert fld["value"] == 2012, fld["value"]
+    assert [c["selected"] for c in fld["candidates"]] == [True, False]
+    _check_field_selection("founded_year", fld, d, TIE)

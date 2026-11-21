@@ -93,3 +93,39 @@ def test_r2_54_candidate_url_excerpt_provider_follow_citation_rules(env):
             assert any(excerpt_in_prose(p, c["excerpt"]) for p in proses), (domain, name, c["excerpt"])
             checked += 1
     assert checked > 0
+
+
+def test_r2_154_stage1_import_one_candidate_per_value_per_page(env):
+    # R2.154: a stage-1 export imports one candidate per value per page. Two verified
+    # citations of the same value on the same page (different sentences) give one candidate,
+    # whose excerpt is the first one (R2.155).
+    from conftest import call
+    _build(env, DUP)
+    url = f"https://{DUP}/about"
+    payload = call("GET", "/_test/export", timeout=10).json()
+    state = payload["state"]
+    state.pop("schema", None)
+    stage1_dossiers = []
+    for entry in state["dossiers"]:
+        if entry["domain"] != DUP:
+            continue
+        fields = {}
+        for name in FIELDS:
+            fields[name] = {"value": None, "status": "unknown", "citations": []}
+        fields["founded_year"] = {"value": 2010, "status": "known", "citations": [
+            {"url": url, "excerpt": "Dup Co was founded in 2010.", "provider": "nimble"},
+            {"url": url, "excerpt": "Dup Co was founded in 2010 by two engineers.",
+             "provider": "nimble"},
+        ]}
+        stage1_dossiers.append({"id": entry["id"], "domain": DUP, "state": "ready",
+                                "spent_units": entry["spent_units"],
+                                "researched_at": entry["researched_at"], "fields": fields})
+    assert stage1_dossiers, "dup-co must be in the export"
+    state["dossiers"] = stage1_dossiers
+    r = call("POST", "/_test/import", body=payload, timeout=10)
+    assert r.status_code in (200, 204), r.text
+    token = env["ada"]
+    d = call("GET", f"/dossiers/{DUP}", token=token, timeout=10).json()
+    cands = d["fields"]["founded_year"]["candidates"]
+    assert [(c["value"], c["url"]) for c in cands] == [(2010, url)], cands
+    assert cands[0]["excerpt"] == "Dup Co was founded in 2010.", cands[0]["excerpt"]
