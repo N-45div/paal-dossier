@@ -33,6 +33,24 @@ def test_budget_pressure_never_exceeds_80_units(env):
     check_dossier_fields(d, BUDGET, calls)
 
 
+WIDE = "budget-wide.test"
+
+
+def test_many_url_corpus_cannot_push_spend_past_80_units(env):
+    # R1.11, R1.236, R1.206, R1.100. 70 searchable pages: an uncapped strategy that extracts
+    # every URL it finds (1 unit each) plus the research run (25) and searches would exceed 80.
+    # Best effort: whether the cap is reached depends on how many URLs the strategy discovers.
+    r = start_build(env["ada"], WIDE)
+    assert r.status_code == 202, r.text
+    d = await_settled(env["ada"], WIDE, timeout=120)
+    calls = mock_calls()
+    assert d["state"] in ("ready", "failed"), d["state"]
+    assert d["spent_units"] <= 80, d["spent_units"]
+    assert total_cost(calls) <= 80, total_cost(calls)
+    assert d["spent_units"] == total_cost(calls)
+    check_dossier_fields(d, WIDE, calls)
+
+
 def test_trap_company_has_no_supported_fields(env):
     # R1.10, R1.110, R1.111, R1.257, R1.268, R1.286
     r = start_build(env["ada"], TRAP)
