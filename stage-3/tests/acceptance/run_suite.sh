@@ -7,6 +7,8 @@
 #   MOCK_SRC   mock web build context (default: the read-only sample challenge folder)
 #   CORPUS     corpus set mounted into the mock (default: its sample set)
 #   SVC_PORT / MOCK_PORT  host ports (default 18210 / 18220)
+#   PROVER_PREFIX         name prefix for containers, network and images (default prover-stage3)
+#   UPGRADE_S1_PORT / UPGRADE_S2_PORT  host ports of the upgrade tests' earlier services (18250 / 18260)
 set -eu
 
 if [ -z "${PROVER_LOCKED:-}" ]; then
@@ -20,12 +22,17 @@ CORPUS=${CORPUS:-$MOCK_SRC/corpus/sample}
 SVC_PORT=${SVC_PORT:-18210}
 MOCK_PORT=${MOCK_PORT:-18220}
 MOCK_ADMIN=${MOCK_ADMIN:-local-admin}
-NET=prover-stage3-net
-WEB=prover-stage3-web
-SVC=prover-stage3-svc
+# Names are prefixed with the seat's handle (PROVER_PREFIX), so several seats can run here.
+PREFIX=${PROVER_PREFIX:-prover-stage3}
+NET=${PROVER_NET:-$PREFIX-net}
+WEB=${PROVER_WEB:-$PREFIX-web}
+SVC=$PREFIX-svc
+export PROVER_PREFIX="$PREFIX" PROVER_NET="$NET" PROVER_WEB="$WEB"
 export SVC_CONTAINER="$SVC"
-WEB_IMG=prover-stage3-web
-SVC_IMG=prover-stage3-svc
+# Ports for the upgrade tests' earlier-stage services (test_stage3_upgrade.py).
+export UPGRADE_S1_PORT=${UPGRADE_S1_PORT:-18250} UPGRADE_S2_PORT=${UPGRADE_S2_PORT:-18260}
+WEB_IMG=$PREFIX-web
+SVC_IMG=$PREFIX-svc
 PY=${PYTHON:-python3}
 
 # Merged corpus: the sample set (without its check file key.json and its traits) plus the

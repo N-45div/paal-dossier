@@ -1,0 +1,65 @@
+{
+ "domain": "vers-co.test",
+ "names": [
+  "Vers Co"
+ ],
+ "pages": [
+  {
+   "url": "https://vers-co.test/about",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-03-01T00:00:00Z",
+   "true_from": "2020-01-01",
+   "title": "vers-co.test about",
+   "text": "Vers Co is a company building sensors for farms. Ann Aster is the chief executive of Vers Co.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "vers-co.test"
+   }
+  },
+  {
+   "url": "https://vers-co.test/about",
+   "kind": "own",
+   "epochs": [
+    1
+   ],
+   "searchable": true,
+   "published_at": "2026-04-01T00:00:00Z",
+   "true_from": "2025-01-01",
+   "title": "vers-co.test about",
+   "text": "Vers Co is a company building sensors for farms. Cy Cole is the chief executive of Vers Co.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "vers-co.test"
+   }
+  },
+  {
+   "url": "https://vers-co.test/about",
+   "kind": "own",
+   "epochs": [
+    2
+   ],
+   "searchable": true,
+   "published_at": "2026-05-01T00:00:00Z",
+   "true_from": "2022-01-01",
+   "title": "vers-co.test about",
+   "text": "Vers Co is a company building sensors for farms. Bo Bell is the chief executive of Vers Co.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "vers-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {}
+ }
+}

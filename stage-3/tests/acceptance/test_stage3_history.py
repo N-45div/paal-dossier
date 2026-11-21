@@ -10,7 +10,9 @@ Spec references are to the stage-3 spec (parts 1-3): "Two times per value", "Exe
 ledger assigns them (see stage-3/LEDGER.md); the id column of this file is filled in when the
 ledger rows are final.
 """
-from conftest import (await_settled, call, mock, mock_reset, new_key, set_clock, start_build)
+import requests
+
+from conftest import (BASE_URL, await_settled, call, mock, mock_reset, new_key, set_clock, start_build)
 
 DOMAIN = "history-co.test"
 T0 = "2026-03-01T09:00:00+00:00"   # first build
@@ -29,7 +31,8 @@ def _two_builds(env):
     r = call("POST", f"/dossiers/{DOMAIN}/refresh", token=env["ada"], key=new_key(), body={})
     assert r.status_code in (200, 202), r.text
     await_settled(env["ada"], DOMAIN, timeout=120)
-    mock("POST", "/_mock/epoch", body={"epoch": 0})
+    # The mock stays on epoch 1 (Lee Park). A refresh at epoch 1 selects the same value; a test
+    # that wants the epoch-0 page (Dana Ruiz) switches it itself.
 
 
 def _get(env, path):
@@ -69,6 +72,23 @@ def test_feed_holds_the_change_exactly_once(env):
     assert len(again) == before, (before, len(again))
 
 
+def test_feed_records_a_revert_to_an_earlier_value_as_a_correction(env):
+    # R3.32: a build that selects an earlier value again, with a true_from on or before the
+    # current value's, is a correction (not a change). Epoch 0 is the Dana Ruiz page (2026-01-10).
+    _two_builds(env)
+    mock("POST", "/_mock/epoch", body={"epoch": 0})
+    set_clock("2026-05-01T09:00:00+00:00")
+    r = call("POST", f"/dossiers/{DOMAIN}/refresh", token=env["ada"], key=new_key(), body={})
+    assert r.status_code in (200, 202), r.text
+    await_settled(env["ada"], DOMAIN, timeout=120)
+    changes = _get(env, "/changes?since=0&limit=200").json()["changes"]
+    ceo = [c for c in changes if c["domain"] == DOMAIN and c["field"] == "ceo"]
+    assert [c["type"] for c in ceo] == ["change", "correction"], ceo
+    assert ceo[1]["from"] == "Lee Park" and ceo[1]["to"] == "Dana Ruiz", ceo[1]
+    seqs = [c["seq"] for c in changes]
+    assert seqs == sorted(seqs) and len(set(seqs)) == len(seqs)
+
+
 def test_changes_since_and_limit_paging(env):
     # GET /changes: since is exclusive, limit 1..200, has_more
     _two_builds(env)
@@ -93,6 +113,15 @@ def test_as_of_answers_as_the_service_had_it(env):
     assert _get(env, f"/dossiers/{DOMAIN}?as_of=2026-02-01T00:00:00%2B00:00").status_code == 404
     assert _get(env, f"/dossiers/{DOMAIN}?as_of=2026-03-15T00:00:00").status_code == 422
     assert _get(env, "/dossiers/nobody.test?as_of=2026-03-15T00:00:00%2B00:00").status_code == 404
+    # params= sends the offset encoded by the client itself; a Z suffix is an offset too (Rul-S3-3)
+    via_params = requests.get(BASE_URL + f"/dossiers/{DOMAIN}", timeout=10,
+                              headers={"Authorization": f"Bearer {env['ada']}"},
+                              params={"as_of": "2026-03-15T00:00:00+00:00"})
+    assert via_params.status_code == 200, via_params.text
+    assert via_params.json()["fields"]["ceo"]["value"] == "Dana Ruiz"
+    zulu = _get(env, f"/dossiers/{DOMAIN}?as_of=2026-03-15T00:00:00Z")
+    assert zulu.status_code == 200, zulu.text
+    assert zulu.json()["fields"]["ceo"]["value"] == "Dana Ruiz"
 
 
 def test_values_at_true_at(env):
@@ -114,4 +143,6 @@ def test_executives_is_a_seventh_field_unknown_without_titles(env):
     assert d["fields"]["executives"]["value"] is None
     assert d["fields"]["executives"]["status"] == "unknown"
     assert d["fields"]["executives"]["true_from"] is None
+    assert d["fields"]["executives"]["citations"] == []
+    assert d["fields"]["executives"]["candidates"] == []
     assert d["fields"]["executives"]["learned_at"] is None
