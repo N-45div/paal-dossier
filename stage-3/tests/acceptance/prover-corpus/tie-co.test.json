@@ -1,0 +1,62 @@
+{
+ "domain": "tie-co.test",
+ "names": [
+  "Tie Co"
+ ],
+ "pages": [
+  {
+   "url": "https://tie-co.test/b-page",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-01-10T00:00:00Z",
+   "true_from": "2026-01-05",
+   "title": "tie-co.test b-page",
+   "text": "Tie Co is a company building sensors for farms. Tie Co was founded in 2010.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "tie-co.test"
+   }
+  },
+  {
+   "url": "https://tie-co.test/a-page",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-01-10T00:00:00Z",
+   "true_from": "2026-01-05",
+   "title": "tie-co.test a-page",
+   "text": "Tie Co is a company building sensors for farms. Tie Co was founded in 2012.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "tie-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": [
+    {
+     "field": "founded_year",
+     "value": 2010,
+     "url": "https://tie-co.test/b-page",
+     "excerpt": "Tie Co was founded in 2010."
+    },
+    {
+     "field": "founded_year",
+     "value": 2012,
+     "url": "https://tie-co.test/a-page",
+     "excerpt": "Tie Co was founded in 2012."
+    }
+   ]
+  }
+ }
+}
