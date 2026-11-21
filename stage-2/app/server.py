@@ -11,6 +11,7 @@ from app import auth, control, dossiers, snapshot
 from app.clock import Clock
 from app.errors import ApiError, error_response, json_response
 from app.state import STORE, Store
+from app.ui import routes as ui_routes
 
 DEFAULT_PORT = 8080
 log = logging.getLogger("dossier")
@@ -57,6 +58,7 @@ def build_app(clock: Clock | None = None) -> web.Application:
     app.router.add_get("/dossiers", dossiers.list_all)
     app.router.add_get("/dossiers/{domain}", dossiers.get_one)
     app.router.add_post("/dossiers/{domain}/refresh", dossiers.refresh)
+    ui_routes.register(app)
     return app
 
 
