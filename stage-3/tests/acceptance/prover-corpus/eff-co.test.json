@@ -12,9 +12,9 @@
    ],
    "searchable": true,
    "published_at": "2026-03-20T00:00:00Z",
-   "true_from": null,
+   "true_from": "2026-02-01",
    "title": "eff-co.test about",
-   "text": "Effective: 2026-02-01\n\nEff Co is a company building sensors for farms. Dana Ruiz is the chief executive of Eff Co.",
+   "text": "Eff Co is a company building sensors for farms. Dana Ruiz is the chief executive of Eff Co.",
    "facts": {},
    "lineage": {
     "canonical": null,

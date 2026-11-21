@@ -3,7 +3,7 @@ published_at, else null (spec part 1). Black-box: the candidate's true_from in t
 
 Corpus: eff-co.test (valid Effective line), eff2-co.test (invalid Effective date 2026-02-30 and a
 published_at with offset -05:00, so the UTC date is the next day), eff3-co.test (no Effective line,
-no published_at). Ledger ids: R3B candidate true_from (R3.11-R3.29 range; rows per LEDGER.md).
+no published_at), eff4-co.test (Effective line only in the body). Ledger ids: R3B candidate true_from (R3.11-R3.29 range; rows per LEDGER.md).
 """
 from conftest import call, mock_reset, new_key, set_clock, start_build, await_settled
 
@@ -33,3 +33,10 @@ def test_invalid_effective_falls_back_to_utc_date_of_published_at(env):
 
 def test_no_effective_and_no_published_at_gives_null(env):
     assert _candidate_true_from(env, "eff3-co.test") is None
+
+
+def test_effective_line_in_the_body_is_ignored(env):
+    # R3.6 with stage-1 section 4: the header block ends at the first blank line. An "Effective:"
+    # line in the body is prose; the page has no header Effective, so true_from is the UTC date of
+    # published_at (2026-03-20), not the body's 2026-02-01.
+    assert _candidate_true_from(env, "eff4-co.test") == "2026-03-20"
