@@ -1,0 +1,1273 @@
+{
+ "domain": "budget-wide.test",
+ "names": [
+  "Wide Budget Co"
+ ],
+ "pages": [
+  {
+   "url": "https://budget-wide.test/page-0",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 0",
+   "text": "Wide Budget Co update 0: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 0 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-1",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 1",
+   "text": "Wide Budget Co update 1: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 1 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-2",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 2",
+   "text": "Wide Budget Co update 2: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 2 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-3",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 3",
+   "text": "Wide Budget Co update 3: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 3 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-4",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 4",
+   "text": "Wide Budget Co update 4: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 4 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-5",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 5",
+   "text": "Wide Budget Co update 5: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 5 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-6",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 6",
+   "text": "Wide Budget Co update 6: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 6 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-7",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 7",
+   "text": "Wide Budget Co update 7: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 7 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-8",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 8",
+   "text": "Wide Budget Co update 8: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 8 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-9",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 9",
+   "text": "Wide Budget Co update 9: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 9 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-10",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 10",
+   "text": "Wide Budget Co update 10: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 10 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-11",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 11",
+   "text": "Wide Budget Co update 11: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 11 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-12",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 12",
+   "text": "Wide Budget Co update 12: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 12 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-13",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 13",
+   "text": "Wide Budget Co update 13: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 13 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-14",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 14",
+   "text": "Wide Budget Co update 14: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 14 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-15",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 15",
+   "text": "Wide Budget Co update 15: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 15 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-16",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 16",
+   "text": "Wide Budget Co update 16: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 16 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-17",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 17",
+   "text": "Wide Budget Co update 17: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 17 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-18",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 18",
+   "text": "Wide Budget Co update 18: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 18 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-19",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 19",
+   "text": "Wide Budget Co update 19: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 19 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-20",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 20",
+   "text": "Wide Budget Co update 20: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 20 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-21",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 21",
+   "text": "Wide Budget Co update 21: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 21 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-22",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 22",
+   "text": "Wide Budget Co update 22: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 22 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-23",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 23",
+   "text": "Wide Budget Co update 23: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 23 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-24",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 24",
+   "text": "Wide Budget Co update 24: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 24 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-25",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 25",
+   "text": "Wide Budget Co update 25: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 25 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-26",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 26",
+   "text": "Wide Budget Co update 26: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 26 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-27",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 27",
+   "text": "Wide Budget Co update 27: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 27 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-28",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 28",
+   "text": "Wide Budget Co update 28: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 28 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-29",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 29",
+   "text": "Wide Budget Co update 29: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 29 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-30",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 30",
+   "text": "Wide Budget Co update 30: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 30 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-31",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 31",
+   "text": "Wide Budget Co update 31: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 31 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-32",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 32",
+   "text": "Wide Budget Co update 32: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 32 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-33",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 33",
+   "text": "Wide Budget Co update 33: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 33 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-34",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 34",
+   "text": "Wide Budget Co update 34: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 34 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-35",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 35",
+   "text": "Wide Budget Co update 35: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 35 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-36",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 36",
+   "text": "Wide Budget Co update 36: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 36 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-37",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 37",
+   "text": "Wide Budget Co update 37: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 37 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-38",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 38",
+   "text": "Wide Budget Co update 38: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 38 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-39",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 39",
+   "text": "Wide Budget Co update 39: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 39 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-40",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 40",
+   "text": "Wide Budget Co update 40: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 40 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-41",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 41",
+   "text": "Wide Budget Co update 41: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 41 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-42",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 42",
+   "text": "Wide Budget Co update 42: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 42 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-43",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 43",
+   "text": "Wide Budget Co update 43: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 43 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-44",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 44",
+   "text": "Wide Budget Co update 44: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 44 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-45",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 45",
+   "text": "Wide Budget Co update 45: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 45 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-46",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 46",
+   "text": "Wide Budget Co update 46: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 46 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-47",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 47",
+   "text": "Wide Budget Co update 47: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 47 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-48",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 48",
+   "text": "Wide Budget Co update 48: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 48 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-49",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 49",
+   "text": "Wide Budget Co update 49: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 49 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-50",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 50",
+   "text": "Wide Budget Co update 50: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 50 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-51",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 51",
+   "text": "Wide Budget Co update 51: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 51 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-52",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 52",
+   "text": "Wide Budget Co update 52: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 52 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-53",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 53",
+   "text": "Wide Budget Co update 53: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 53 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-54",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 54",
+   "text": "Wide Budget Co update 54: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 54 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-55",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 55",
+   "text": "Wide Budget Co update 55: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 55 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-56",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 56",
+   "text": "Wide Budget Co update 56: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 56 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-57",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 57",
+   "text": "Wide Budget Co update 57: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 57 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-58",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 58",
+   "text": "Wide Budget Co update 58: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 58 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-59",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 59",
+   "text": "Wide Budget Co update 59: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 59 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-60",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 60",
+   "text": "Wide Budget Co update 60: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 60 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-61",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 61",
+   "text": "Wide Budget Co update 61: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 61 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-62",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 62",
+   "text": "Wide Budget Co update 62: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 62 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-63",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 63",
+   "text": "Wide Budget Co update 63: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 63 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-64",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 64",
+   "text": "Wide Budget Co update 64: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 64 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-65",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 65",
+   "text": "Wide Budget Co update 65: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 65 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-66",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 66",
+   "text": "Wide Budget Co update 66: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 66 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-67",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 67",
+   "text": "Wide Budget Co update 67: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 67 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-68",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 68",
+   "text": "Wide Budget Co update 68: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 68 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  },
+  {
+   "url": "https://budget-wide.test/page-69",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-wide.test page 69",
+   "text": "Wide Budget Co update 69: Wide Budget Co is based in Porto. Wide Budget Co shares notes number 69 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-wide.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": []
+  }
+ }
+}
