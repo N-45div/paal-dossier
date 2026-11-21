@@ -166,3 +166,28 @@ label { font-weight: 600; display: block; margin-bottom: 4px; }
   .actions .btn { flex: 1 1 auto; }
   .field-value { font-size: 1.2rem; }
 }
+
+/* Evidence and contested screens */
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.candidate {
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 12px;
+  margin: 0; min-width: 0;
+}
+.candidate-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  justify-content: space-between; margin-bottom: 6px; }
+.candidate-value { font-weight: 700; }
+.field-empty { color: var(--muted); }
+.contested-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--gap); }
+.contested-item {
+  background: var(--paper); border: 1px solid var(--line); border-left: 6px solid #b45309;
+  border-radius: var(--radius); padding: 16px; min-width: 0;
+}
+.contested-item p { margin: 0 0 6px; }
+.contested-title { font-weight: 700; }
+.contested-selected { font-weight: 600; }
+.empty { color: var(--muted); }
+.candidate blockquote { margin: 0 0 8px; padding: 0 0 0 10px; border-left: 3px solid var(--line); }
+.candidate blockquote p { margin: 0; }
