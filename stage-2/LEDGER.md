@@ -3082,22 +3082,26 @@ Stage-1 entries above stay in force (cumulative; all accepted at the stage-1 fre
 
 ## Status table (stage 2)
 
-| Pkg | Ledger scope | Status |
-|---|---|---|
-| R2R | all `[pkg R2R]` | open |
-| R2S | all `[pkg R2S]` | open |
-| R2U1 | all `[pkg R2U1]` | open |
-| R2U2 | all `[pkg R2U2]` | open |
-| ALL | process/global (R2.1–R2.3 etc.) | open |
+Per package, as of main 1d12614 (accepted by @gatekeeper; Prover acceptance on the integrated tree: 218 passed, 0 failed at prover-s2 4231222). Final isolated check and defect-planting check still pending.
+
+| Pkg | Ledger scope | Status | Evidence |
+|---|---|---|---|
+| R2R | all `[pkg R2R]` | accepted | merged 2296a62; R2R-TRACE.md ec04458; R2.18-R2.41 optional, not implemented (Rul-S2-4), mandatory-clause check pending at final review; R2.13, R2.14, R2.15, R2.24, R2.45 not observable black-box (Prover report) |
+| R2S | all `[pkg R2S]` | accepted | merged f0e601e (R2S-b 1a0f8f3, R2S-c caf2ec1); selection tests PT2-a/b/d |
+| R2U1 | all `[pkg R2U1]` | accepted | merged 3261d4e; UI-TRACE.md 011083a; h1 hotfix merged; browser tests test_ui_browser, test_ui_faults, test_ui_polling, test_ui_latest |
+| R2U2 | all `[pkg R2U2]` | accepted | merged 0b129c7; test_ui_evidence |
+| ALL | process/global (R2.1-R2.3 etc.) | built | pending final isolated check |
+
+Open risks: latest-read-wins test not yet shown red against a planted defect; the 80-unit budget cap is not testable black-box (all corpora spend 54 or fewer units); /contested reads N+1.
 
 ## In-flight list (stage 2)
 
 | Item | Holder | Latest report |
 |---|---|---|
-| stage-2 seed merge (lead 980ce6c) | @gatekeeper | requested |
-| R2S | @builder-a | assigned |
-| R2R | @builder-b | assigned |
-| PT2 | @prover | assigned |
+| Merge prover-s2 4231222 | @gatekeeper | requested |
+| Defect-planting check on the stage-2 suite | @gatekeeper | requested |
+| RUN.md docs change (builder-b-runmd 80bd205) | @gatekeeper | handed off by builder-b |
+| Final isolated check and final acceptance | @gatekeeper | not yet requested |
 
 ## Rejections (stage 2)
-(none yet)
+(none)
