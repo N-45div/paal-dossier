@@ -309,3 +309,21 @@ def test_reset_during_build_leaves_no_trace(env):
     token = login("ada@example.com")
     assert get_dossier(token, domain).status_code == 404
     assert call("GET", "/dossiers", token=token).json()["dossiers"] == []
+
+
+@pytest.mark.parametrize("seconds", [2, 8])
+def test_slow_nimble_search_does_not_make_build_give_up(env, seconds):
+    # R1.192: a slow provider answer (mock delay) must not make the build give up early;
+    # the build still ends ready. Only the delay case is testable against the mock.
+    domain = SAMPLE_DOMAINS[0]
+    mock_faults("nimble", ["search"], "delay", seconds=seconds)
+    try:
+        t0 = time.time()
+        assert start_build(env["ada"], domain).status_code == 202
+        d = await_settled(env["ada"], domain, timeout=120)
+        elapsed = time.time() - t0
+    finally:
+        mock_faults("nimble", ["search"], "none")
+    assert d["state"] == "ready", d["state"]
+    assert elapsed >= seconds, "the delayed search was not waited for"
+    check_dossier_fields(d, domain, mock_calls())
