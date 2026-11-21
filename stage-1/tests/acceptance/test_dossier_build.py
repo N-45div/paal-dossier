@@ -29,7 +29,7 @@ def build(token, domain):
 
 def test_create_then_ready_with_clock_time_and_fast_completion(env):
     # R1.73, R1.187, R1.191, R1.197, R1.210
-    set_clock("2026-03-01T09:30:00+02:00")
+    set_clock("2026-03-01T11:30:00+02:00")  # 09:30Z, after the fixture clock 09:00Z
     domain = SAMPLE_DOMAINS[0]
     t0 = time.time()
     r = start_build(env["ada"], domain)
@@ -40,7 +40,7 @@ def test_create_then_ready_with_clock_time_and_fast_completion(env):
     assert time.time() - t0 <= 10, "build did not end within 10 s with fast providers"
     assert d["state"] == "ready"
     assert RFC3339_OFFSET.match(d["researched_at"]), d["researched_at"]
-    assert parse_ts(d["researched_at"]) == parse_ts("2026-03-01T09:30:00+02:00")
+    assert parse_ts(d["researched_at"]) == parse_ts("2026-03-01T11:30:00+02:00")
     assert set(d) >= {"dossier_id", "domain", "state", "researched_at", "spent_units", "fields"}
 
 
