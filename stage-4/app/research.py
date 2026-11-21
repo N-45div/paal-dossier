@@ -44,7 +44,7 @@ BUILD_DEADLINE_S = 280.0
 EXTRACT_WAVE = 24
 EXTRACT_CONCURRENCY = 8
 DOMAIN_SEARCH_ATTEMPTS = 3
-RETRY_DELAY_S = 1.5
+RETRY_DELAY_S = 0.5
 
 _EXTRA_QUERY_TOPICS = ("headquarters", "chief executive", "founded employees", "funding raised")
 

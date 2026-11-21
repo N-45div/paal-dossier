@@ -40,16 +40,25 @@ def start_build(store: Store, dossier: Dossier, built_at: datetime,
     task.add_done_callback(store.build_tasks.discard)
 
 
-async def _run(store: Store, dossier: Dossier, generation: int, built_at: datetime,
-               spend: _BuildSpend, shared: SharedBudget | None = None) -> None:
+def _spend_recorder(store: Store, dossier: Dossier, generation: int, spend: _BuildSpend):
+    """The build's spend callback. Each change moves the dossier total at once (Rul-11), and is
+    written durably at once (Rul-S4-4, R4D): a billed call's units are on disk before anything
+    relies on them, so a stop cannot lose them. A state replaced by reset or import no longer owns
+    this build, so it is not counted."""
+
     def on_spend(units: int) -> None:
-        # Live counter (Rul-11): a reservation moves the dossier total at once. A state
-        # replaced by reset or import no longer owns this build, so it is not counted.
         if store.state.generation != generation:
             return
         spend.total += units
         dossier.spent_units += units
+        store.save()
 
+    return on_spend
+
+
+async def _run(store: Store, dossier: Dossier, generation: int, built_at: datetime,
+               spend: _BuildSpend, shared: SharedBudget | None = None) -> None:
+    on_spend = _spend_recorder(store, dossier, generation, spend)
     try:
         outcome = await (research.run_build(dossier.domain, on_spend) if shared is None
                          else research.run_build(dossier.domain, on_spend, shared))
