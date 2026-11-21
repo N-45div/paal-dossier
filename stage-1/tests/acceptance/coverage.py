@@ -39,12 +39,12 @@ STRUCTURAL = {
     "R1.51": "ephemeral disk; no testable behaviour",
     "R1.146": "out of scope: email verification and password reset are not required",
     "R1.12": "out of scope: contact data, people search, other fields (fields test checks the six keys only)",
-    "R1.253": "state need not survive an abrupt restart; a restart test is not in this suite yet",
+    "R1.253": "permission: state need not survive an abrupt container restart (lead ruling); no test",
     "R1.27": "live judging with a working Nimble key only; not exercised by the mock suite",
     "R1.28": "routing rule: the service reaches providers only through WebRouter (gatekeeper code review)",
     "R1.42": "Tavily base URL passed to WebRouter in provider_config (gatekeeper code review of the call)",
     "R1.43": "the provider_config snippet itself (gatekeeper code review of the call)",
-    "R1.192": "live-provider timing rule (no deadline for slow providers, 300 s bound); the mock is not a live provider",
+    "R1.192": "live-provider timing rule (lead ruling): only the mock delay case is tested (test_slow_nimble_search_does_not_make_build_give_up); the live bounds are structural",
     "R1.240": "exports are private artifacts: handling rule, checked by the gatekeeper review",
 }
 
