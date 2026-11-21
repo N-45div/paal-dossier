@@ -16,7 +16,7 @@ import time
 import pytest
 import requests
 
-from conftest import BASE_URL, SAMPLE_DOMAINS, await_settled, call, mock_faults, new_key, start_build
+from conftest import BASE_URL, SAMPLE_DOMAINS, await_settled, call, mock_calls, mock_faults, mock_reset, new_key, start_build
 
 SVC = os.environ.get("SVC_CONTAINER", "prover-stage4-svc")
 PROVIDERS = ("nimble", "tavily")
@@ -93,12 +93,39 @@ def _await_batch_done(token, batch_id, timeout=180.0):
 
 @pytest.fixture
 def slow_providers(env):
-    """Every provider call takes DELAY_S seconds; cleared again however the test ends."""
+    """Every provider call takes DELAY_S seconds; cleared and drained however the test ends."""
     _set_faults("delay", DELAY_S)
     try:
         yield env
     finally:
-        _set_faults("none")
+        _drain(env["ada"])
+
+
+def _drain(token):
+    """Leave nothing behind for the next module: clear the fault, wait out delayed calls of killed
+    builds (at least DELAY_S + 1 s), wait until no dossier of this module is building, reset the mock
+    and check its call log is empty."""
+    _set_faults("none")
+    before = mock_calls()
+    last_seq = max((c["seq"] for c in before), default=0)
+    time.sleep(DELAY_S + 1)
+    deadline = time.time() + 180
+    while True:
+        states = []
+        for d in SAMPLE_DOMAINS[:2]:
+            r = call("GET", f"/dossiers/{d}", token=token, timeout=10)
+            states.append("absent" if r.status_code == 404 else r.json()["state"])
+        if all(s != "building" for s in states):
+            break
+        assert time.time() < deadline, f"dossiers still building after the restart tests: {states}"
+        time.sleep(0.5)
+    time.sleep(DELAY_S + 1)  # calls that started while the dossiers were settling
+    late = [c for c in mock_calls() if c["seq"] > last_seq]
+    print(f"drain: {len(late)} mock calls logged after this test's last call (seq > {last_seq}): "
+          + "; ".join(f"seq {c['seq']} {c['provider']}/{c['method']}" for c in late[:20]), flush=True)
+    mock_reset(0)
+    leftover = mock_calls()
+    assert leftover == [], f"mock call log not empty after reset: {len(leftover)} calls"
 
 
 def test_build_running_at_stop_loads_failed_with_its_spend(slow_providers):
