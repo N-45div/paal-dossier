@@ -1,0 +1,38 @@
+{
+ "domain": "eff2-co.test",
+ "names": [
+  "Eff2 Co"
+ ],
+ "pages": [
+  {
+   "url": "https://eff2-co.test/about",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-03-20T23:30:00-05:00",
+   "true_from": null,
+   "title": "eff2-co.test about",
+   "text": "Effective: 2026-02-30\n\nEff2 Co is a company building sensors for farms. Dana Ruiz is the chief executive of Eff2 Co.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "eff2-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": [
+    {
+     "field": "ceo",
+     "value": "Dana Ruiz",
+     "url": "https://eff2-co.test/about",
+     "excerpt": "Dana Ruiz is the chief executive of Eff2 Co."
+    }
+   ]
+  }
+ }
+}
