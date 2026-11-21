@@ -75,6 +75,34 @@ class UiTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.headers["Location"],
                          "/dossiers/acme-robotics.test/evidence")
 
+    async def test_lost_research_response_retry_replays_the_same_answer(self) -> None:
+        """Server side of research-uncertain: the retry with the same key and body is a replay."""
+        signup = await self.client.post("/auth/signup", json={
+            "email": "retry@example.com", "password": "correct horse", "display_name": "Ada"})
+        token = (await signup.json())["token"]
+        headers = {"Authorization": f"Bearer {token}", "Idempotency-Key": "key-retry-1"}
+        first = await self.client.post("/dossiers", json={"domain": "acme-robotics.test"},
+                                       headers=headers)
+        self.assertEqual(first.status, 202)
+        retry = await self.client.post("/dossiers", json={"domain": "acme-robotics.test"},
+                                       headers=headers)
+        self.assertEqual(retry.status, 200)
+        self.assertEqual(await retry.json(), await first.json())
+
+    async def test_refresh_retry_with_same_key_is_a_replay(self) -> None:
+        """Server side of refresh-uncertain: the same key on refresh replays the original answer."""
+        signup = await self.client.post("/auth/signup", json={
+            "email": "refresh@example.com", "password": "correct horse", "display_name": "Ada"})
+        token = (await signup.json())["token"]
+        headers = {"Authorization": f"Bearer {token}", "Idempotency-Key": "key-refresh-1"}
+        await self.client.post("/dossiers", json={"domain": "acme-robotics.test"},
+                               headers={**headers, "Idempotency-Key": "key-create-1"})
+        first = await self.client.post("/dossiers/acme-robotics.test/refresh", headers=headers)
+        self.assertEqual(first.status, 202)
+        retry = await self.client.post("/dossiers/acme-robotics.test/refresh", headers=headers)
+        self.assertEqual(retry.status, 200)
+        self.assertEqual(await retry.json(), await first.json())
+
     async def test_static_assets_are_served_locally(self) -> None:
         css = await self.client.get("/static/app.css")
         self.assertEqual(css.status, 200)
