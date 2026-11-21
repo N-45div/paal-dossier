@@ -72,7 +72,11 @@ def test_history_entries_carry_the_same_build_time_as_the_feed(env):
     assert [_instant(c["learned_at"]) for c in feed] == [_instant(T1), _instant(T2)], feed
 
 
-SAMPLE_MOVERS = ["ferncliff-foods.test", "brightwater-labs.test", "windrush-bakery.test"]
+# Sample companies whose own pages change between epoch 0 and epoch 1 (taken from the sample corpus
+# files: pages with the same URL and different text in the two epochs).
+SAMPLE_MOVERS = ["ashgrove-solar.test", "brightwater-labs.test", "halvorsen-robotics.test",
+                 "mosaic-freight.test", "pemberton-analytics.test", "quillmate.test",
+                 "tidemark-energy.test"]
 
 
 @pytest.mark.parametrize("domain", SAMPLE_MOVERS)
