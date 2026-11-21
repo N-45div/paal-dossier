@@ -57,6 +57,24 @@ class UiTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status, 404)
         self.assertIn('data-testid="dossier-not-found"', await response.text())
 
+    async def test_evidence_and_contested_routes_render_html(self) -> None:
+        evidence = await self.client.get("/dossiers/acme-robotics.test/evidence")
+        self.assertEqual(evidence.status, 200)
+        self.assertIn("text/html", evidence.headers["Content-Type"])
+        self.assertIn('id="evidence-root"', await evidence.text())
+        contested = await self.client.get("/contested")
+        self.assertEqual(contested.status, 200)
+        body = await contested.text()
+        for testid in ("contested-list", "empty-contested"):
+            self.assertIn(f'data-testid="{testid}"', body)
+
+    async def test_evidence_route_redirects_non_normalised_domain(self) -> None:
+        response = await self.client.get("/dossiers/WWW.Acme-Robotics.test/evidence",
+                                         allow_redirects=False)
+        self.assertEqual(response.status, 302)
+        self.assertEqual(response.headers["Location"],
+                         "/dossiers/acme-robotics.test/evidence")
+
     async def test_static_assets_are_served_locally(self) -> None:
         css = await self.client.get("/static/app.css")
         self.assertEqual(css.status, 200)

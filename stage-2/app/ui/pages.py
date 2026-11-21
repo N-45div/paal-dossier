@@ -41,6 +41,19 @@ async def dossier(request: web.Request) -> web.Response:
     return html(page(domain, dossier_body(domain), script="dossier.js"))
 
 
+def domain_screen(request: web.Request, *, suffix: str, title: str, body_for, script: str):
+    """Serve a per-dossier browser screen at /dossiers/{domain}/{suffix}. The domain is
+    normalised as in §4: a non-normalised one redirects, an invalid one renders not-found."""
+    raw = request.match_info["domain"]
+    domain = normalise_domain(raw)
+    if domain is None:
+        return html(page("Dossier not found", dossier_not_found_body(raw)), status=404)
+    if domain != raw:
+        return web.Response(status=302, headers={
+            "Location": f"/dossiers/{domain}/{suffix}", "Vary": "Accept"})
+    return html(page(title, body_for(domain), script=script))
+
+
 def dossier_not_found_body(raw: str) -> str:
     return (
         '<section class="panel"><h1>Dossier not found</h1>'
