@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, TypeVar
 
@@ -46,6 +47,10 @@ RATE_LIMIT_ATTEMPTS = 4
 # answer costs nothing (R4.61), so the retry costs no units; the attempts stay within the build's
 # time bound and the 80-unit cap.
 SERVER_ERROR_WAIT_S = 0.2
+# §8 (R1.191): a build whose calls each answer within one second ends within 10 seconds. Retries
+# that would start after this many seconds of the build are not made, so an all-fail build still ends
+# inside that bound, whatever the answers.
+RETRY_WINDOW_S = 3.0
 EXTRACT_TIMEOUT_S = 30.0
 RESEARCH_TIMEOUT_S = 240.0
 
@@ -135,6 +140,7 @@ class NimbleGateway:
     def __init__(self, ledger: Ledger, on_spend: Callable[[int], None] | None = None) -> None:
         self._ledger = ledger
         self._on_spend = on_spend
+        self._started = time.monotonic()
 
     @property
     def available(self) -> bool:
@@ -152,10 +158,14 @@ class NimbleGateway:
         value, refused = None, False
         for attempt in range(1, RATE_LIMIT_ATTEMPTS + 1):
             value, refused, wait = await self._attempt(cost, timeout, call)
-            if wait is None or attempt == RATE_LIMIT_ATTEMPTS:
+            if wait is None or attempt == RATE_LIMIT_ATTEMPTS or not self._within_window(wait):
                 break
             await asyncio.sleep(wait)
         return value, refused
+
+    def _within_window(self, wait: float) -> bool:
+        """True when a retry after ``wait`` seconds still starts inside RETRY_WINDOW_S of the build."""
+        return time.monotonic() - self._started + wait < RETRY_WINDOW_S
 
     async def _attempt(
         self,

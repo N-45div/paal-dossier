@@ -127,3 +127,22 @@ def test_a_per_url_503_on_extract_once_still_gives_the_page(monkeypatch):
     assert flaky.ok
     assert fields_of(flaky) == fields_of(clean)
     assert net == flaky.spent_units
+
+
+def test_the_retry_window_stops_retries_that_would_pass_it(monkeypatch):
+    # With no time left in the window, a failing call is attempted once: no retry is started (R1.191).
+    attempts = {"search": 0}
+
+    class Always500(FaultRouter):
+        async def search(self, query, **_):
+            attempts["search"] += 1
+            raise ProviderError("nimble", "injected", original=StatusError(500))
+
+    monkeypatch.setattr(gateway, "RETRY_WINDOW_S", 0)
+    every = {"search": 10**6, "extract": 10**6, "research": 10**6}
+    outcome, net = run(monkeypatch, Always500(first_fail=every))
+    assert not outcome.ok and outcome.spent_units == 0 and net == 0
+    # One attempt per search: the domain search (DOMAIN_SEARCH_ATTEMPTS) plus each extra name search.
+    from app.support import company_name
+    extras = len(research._extra_queries(company_name(DOMAIN)))
+    assert attempts["search"] == research.DOMAIN_SEARCH_ATTEMPTS + extras
