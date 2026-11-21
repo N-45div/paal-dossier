@@ -6,6 +6,8 @@ on the history-co corpus company.
 """
 from datetime import datetime
 
+import pytest
+
 from conftest import call, mock, mock_reset, new_key, set_clock, start_build, await_settled
 
 HISTORY_CO = "history-co.test"
@@ -68,3 +70,29 @@ def test_history_entries_carry_the_same_build_time_as_the_feed(env):
     assert [_instant(e["learned_at"]) for e in ceo] == [_instant(T0), _instant(T1), _instant(T2)], ceo
     feed = _feed(env, VERS_CO)
     assert [_instant(c["learned_at"]) for c in feed] == [_instant(T1), _instant(T2)], feed
+
+
+SAMPLE_MOVERS = ["ferncliff-foods.test", "brightwater-labs.test", "windrush-bakery.test"]
+
+
+@pytest.mark.parametrize("domain", SAMPLE_MOVERS)
+def test_every_entry_of_a_sample_company_carries_the_refresh_build_time(env, domain):
+    # Sample companies (not the Prover's own): a build at epoch 0, then a refresh at a later clock
+    # at epoch 1. Every feed entry and history entry of the company carries its adding build's time:
+    # initial entries the first build's, change and correction entries the refresh's.
+    _run_builds(env, domain, [(0, T0), (1, T1)])
+    r = call("GET", "/changes?since=0&limit=200", token=env["ada"], timeout=10)
+    assert r.status_code == 200, r.text
+    feed = [c for c in r.json()["changes"] if c["domain"] == domain]
+    assert feed, f"{domain}: the epoch-1 refresh must change at least one value"
+    for c in feed:
+        assert c["type"] in ("change", "correction"), c
+        assert c["learned_at"] is not None, c
+        assert _instant(c["learned_at"]) == _instant(T1), c
+    h = call("GET", f"/dossiers/{domain}/history", token=env["ada"], timeout=10)
+    assert h.status_code == 200, h.text
+    for name, entries in h.json()["fields"].items():
+        for e in entries:
+            assert e["learned_at"] is not None, (name, e)
+            expected = T0 if e["type"] == "initial" else T1
+            assert _instant(e["learned_at"]) == _instant(expected), (name, e)
