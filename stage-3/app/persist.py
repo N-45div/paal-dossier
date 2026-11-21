@@ -70,9 +70,12 @@ def _record(raw: dict[str, Any]) -> BuildRecord:
                        ok=raw["ok"], spent_units=raw["spent_units"], versions=versions)
 
 
-def dossier_json(d: Dossier) -> dict[str, Any]:
+def dossier_json(d: Dossier, *, exporting: bool = False) -> dict[str, Any]:
+    """A dossier as JSON. The durable document keeps the running flag, so a build cut short by a
+    stop loads as failed (Rul-S3-2). An export holds the state before the running build: it is
+    not building, and its last_outcome is that of the last completed build (Rul-7)."""
     return {"id": d.id, "domain": d.domain, "last_outcome": d.last_outcome,
-            "building": d.building, "spent_units": d.spent_units,
+            "building": False if exporting else d.building, "spent_units": d.spent_units,
             "records": [_record_json(r) for r in d.records]}
 
 
@@ -102,7 +105,7 @@ def feed_from(raw: list[dict[str, Any]]) -> list[FeedRow]:
     ]
 
 
-def state_json(state: State) -> dict[str, Any]:
+def state_json(state: State, *, exporting: bool = False) -> dict[str, Any]:
     """The whole state as JSON, without a format header: the body of the stage-3 export and of
     the durable document. Dossiers are in build order; the feed is in seq order."""
     return {
@@ -110,7 +113,8 @@ def state_json(state: State) -> dict[str, Any]:
         "users": [{"id": u.id, "email": u.email, "display_name": u.display_name,
                    "password_hash": u.password_hash} for u in state.users_by_id.values()],
         "tokens": dict(state.tokens),
-        "dossiers": [dossier_json(d) for d in state.dossiers_by_domain.values()],
+        "dossiers": [dossier_json(d, exporting=exporting)
+                     for d in state.dossiers_by_domain.values()],
         "idempotency": [
             {"user_id": k[0], "key": k[1], "method": k[2], "path": k[3],
              "canonical": rec.canonical, "body": rec.body}
