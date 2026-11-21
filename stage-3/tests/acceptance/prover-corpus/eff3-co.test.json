@@ -1,0 +1,38 @@
+{
+ "domain": "eff3-co.test",
+ "names": [
+  "Eff3 Co"
+ ],
+ "pages": [
+  {
+   "url": "https://eff3-co.test/about",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": null,
+   "true_from": null,
+   "title": "eff3-co.test about",
+   "text": "Eff3 Co is a company building sensors for farms. Dana Ruiz is the chief executive of Eff3 Co.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "eff3-co.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": [
+    {
+     "field": "ceo",
+     "value": "Dana Ruiz",
+     "url": "https://eff3-co.test/about",
+     "excerpt": "Dana Ruiz is the chief executive of Eff3 Co."
+    }
+   ]
+  }
+ }
+}
