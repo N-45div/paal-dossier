@@ -103,6 +103,13 @@ class UiTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(retry.status, 200)
         self.assertEqual(await retry.json(), await first.json())
 
+    async def test_dossier_screens_render_one_h1_including_not_found(self) -> None:
+        for path in ("/dossiers/acme-robotics.test", "/dossiers/acme-robotics.test/evidence",
+                     "/dossiers/not%20a%20domain"):
+            with self.subTest(path=path):
+                body = await (await self.client.get(path, headers=HTML)).text()
+                self.assertEqual(body.count("<h1"), 1)
+
     async def test_static_assets_are_served_locally(self) -> None:
         css = await self.client.get("/static/app.css")
         self.assertEqual(css.status, 200)
