@@ -27,7 +27,7 @@ CITE = {"url": "https://acme-robotics.test/about",
         "excerpt": "Acme Robotics, Inc. was founded in 2014.", "provider": "nimble"}
 
 
-def ready_outcome(domain: str) -> BuildOutcome:
+def ready_outcome(domain: str, on_spend=None) -> BuildOutcome:
     fields = research.unknown_fields()
     fields["legal_name"] = FieldResult("Acme Robotics, Inc.", [CITE])
     fields["founded_year"] = FieldResult(2014, [CITE])
@@ -203,10 +203,51 @@ class DossierTest(unittest.IsolatedAsyncioTestCase):
         found = await (await self.client.get("/dossiers?q=ALPHA", headers=self.headers(None))).json()
         self.assertEqual([d["domain"] for d in found["dossiers"]], ["alpha.test"])
 
+    async def test_spend_is_a_live_counter_during_a_build(self) -> None:
+        gate = asyncio.Event()
+        seen_mid_build = {}
+
+        async def metered(domain: str, on_spend=None) -> BuildOutcome:
+            on_spend(12)   # a reservation
+            on_spend(5)
+            on_spend(-5)   # a refused call released
+            await gate.wait()
+            on_spend(17)
+            return BuildOutcome(ok=True, spent_units=29, fields=ready_outcome(domain).fields)
+
+        with mock.patch("app.research.run_build", side_effect=metered):
+            await self.create("acme-robotics.test")
+            await self.settle()
+            mid = await (await self.client.get("/dossiers/acme-robotics.test",
+                                               headers=self.headers(None))).json()
+            seen_mid_build["spent"] = mid["spent_units"]
+            seen_mid_build["state"] = mid["state"]
+            gate.set()
+            await self.settle()
+        self.assertEqual(seen_mid_build, {"spent": 12, "state": "building"})
+        done = await (await self.client.get("/dossiers/acme-robotics.test",
+                                            headers=self.headers(None))).json()
+        self.assertEqual(done["spent_units"], 29)
+        self.assertEqual(done["state"], "ready")
+
+    async def test_failed_build_spend_still_counts_and_fields_stay(self) -> None:
+        async def spends_then_fails(domain: str, on_spend=None) -> BuildOutcome:
+            on_spend(15)
+            return BuildOutcome(ok=False, spent_units=15, fields=research.unknown_fields())
+
+        with mock.patch("app.research.run_build", side_effect=spends_then_fails):
+            await self.create("acme-robotics.test")
+            await self.settle()
+        dossier = await (await self.client.get("/dossiers/acme-robotics.test",
+                                               headers=self.headers(None))).json()
+        self.assertEqual(dossier["state"], "failed")
+        self.assertEqual(dossier["spent_units"], 15)
+        self.assertIsNone(dossier["researched_at"])
+
     async def test_reset_during_build_discards_its_result(self) -> None:
         gate = asyncio.Event()
 
-        async def slow(domain: str) -> BuildOutcome:
+        async def slow(domain: str, on_spend=None) -> BuildOutcome:
             await gate.wait()
             return ready_outcome(domain)
 
