@@ -84,8 +84,10 @@ class DossierTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(dossier["spent_units"], 0)
         self.assertIsNone(dossier["researched_at"])
         for name, field in dossier["fields"].items():
+            # Stage 3: every field carries its selected value's two times, null when unknown.
             self.assertEqual(field, {"value": None, "status": "unknown", "citations": [],
-                                     "candidates": []}, name)
+                                     "candidates": [], "true_from": None, "learned_at": None},
+                             name)
 
     async def test_second_create_for_same_domain_starts_no_build(self) -> None:
         first = await self.create("acme-robotics.test", "k1")

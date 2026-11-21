@@ -8,6 +8,7 @@ stage-1 export. ``published_at`` is an RFC 3339 string with an explicit offset, 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 KINDS: tuple[str, ...] = ("own", "filing", "news", "aggregator")
@@ -22,6 +23,10 @@ class Candidate:
     provider: str
     kind: str | None = None
     published_at: str | None = None
+    # Stage 3: the title of an executives candidate (its value is the person's name), and the
+    # `true_from` of the page version it came from (Two times per value).
+    title: str | None = None
+    true_from: date | None = None
 
 
 def normalise_value(value: Any) -> Any:
