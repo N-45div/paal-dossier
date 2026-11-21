@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 
 from app import research
+from app.budget import SharedBudget
 from app.candidates import dedupe
 from app.feed import append_build
 from app.history import feed_entries
@@ -25,20 +26,22 @@ class _BuildSpend:
         self.total = 0
 
 
-def start_build(store: Store, dossier: Dossier, built_at: datetime) -> None:
+def start_build(store: Store, dossier: Dossier, built_at: datetime,
+                shared: SharedBudget | None = None) -> None:
     """Mark the dossier building and run its build as a background task.
 
-    `built_at` is the clock time of the request that started the build (§8)."""
+    `built_at` is the clock time of the request that started the build (§8). `shared` is the
+    batch's budget when the build belongs to a batch (R4.54)."""
     dossier.building = True
     spend = _BuildSpend()
     task = asyncio.create_task(
-        _run(store, dossier, store.state.generation, built_at, spend))
+        _run(store, dossier, store.state.generation, built_at, spend, shared))
     store.build_tasks.add(task)
     task.add_done_callback(store.build_tasks.discard)
 
 
 async def _run(store: Store, dossier: Dossier, generation: int, built_at: datetime,
-               spend: _BuildSpend) -> None:
+               spend: _BuildSpend, shared: SharedBudget | None = None) -> None:
     def on_spend(units: int) -> None:
         # Live counter (Rul-11): a reservation moves the dossier total at once. A state
         # replaced by reset or import no longer owns this build, so it is not counted.
@@ -48,7 +51,8 @@ async def _run(store: Store, dossier: Dossier, generation: int, built_at: dateti
         dossier.spent_units += units
 
     try:
-        outcome = await research.run_build(dossier.domain, on_spend)
+        outcome = await (research.run_build(dossier.domain, on_spend) if shared is None
+                         else research.run_build(dossier.domain, on_spend, shared))
     except asyncio.CancelledError:
         # Cancelled by a reset or import: that state no longer exists, so nothing is applied.
         raise

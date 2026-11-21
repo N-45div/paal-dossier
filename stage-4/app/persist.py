@@ -16,7 +16,8 @@ from typing import Any
 from app.candidates import Candidate
 from app.feed import FeedRow
 from app.records import BuildRecord, PageVersion
-from app.state import Dossier, IdemRecord, State, User
+from app.budget import SharedBudget
+from app.state import Batch, Dossier, IdemRecord, State, User
 
 FORMAT = "dossier-state"
 VERSION = 1
@@ -123,6 +124,11 @@ def state_json(state: State, *, exporting: bool = False) -> dict[str, Any]:
             for k, rec in state.idempotency.items()
         ],
         "feed": feed_json(state.feed),
+        "batches": [
+            {"id": b.id, "user_id": b.user_id, "budget_units": b.budget.limit,
+             "spent_units": b.budget.spent, "domains": list(b.domains), "started": list(b.started)}
+            for b in state.batches.values()
+        ],
     }
 
 
@@ -143,6 +149,11 @@ def state_from(raw: dict[str, Any]) -> State:
         state.idempotency[(i["user_id"], i["key"], i["method"], i["path"])] = IdemRecord(
             canonical=i["canonical"], body=i["body"])
     state.feed = feed_from(raw["feed"])
+    for b in raw.get("batches", []):
+        batch = Batch(id=b["id"], user_id=b["user_id"],
+                      budget=SharedBudget(b["budget_units"], b["spent_units"]),
+                      domains=list(b["domains"]), started=list(b["started"]))
+        state.batches[batch.id] = batch
     return state
 
 

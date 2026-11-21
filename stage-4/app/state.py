@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from aiohttp import web
 
+from app.budget import SharedBudget
 from app.candidates import Candidate
 from app.clock import Clock
 from app.feed import FeedRow
@@ -70,6 +71,18 @@ class Dossier:
 
 
 @dataclass
+class Batch:
+    """A batch (stage 4, R4C): its owner, its shared budget, its normalised domains in the order
+    given, and the domains whose builds it started (its state is running while one runs)."""
+
+    id: str
+    user_id: str
+    budget: SharedBudget
+    domains: list[str]
+    started: list[str] = field(default_factory=list)
+
+
+@dataclass
 class IdemRecord:
     """A completed idempotent request: its canonical body and the original response body."""
 
@@ -92,6 +105,8 @@ class State:
     # The change feed, append-only, and the seq the next entry takes (Rul-S3-4).
     feed: list[FeedRow] = field(default_factory=list)
     next_seq: int = 1
+    # batch id -> batch (stage 4, R4C)
+    batches: dict[str, Batch] = field(default_factory=dict)
 
 
 class Store:
