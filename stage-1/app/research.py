@@ -6,6 +6,7 @@ research engine (PC) replaces this file entirely and keeps these names and shape
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 FIELD_NAMES: tuple[str, ...] = (
@@ -41,6 +42,11 @@ def unknown_fields() -> dict[str, FieldResult]:
     return {name: FieldResult() for name in FIELD_NAMES}
 
 
-async def run_build(domain: str) -> BuildOutcome:
-    """Placeholder: research nothing, spend nothing, report failure."""
+async def run_build(
+    domain: str, on_spend: Callable[[int], None] | None = None
+) -> BuildOutcome:
+    """Placeholder: research nothing, spend nothing, report failure.
+
+    `on_spend(units)` reports each reservation (negative when released). The placeholder
+    makes no call, so it never reports; `spent_units` is the net of what was reported."""
     return BuildOutcome(ok=False, spent_units=0, fields=unknown_fields())
