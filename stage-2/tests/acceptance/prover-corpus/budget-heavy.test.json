@@ -1,0 +1,751 @@
+{
+ "domain": "budget-heavy.test",
+ "names": [
+  "Budget Heavy Co"
+ ],
+ "pages": [
+  {
+   "url": "https://budget-heavy.test/page-0",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 0",
+   "text": "Budget Heavy Co update 0: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 0 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-1",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 1",
+   "text": "Budget Heavy Co update 1: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 1 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-2",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 2",
+   "text": "Budget Heavy Co update 2: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 2 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-3",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 3",
+   "text": "Budget Heavy Co update 3: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 3 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-4",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 4",
+   "text": "Budget Heavy Co update 4: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 4 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-5",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 5",
+   "text": "Budget Heavy Co update 5: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 5 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-6",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 6",
+   "text": "Budget Heavy Co update 6: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 6 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-7",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 7",
+   "text": "Budget Heavy Co update 7: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 7 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-8",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 8",
+   "text": "Budget Heavy Co update 8: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 8 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-9",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 9",
+   "text": "Budget Heavy Co update 9: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 9 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-10",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 10",
+   "text": "Budget Heavy Co update 10: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 10 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-11",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 11",
+   "text": "Budget Heavy Co update 11: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 11 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-12",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 12",
+   "text": "Budget Heavy Co update 12: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 12 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-13",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 13",
+   "text": "Budget Heavy Co update 13: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 13 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-14",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 14",
+   "text": "Budget Heavy Co update 14: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 14 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-15",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 15",
+   "text": "Budget Heavy Co update 15: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 15 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-16",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 16",
+   "text": "Budget Heavy Co update 16: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 16 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-17",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 17",
+   "text": "Budget Heavy Co update 17: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 17 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-18",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 18",
+   "text": "Budget Heavy Co update 18: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 18 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-19",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 19",
+   "text": "Budget Heavy Co update 19: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 19 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-20",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 20",
+   "text": "Budget Heavy Co update 20: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 20 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-21",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 21",
+   "text": "Budget Heavy Co update 21: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 21 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-22",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 22",
+   "text": "Budget Heavy Co update 22: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 22 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-23",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 23",
+   "text": "Budget Heavy Co update 23: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 23 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-24",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 24",
+   "text": "Budget Heavy Co update 24: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 24 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-25",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 25",
+   "text": "Budget Heavy Co update 25: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 25 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-26",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 26",
+   "text": "Budget Heavy Co update 26: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 26 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-27",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 27",
+   "text": "Budget Heavy Co update 27: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 27 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-28",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 28",
+   "text": "Budget Heavy Co update 28: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 28 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-29",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 29",
+   "text": "Budget Heavy Co update 29: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 29 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-30",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 30",
+   "text": "Budget Heavy Co update 30: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 30 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-31",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 31",
+   "text": "Budget Heavy Co update 31: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 31 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-32",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 32",
+   "text": "Budget Heavy Co update 32: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 32 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-33",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 33",
+   "text": "Budget Heavy Co update 33: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 33 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-34",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 34",
+   "text": "Budget Heavy Co update 34: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 34 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-35",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 35",
+   "text": "Budget Heavy Co update 35: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 35 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-36",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 36",
+   "text": "Budget Heavy Co update 36: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 36 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-37",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 37",
+   "text": "Budget Heavy Co update 37: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 37 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-38",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 38",
+   "text": "Budget Heavy Co update 38: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 38 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-39",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 39",
+   "text": "Budget Heavy Co update 39: Budget Heavy Co is based in Lisbon. Budget Heavy Co shares notes number 39 about its sensors and its customers.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  },
+  {
+   "url": "https://budget-heavy.test/page-99",
+   "kind": "own",
+   "epochs": [
+    0
+   ],
+   "searchable": true,
+   "published_at": "2026-02-01T00:00:00Z",
+   "true_from": "2026-01-15",
+   "title": "budget-heavy.test page 99",
+   "text": "Budget Heavy Co was founded in 2011. Budget Heavy Co employs about 120 people. Budget Heavy Co has raised $12M in total funding.",
+   "facts": {},
+   "lineage": {
+    "canonical": null,
+    "first_published_by": null,
+    "registrant": "budget-heavy.test"
+   }
+  }
+ ],
+ "research": {
+  "nimble": {
+   "0": []
+  }
+ }
+}

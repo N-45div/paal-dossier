@@ -27,9 +27,21 @@ WEB_IMG=prover-stage1-web
 SVC_IMG=prover-stage1-svc
 PY=${PYTHON:-python3}
 
-cleanup() {
+# Merged corpus: the sample set (without its check file key.json and its traits) plus the
+# Prover's own companies in prover-corpus/ (budget-heavy, trap-co) and their traits.
+MERGED=$(mktemp -d /tmp/prover-corpus.XXXXXX)
+for f in "$CORPUS"/*.json; do
+  case "$(basename "$f")" in key.json|traits.json) ;; *) cp "$f" "$MERGED/" ;; esac
+done
+cp "$HERE"/prover-corpus/*.json "$MERGED/"
+
+containers_down() {
   docker rm -f "$SVC" "$WEB" >/dev/null 2>&1 || true
   docker network rm "$NET" >/dev/null 2>&1 || true
+}
+cleanup() {
+  containers_down
+  rm -rf "$MERGED"
 }
 trap cleanup EXIT INT TERM
 
@@ -39,14 +51,14 @@ trap cleanup EXIT INT TERM
 # contract: PORT, NIMBLE_API_KEY, NIMBLE_BASE_URL, TAVILY_API_KEY, TAVILY_BASE_URL; keys are
 # opaque non-empty strings), R1.44-R1.47 (CPU 2 and memory 3 GiB, via --cpus and --memory;
 # health within 60 s), R1.56-R1.57 (health within 60 s of start).
-cleanup
+containers_down
 docker build -q -t "$WEB_IMG" "$MOCK_SRC" >/dev/null
 docker build -q -t "$SVC_IMG" "$STAGE" >/dev/null
 docker network create "$NET" >/dev/null
 
 docker run -d --name "$WEB" --network "$NET" \
   -e MOCK_ADMIN_TOKEN="$MOCK_ADMIN" \
-  -v "$CORPUS:/data/corpus:ro" \
+  -v "$MERGED:/data/corpus:ro" \
   -p "127.0.0.1:$MOCK_PORT:8080" "$WEB_IMG" >/dev/null
 
 docker run -d --name "$SVC" --network "$NET" \
