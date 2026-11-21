@@ -105,3 +105,18 @@ def test_retrieved_at_is_the_build_time_of_the_last_ready_build(env):
     d1 = _build(env, RANK)
     assert all(c["retrieved_at"] == d1["researched_at"]
                for f in d1["fields"].values() for c in f["candidates"])
+
+
+DUP = "dup-co.test"
+
+
+def test_one_candidate_per_value_per_page_even_with_two_excerpts(env):
+    # Rul-S2-8: one candidate per (field, value, url); two supporting sentences on one page
+    # give one candidate, whose excerpt is the first supporting sentence in reading order.
+    d = _build(env, DUP)
+    fld = d["fields"]["founded_year"]
+    keys = [(c["value"], c["url"]) for c in fld["candidates"]]
+    assert keys == [(2010, f"https://{DUP}/about")], keys
+    assert fld["candidates"][0]["excerpt"] == "Dup Co was founded in 2010.", fld["candidates"][0]["excerpt"]
+    assert fld["status"] == "known"
+    _check_field_selection("founded_year", fld, d, DUP)
