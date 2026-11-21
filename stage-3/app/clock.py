@@ -50,6 +50,11 @@ class Clock:
             return datetime.now(timezone.utc)
         return self._fixed
 
+    @property
+    def fixed(self) -> datetime | None:
+        """The fixed time once set, else None (system time). Persisted with the state."""
+        return self._fixed
+
     def set(self, when: datetime) -> None:
         """Move the clock forward to `when`; an earlier time is a validation error."""
         if when < self.now():

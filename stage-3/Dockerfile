@@ -12,6 +12,10 @@ RUN pip install -r requirements.txt
 
 COPY app ./app
 
+# Durable state lives on the container filesystem (Rul-S3-2); the path can be overridden.
+RUN mkdir -p /srv/dossier/data
+ENV DOSSIER_DATA_DIR=/srv/dossier/data
+
 ENV PORT=8080
 EXPOSE 8080
 

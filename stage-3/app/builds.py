@@ -60,6 +60,7 @@ async def _run(store: Store, dossier: Dossier, generation: int, built_at: dateti
     if store.state.generation != generation:
         return  # a reset or import replaced this state while the build ran
     apply_outcome(store.state, dossier, outcome, built_at, spend.total)
+    store.save()
 
 
 def apply_outcome(state: State, dossier: Dossier, outcome: BuildOutcome, built_at: datetime,

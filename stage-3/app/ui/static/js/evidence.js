@@ -2,7 +2,7 @@
 import { call, errorMessage, NetworkError } from "/static/js/api.js";
 import { clearSession } from "/static/js/session.js";
 import { createLatestReads } from "/static/js/latest.js";
-import { FIELD_LABELS, formatValue, formatWhen, providerLabel } from "/static/js/format.js";
+import { FIELD_LABELS, formatValue, formatWhen, providerLabel, sixFields } from "/static/js/format.js";
 
 const root = document.getElementById("evidence-root");
 const domain = root.dataset.domain;
@@ -72,7 +72,7 @@ function renderField(name, field) {
 
 function renderFields(dossier) {
   fieldsBox.replaceChildren(
-    ...Object.entries(dossier.fields).map(([name, field]) => renderField(name, field)),
+    ...sixFields(dossier.fields).map(([name, field]) => renderField(name, field)),
   );
 }
 

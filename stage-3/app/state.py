@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from aiohttp import web
 
@@ -16,6 +17,9 @@ from app.feed import FeedRow
 from app.history import Selected, views
 from app.records import BuildRecord
 from app.selection import Decision, decide
+
+if TYPE_CHECKING:
+    from app.persist import Persister
 
 
 @dataclass
@@ -91,10 +95,17 @@ class State:
 
 
 class Store:
-    def __init__(self, clock: Clock) -> None:
+    def __init__(self, clock: Clock, persister: "Persister | None" = None) -> None:
         self.clock = clock
         self.state = State()
         self.build_tasks: set[asyncio.Task] = set()
+        self.persister = persister
+
+    def save(self) -> None:
+        """Write the state durably. Called before a response that acknowledges a change is sent,
+        and when a build completes (Rul-S3-2). A store without a persister keeps state in memory."""
+        if self.persister is not None:
+            self.persister.save(self.state, self.clock.fixed)
 
     def replace(self, new_state: State) -> None:
         """Swap in a whole new state (reset, import). Running builds are cancelled, and any
