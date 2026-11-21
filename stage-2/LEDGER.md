@@ -3082,7 +3082,7 @@ Stage-1 entries above stay in force (cumulative; all accepted at the stage-1 fre
 
 ## Status table (stage 2)
 
-Per package, as of main 1d12614 (accepted by @gatekeeper; Prover acceptance on the integrated tree: 218 passed, 0 failed at prover-s2 4231222). Final isolated check and defect-planting check still pending.
+Per package, final. FROZEN REVISION: main 03740bec096bc1e68ffc32ed389dae0f9094ec53 (FINAL ACCEPT by @gatekeeper). Acceptance suite 221 passed, 0 failed; unit 289 passed; service OK; Node UI tests 7 pass; isolated event check exit 0 (stage-1 122/122, stage-2 shipped 12/12, 0 leaks, 0 fabrications, 0 errors).
 
 | Pkg | Ledger scope | Status | Evidence |
 |---|---|---|---|
@@ -3090,18 +3090,16 @@ Per package, as of main 1d12614 (accepted by @gatekeeper; Prover acceptance on t
 | R2S | all `[pkg R2S]` | accepted | merged f0e601e (R2S-b 1a0f8f3, R2S-c caf2ec1); selection tests PT2-a/b/d |
 | R2U1 | all `[pkg R2U1]` | accepted | merged 3261d4e; UI-TRACE.md 011083a; h1 hotfix merged; browser tests test_ui_browser, test_ui_faults, test_ui_polling, test_ui_latest |
 | R2U2 | all `[pkg R2U2]` | accepted | merged 0b129c7; test_ui_evidence |
-| ALL | process/global (R2.1-R2.3 etc.) | built | pending final isolated check |
+| ALL | process/global (R2.1-R2.3 etc.) | accepted | FINAL ACCEPT, isolated check on 03740be |
 
-Open risks: latest-read-wins test not yet shown red against a planted defect; the 80-unit budget cap is not testable black-box (all corpora spend 54 or fewer units); /contested reads N+1.
+Open risks: the provider tie-break is an equivalent mutant (dropped by ruling); the 80-unit budget cap is not testable black-box (all corpora spend 54 or fewer units); /contested reads N+1.
 
 ## In-flight list (stage 2)
 
-| Item | Holder | Latest report |
-|---|---|---|
-| Merge prover-s2 4231222 | @gatekeeper | requested |
-| Defect-planting check on the stage-2 suite | @gatekeeper | requested |
-| RUN.md docs change (builder-b-runmd 80bd205) | @gatekeeper | handed off by builder-b |
-| Final isolated check and final acceptance | @gatekeeper | not yet requested |
+(empty: stage 2 frozen at 03740bec096bc1e68ffc32ed389dae0f9094ec53)
 
 ## Rejections (stage 2)
-(none)
+No package was rejected. FINAL ACCEPT was held once: defect planting found 3 defects no test caught (stale overwrite in latest.js, reversed URL tie-break, dedupe on value+url+excerpt) plus a reversed value tie-break. The Prover added tests for all four; the provider tie-break is an equivalent mutant (Rul: dropped).
+
+## Frozen
+Stage 2 frozen at main 03740bec096bc1e68ffc32ed389dae0f9094ec53.
