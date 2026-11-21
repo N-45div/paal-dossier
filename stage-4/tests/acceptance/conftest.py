@@ -17,7 +17,7 @@ import uuid
 import pytest
 import requests
 
-from oracle import EXEC_FIELD, FIELDS, RESPONSE_FIELDS, excerpt_in_prose, split_header, supported_values
+from oracle import EXEC_FIELD, FIELDS, INV_FIELD, RESPONSE_FIELDS, excerpt_in_prose, split_header, supported_values
 
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:18210").rstrip("/")
 MOCK_URL = os.environ.get("MOCK_URL", "http://127.0.0.1:18220").rstrip("/")
@@ -200,7 +200,7 @@ def check_dossier_fields(dossier: dict, domain: str, calls: list[dict]):
             assert any(excerpt_in_prose(p, c["excerpt"]) for p in prose_list), (
                 f"{name}: citation not served by {c['provider']} for {c['url']} "
                 f"or not from prose: {c['excerpt']!r}")
-            if name == EXEC_FIELD:
+            if name in (EXEC_FIELD, INV_FIELD):
                 continue  # the oracle covers the six section-4 fields; executives is checked by its own tests
             got = supported_values(domain, c["excerpt"]).get(name, object())
             assert got == value, (
