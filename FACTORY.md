@@ -231,9 +231,21 @@ that carry the Gatekeeper's word, so a message that rules on two handoffs counts
   window to reset; `billing-guard.sh` slept through each limit and restarted every seat,
   which resumed its pending work with nothing lost. A larger subscription would cut the
   pauses without changing anything else.
-- **Model spend.** Flat: the Pro subscription, no per-token billing. The room log holds 9,589
-  messages, including 3,297 tool calls, 391 text messages and 13 error messages (all of them
-  Pro-limit notices).
+- **Model spend: $56.15 at Anthropic list prices for all four stages,** measured from the
+  seats' own Claude Code session logs with [`setup/spend.py`](setup/spend.py). The run was
+  paid for by one Claude Pro subscription; the dollar figure is what the same tokens cost on
+  the API.
+
+  | Model (seats) | Requests | Tokens | List price |
+  |---|---|---|---|
+  | claude-sonnet-5-5 (Lead, Gatekeeper) | 1,045 | 147.0 M | $27.74 |
+  | claude-haiku-5-5 (Builder A, Builder B, Prover) | 2,173 | 454.5 M | $28.41 |
+
+  97% of the tokens are cache reads. Haiku 5.5 bills a request whose prompt is over 100,000
+  tokens at its higher rate, and 1,682 of the 2,173 Haiku requests were over that line;
+  keeping seat contexts short is the cheapest saving left.
+- **Room volume.** The room log holds 9,589 messages, including 3,297 tool calls, 391 text
+  messages and 13 error messages (all of them Pro-limit notices).
 - **What rejections changed.** In stage 4 two handoffs were rejected, both for traceability:
   they cited ledger rows that no test named. The builders added the missing tests, and the
   work was accepted on resubmission. In the same stage, a budget test failed only when it ran

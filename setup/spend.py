@@ -11,12 +11,16 @@ session). Claude is priced at list rates below; Codex prices are not built in, p
 import argparse, collections, glob, json, os
 from datetime import datetime, timezone
 
-# USD per million tokens: input, output, cache read, cache write (5-minute, 1.25x input)
+# Anthropic list prices, USD per million tokens (platform.claude.com/docs/en/about-claude/pricing,
+# read 2026-11-26): input, 5-minute cache write, 1-hour cache write, cache read, output.
+# Each request is priced on its own; a rate may depend on the request's prompt length
+# (input + cache reads + cache writes): Claude Haiku 5.5 bills prompts over 100,000 tokens higher.
 CLAUDE = {
-    "claude-fable-5-2": (8.00, 40.00, 0.20, 10.00),
-    "claude-opus-5-5": (4.00, 20.00, 0.20, 5.00),
-    "claude-sonnet-5-5": (2.00, 10.00, 0.10, 2.50),
-    "claude-haiku-5-5": (0.10, 0.50, 0.01, 0.125),
+    "claude-fable-5-2": lambda p: (8.00, 10.00, 16.00, 0.20, 40.00),
+    "claude-opus-5-5": lambda p: (4.00, 5.00, 8.00, 0.20, 20.00),
+    "claude-sonnet-5-5": lambda p: (2.00, 2.50, 4.00, 0.10, 10.00),
+    "claude-haiku-5-5": lambda p: (0.10, 0.125, 0.20, 0.01, 0.50) if p <= 100_000
+    else (0.50, 0.625, 1.00, 0.05, 2.50),
 }
 
 
@@ -41,12 +45,19 @@ def claude(since, until):
             if not u or not in_window(ts(d.get("timestamp")), since, until) or mid in seen:
                 continue
             seen.add(mid)
+            i, r, w, o = (u.get(k) or 0 for k in ("input_tokens", "cache_read_input_tokens",
+                                                   "cache_creation_input_tokens", "output_tokens"))
+            w1 = (u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens") or 0
             c = tot[m.get("model", "?")]
-            c["in"] += u.get("input_tokens", 0)
-            c["out"] += u.get("output_tokens", 0)
-            c["cache_read"] += u.get("cache_read_input_tokens", 0)
-            c["cache_write"] += u.get("cache_creation_input_tokens", 0)
+            c["in"] += i
+            c["out"] += o
+            c["cache_read"] += r
+            c["cache_write"] += w
             c["messages"] += 1
+            price = CLAUDE.get(m.get("model"))
+            if price:
+                pin, p5, p1, pr, pout = price(i + r + w)
+                c["usd_micro"] += round(i * pin + (w - w1) * p5 + w1 * p1 + r * pr + o * pout)
     return tot
 
 
@@ -86,7 +97,7 @@ def main():
     print(f"{'model':22} {'input':>12} {'cache read':>14} {'cache write':>12} {'output':>11} {'USD':>9}")
     for model, c in sorted(claude(since, until).items()):
         p = CLAUDE.get(model)
-        usd = (c["in"] * p[0] + c["out"] * p[1] + c["cache_read"] * p[2] + c["cache_write"] * p[3]) / 1e6 if p else 0.0
+        usd = c["usd_micro"] / 1e6
         total += usd
         print(f"{model:22} {c['in']:>12,} {c['cache_read']:>14,} {c['cache_write']:>12,} {c['out']:>11,} {usd:>9.2f}{'' if p else ' (unpriced)'}")
     for model, c in sorted(codex(since, until).items()):

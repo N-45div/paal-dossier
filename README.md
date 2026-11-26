@@ -19,7 +19,9 @@ line under `stage-1/` to `stage-4/` came out of the room log in `room.json`.
 `python -m harness run --track dossier --all` prints `claimed stage: 4`, and each
 `stage-N/` folder claims its own stage. The dispatch went out at 05:07 UTC and stage 4
 froze at 17:30 UTC. That was about 5 hours of seat work; for the rest of the time, every
-seat waited for the Claude Pro usage window to reset. The table in
+seat waited for the Claude Pro usage window to reset. Model spend for all four stages was
+**$56.15 at Anthropic list prices**: 601 M tokens, 97% of them cache reads, measured from the
+seats' own session logs. The run itself was paid for by one Claude Pro subscription. The table in
 [FACTORY.md](FACTORY.md#measured-cost-and-time) breaks this down by stage.
 
 ## How to read this repository
