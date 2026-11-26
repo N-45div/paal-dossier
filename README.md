@@ -24,6 +24,54 @@ seat waited for the Claude Pro usage window to reset. Model spend for all four s
 seats' own session logs. The run itself was paid for by one Claude Pro subscription. The table in
 [FACTORY.md](FACTORY.md#measured-cost-and-time) breaks this down by stage.
 
+**Research economy.** On the kickoff's sample mock web, frozen stage 4 found all 48 of 48
+fields for the six companies with an answer key, at **5.62 Nimble units per correct field**.
+The units come from the mock's own priced call log, and the service's self-reported spend
+matched it to the unit. See
+[FACTORY.md](FACTORY.md#research-economy-measured-on-the-sample-mock-web).
+
+## Where Nimble is used
+
+- **Nimble is the service's only research provider,** called through WebRouter
+  (`stage-4/app/gateway.py`). Each build:
+  1. Starts one Nimble research run with a structured schema.
+  2. Runs five `lite` Nimble searches at the same time (1 unit each).
+  3. Extracts the pages the searches found.
+  4. Extracts the pages the research run cites.
+
+  Every value the service returns quotes an excerpt from a page Nimble served.
+- **Every call is paid for before it is sent.** The gateway reserves the call's cost against
+  the build's 80-unit cap and the batch budget. A call Nimble refuses costs nothing, and a 429
+  is retried after at least 1.05 seconds, up to four attempts.
+- **Measured, not guessed:**
+  - On the mock: 43 to 49 units per company, 5.62 per correct field.
+  - On the live web: the stage 4 build researched 15 real companies through Nimble's live API
+    (table below), at 52 to 59 units each. Every build finished `ready`, even while Nimble's
+    extract endpoint returned HTTP 500s.
+- **`dossier-runway.com.json`** is a live Nimble build of `stage-4/`, saved verbatim.
+
+## Where Band is used
+
+- **One Band Desktop room holds the whole run:** the dispatch, every handoff, verdict,
+  rejection, ruling and freeze, between five seats. Its full session is committed unedited
+  as `room.json`.
+- **Seats reach each other only by `@` mention,** so every handoff carries the whole task:
+  960 seat-to-seat mentions across 21 seat pairs, against a single message from the human.
+- **The Git history is the seats' own,** pushed without amending, rebasing or squashing.
+  Everything reached `main` through the Gatekeeper's merges. Commits per seat and lines per
+  seat are in [FACTORY.md](FACTORY.md#teamwork-evidence).
+
+## Where Cognee is used
+
+- **Cognee Cloud is the factory's shared memory** (dataset `paal-org-brain`, over MCP).
+  Before the run it held the lessons of runs 1 to 5, and the Lead recalled them at its first
+  step.
+- **A memory scribe copied every decision from the room as it happened:** 136 verdicts,
+  rulings and freezes. The memory now answers questions about the run; see
+  [Ask the memory](#ask-the-memory) below.
+- **The live-web findings are stored there too,** so the next run starts from what the real
+  web got wrong.
+
 ## How to read this repository
 
 | Path | What it is |

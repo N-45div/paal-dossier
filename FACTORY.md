@@ -255,6 +255,74 @@ that carry the Gatekeeper's word, so a message that rules on two handoffs counts
   outside the repository, along with each service log; see `dossier-runway.com.json` in the
   result repository for the final one.
 
+### Research economy, measured on the sample mock web
+
+[`setup/economy-check.sh`](setup/economy-check.sh) builds a frozen stage and researches
+every company in the kickoff's sample corpus that has an answer key. It resets the mock
+before each company and counts units from the mock's own priced call log, not from what the
+service reports. On frozen stage 4 (`4933316`):
+
+| Company | Units | Correct fields |
+|---|---|---|
+| halvorsen-robotics.test (economy) | 49 | 8 / 8 |
+| corvid-security.test (economy) | 44 | 8 / 8 |
+| pemberton-analytics.test | 46 | 8 / 8 |
+| mosaic-freight.test | 44 | 8 / 8 |
+| windrush-bakery.test | 44 | 8 / 8 |
+| ashgrove-solar.test | 43 | 8 / 8 |
+| **Total** | **270** | **48 / 48** |
+
+- **5.62 units per correct field,** with every field right. The two companies tagged
+  `economy` that have a key cost 5.81 per correct field.
+- **Where the units go,** per build: one Nimble research run (25 units), five `lite`
+  searches (5 units) and 13 to 19 page extracts (1 unit each). The research run is more than
+  half of every build, so it is the first place to cut.
+- **The service's own count is exact.** Its `spent_units` matched the mock's call log to the
+  unit for every company.
+- **Caveat:** the judges' stage 4 workload is larger and is scored against their own
+  benchmark. This is the same measurement on the public sample, not their score.
+
+### Teamwork evidence
+
+Read from Git and the room log of run 6, between the dispatch and the final report:
+
+- **One human message:** the dispatch at 05:07:20 UTC. Every other message in the room was
+  sent by a seat.
+- **The seats talk to each other, not through a hub:** 960 seat-to-seat `@` mentions across
+  21 distinct seat pairs.
+
+  | Seat | Text messages |
+  |---|---|
+  | Lead | 120 |
+  | Gatekeeper | 72 |
+  | Builder A | 69 |
+  | Prover | 67 |
+  | Builder B | 62 |
+
+- **The code is spread across seats.** Lines added under `stage-*/` in non-merge commits on
+  `main`:
+
+  | Seat | Lines added | Note |
+  |---|---|---|
+  | Prover | about 8,700 | |
+  | Builder A | about 6,800 | |
+  | Builder B | about 2,500 | |
+  | Gatekeeper | about 2,200 | |
+  | Lead | about 4,900 | ledgers only |
+
+  The Lead's three "Stage N starts as a plain copy of frozen stage N−1" commits add another
+  42,536 lines. Those are the folder carry-forward the guide asks for, not new code.
+- **Merges:** everything reached `main` through the Gatekeeper's 61 merge commits:
+  accepted handoffs, the Prover's test suites, and the Lead's stage seeds and ledgers.
+- **Git identities:** some seats' commits carry two spellings of their name (`Prover` and
+  `prover`, `Builder B` and `builder-b`), because the worktrees configured Git differently.
+  They are the same seats.
+- **Delivery time:** the first seat message was at 05:07:28 UTC and the final report at
+  17:30:40 UTC on 2026-11-21. The room also holds two "no reply needed" tool calls from
+  Builder A and the Prover at 14:08 UTC on 2026-11-23. Band Desktop reconnected when we opened
+  the room to download it, and the seats marked an old message as read. They wrote no text
+  and made no commits.
+
 ## What we tried that failed
 
 - **Claude Code seats could not start on Band Desktop 0.4.18 for Linux.** Every turn ended
