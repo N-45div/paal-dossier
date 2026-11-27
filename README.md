@@ -27,8 +27,19 @@ seats' own session logs. The run itself was paid for by one Claude Pro subscript
 **Research economy.** On the kickoff's sample mock web, frozen stage 4 found all 48 of 48
 fields for the six companies with an answer key, at **5.62 Nimble units per correct field**.
 The units come from the mock's own priced call log, and the service's self-reported spend
-matched it to the unit. See
-[FACTORY.md](FACTORY.md#research-economy-measured-on-the-sample-mock-web).
+matched it to the unit. Those six companies have no traps; on harder cases the service does
+worse. See [FACTORY.md](FACTORY.md#research-economy-measured-on-the-sample-mock-web).
+
+**What it got wrong.** FACTORY.md has a section on what the band missed, and why. In short:
+- A ruling wrongly waived browser-rendered page text, so four sample companies return a stale
+  value.
+- A batch with a tight budget returns nothing.
+- Earlier folders' tests and ledgers were touched minutes after the next specification was
+  open.
+
+It also lists everything that ran outside the room during the run: restarts, the usage-limit
+guard, and live checks. See [What the factory missed](FACTORY.md#what-the-factory-missed-and-why)
+and [the operator and automation log](FACTORY.md#operator-and-automation-log-run-6).
 
 ## Where Nimble is used
 
@@ -56,7 +67,7 @@ matched it to the unit. See
   rejection, ruling and freeze, between five seats. Its full session is committed unedited
   as `room.json`.
 - **Seats reach each other only by `@` mention,** so every handoff carries the whole task:
-  960 seat-to-seat mentions across 21 seat pairs, against a single message from the human.
+  957 seat-to-seat mentions across 20 seat pairs, against a single message from the human.
 - **The Git history is the seats' own,** pushed without amending, rebasing or squashing.
   Everything reached `main` through the Gatekeeper's merges. Commits per seat and lines per
   seat are in [FACTORY.md](FACTORY.md#teamwork-evidence).
@@ -122,16 +133,23 @@ truth is public knowledge as of 2026. ✔ means right, ✘ wrong, · not found.
 
 **Totals:** CEO 11 of 15, HQ city 8 of 15, founding year 10 of 15, 83 of 120 fields filled.
 
-**How far to trust a value:** the service marks each value `known` or `contested`.
+**How far to trust a value:** the service marks each value `known` or `contested`. On the
+three scored facts (CEO, HQ city, founding year):
 
 | Marked | Right | Wrong |
 |---|---|---|
 | `known` | 13 | 1 |
 | `contested` | 16 | 10 |
 
-Every wrong value but one was flagged `contested` and carries the citation that misled it.
-For example, Vercel's "CEO" comes from a headline about its CEO's photo with a head of
-state. [FACTORY.md](FACTORY.md#memory-and-live-research) lists the failure patterns.
+On those three facts, every wrong value but one was flagged `contested` and carries the
+citation that misled it. For example, Vercel's "CEO" comes from a headline about its CEO's
+photo with a head of state.
+
+The other fields are weaker. Executives include role words read as names, such as Runway's
+"CTO: Computer Science", marked `known`. Funding totals often come from the wrong round or
+the wrong company. `dossier-runway.com.json` gets Runway's CEO right and is wrong or unknown
+on the other base fields. [FACTORY.md](FACTORY.md#memory-and-live-research) lists the failure
+patterns.
 
 ## Ask the memory
 

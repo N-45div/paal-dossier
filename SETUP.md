@@ -100,13 +100,20 @@ calls appear in the public room log, so nothing secret goes into memory.
 Every seat: **Working directory** `/home/<you>/buildathon`; **Choose instructions file** ->
 `~/buildathon/factory-kit/mandates/<seat>.md`; run **Test runtime** before saving.
 
-| Name | Handle | Runtime | Model: rehearsal / judged run | Permissions |
+The submitted run (run 6) used the models below, all on one Claude subscription.
+`bash setup/create-seats.sh claude` creates exactly this band.
+
+| Name | Handle | Runtime | Model (effort) | Permissions |
 |---|---|---|---|---|
-| Lead | `lead` | Claude Code | Haiku 5.5 / Opus 5.5 | Permission mode **Auto** |
-| Builder A | `builder-a` | Claude Code | Haiku 5.5 / Sonnet 5.5 | **Auto** |
-| Builder B | `builder-b` | Claude Code | Haiku 5.5 / Sonnet 5.5 | **Auto** |
-| Prover | `prover` | Codex | cheap Codex model / Codex default | Approval **Never ask**, tool access **Full access** |
-| Gatekeeper | `gatekeeper` | Codex | cheap Codex model / Codex default | **Never ask**, **Full access** |
+| Lead | `lead` | Claude Code | claude-sonnet-5-5 (high) | Permission mode **Auto** |
+| Builder A | `builder-a` | Claude Code | claude-haiku-5-5 (medium) | **Auto** |
+| Builder B | `builder-b` | Claude Code | claude-haiku-5-5 (medium) | **Auto** |
+| Prover | `prover` | Claude Code | claude-haiku-5-5 (medium) | **Auto** |
+| Gatekeeper | `gatekeeper` | Claude Code | claude-sonnet-5-5 (medium) | **Auto** |
+
+Earlier runs put the Prover and Gatekeeper on Codex with other model families (approval
+**Never ask**, tool access **Full access**). `create-seats.sh` still supports that, but every
+third-party provider we tried failed mid-run; see FACTORY.md, "What we tried that failed".
 
 Claude Code seats: **Claude customizations** = Use my Claude setup; **MCP servers** = inherit
 yours (needed for Cognee). After choosing models, copy the exact model id and effort into the
